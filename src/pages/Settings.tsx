@@ -144,21 +144,11 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="border-b border-border bg-background">
-        <div className="container max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-xl font-semibold">Settings</h1>
-          </div>
-        </div>
-      </header>
+    <div className="h-full bg-muted/30">
 
-      <ScrollArea className="h-[calc(100vh-65px)]">
-        <div className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <ScrollArea className="h-full">
+        <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
+          <h1 className="text-2xl font-semibold">Settings</h1>
           {/* Profile Section */}
           <Card>
             <CardHeader>

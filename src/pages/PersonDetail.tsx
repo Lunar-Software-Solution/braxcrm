@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Mail, Phone, Building2, Send, Clock, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { 
+  Mail, Phone, Building2, Send, Clock, ArrowDownLeft, ArrowUpRight,
+  Linkedin, Twitter, MapPin, Edit, Trash2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCRM } from "@/hooks/use-crm";
 import { useToast } from "@/hooks/use-toast";
 import type { Person, EmailMessage } from "@/types/crm";
@@ -62,7 +65,7 @@ export default function PersonDetail() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-full flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -70,162 +73,259 @@ export default function PersonDetail() {
 
   if (!person) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center">
         <p className="text-muted-foreground mb-4">Person not found</p>
-        <Button onClick={() => navigate("/people")}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to People
-        </Button>
+        <Button onClick={() => navigate("/people")}>Back to People</Button>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b p-4">
-        <Button variant="ghost" onClick={() => navigate("/people")} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to People
-        </Button>
-        <div className="flex items-start gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={person.avatar_url} />
-            <AvatarFallback className="text-xl">{getInitials(person.name)}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold">{person.name}</h1>
-            {person.title && (
-              <p className="text-muted-foreground">{person.title}</p>
-            )}
-            <div className="flex flex-wrap gap-4 mt-2 text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span>{person.email}</span>
+    <div className="h-full flex bg-background">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b p-6">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={person.avatar_url} />
+              <AvatarFallback className="text-xl">{getInitials(person.name)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{person.name}</h1>
+                {person.is_auto_created && (
+                  <Badge variant="outline" className="text-xs">Auto-created</Badge>
+                )}
               </div>
-              {person.phone && (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{person.phone}</span>
-                </div>
+              {person.title && (
+                <p className="text-muted-foreground">{person.title}</p>
               )}
-              {person.company && (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Building2 className="h-4 w-4" />
-                  <span>{person.company.name}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                <a href={`mailto:${person.email}`} className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                  <Mail className="h-4 w-4" />
+                  <span>{person.email}</span>
+                </a>
+                {person.phone && (
+                  <a href={`tel:${person.phone}`} className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span>{person.phone}</span>
+                  </a>
+                )}
+                {person.company && (
+                  <button 
+                    onClick={() => navigate("/companies")}
+                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>{person.company.name}</span>
+                  </button>
+                )}
+                {person.city && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{person.city}</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2 mt-2">
+                {person.linkedin_url && (
+                  <a
+                    href={person.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    <Linkedin className="h-4 w-4" />
+                  </a>
+                )}
+                {person.twitter_handle && (
+                  <a
+                    href={`https://x.com/${person.twitter_handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon">
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button>
+                <Send className="h-4 w-4 mr-2" />
+                Compose
+              </Button>
             </div>
           </div>
-          <Button>
-            <Send className="h-4 w-4 mr-2" />
-            Compose Email
-          </Button>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Activity Timeline */}
-        <div className="flex-1 border-r">
-          <div className="p-4 border-b">
-            <h2 className="font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Email Activity
-              <Badge variant="secondary">{emails.length}</Badge>
-            </h2>
-          </div>
-          <ScrollArea className="h-[calc(100vh-220px)]">
-            {emails.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                No email activity yet
-              </div>
-            ) : (
-              <div className="divide-y">
-                {emails.map((email) => (
-                  <div
-                    key={email.id}
-                    className="p-4 hover:bg-muted/50 cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1 p-1.5 rounded-full ${
-                        email.direction === 'inbound' 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {email.direction === 'inbound' ? (
-                          <ArrowDownLeft className="h-4 w-4" />
-                        ) : (
-                          <ArrowUpRight className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={`font-medium truncate ${!email.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {email.subject || "(No subject)"}
-                          </p>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {email.body_preview}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {email.direction === 'inbound' ? 'Received' : 'Sent'}
-                          </Badge>
-                          {email.has_attachments && (
-                            <Badge variant="outline" className="text-xs">Attachments</Badge>
+        {/* Tabs Content */}
+        <Tabs defaultValue="activity" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0 px-6">
+            <TabsTrigger
+              value="activity"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Activity
+              <Badge variant="secondary" className="ml-2">{emails.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="tasks"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Tasks
+            </TabsTrigger>
+            <TabsTrigger
+              value="notes"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Notes
+            </TabsTrigger>
+            <TabsTrigger
+              value="files"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              Files
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="activity" className="flex-1 m-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              {emails.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <Mail className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h4 className="font-medium mb-1">No email activity yet</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Email interactions with this person will appear here
+                  </p>
+                  <Button>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send first email
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {emails.map((email) => (
+                    <div
+                      key={email.id}
+                      className="p-4 hover:bg-muted/50 cursor-pointer"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1 p-1.5 rounded-full ${
+                          email.direction === 'inbound' 
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          {email.direction === 'inbound' ? (
+                            <ArrowDownLeft className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpRight className="h-4 w-4" />
                           )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`font-medium truncate ${!email.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {email.subject || "(No subject)"}
+                            </p>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {email.body_preview}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {email.direction === 'inbound' ? 'Received' : 'Sent'}
+                            </Badge>
+                            {email.has_attachments && (
+                              <Badge variant="outline" className="text-xs">Attachments</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-
-        {/* Details Panel */}
-        <div className="w-80 p-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {person.company && (
-                <div>
-                  <p className="text-muted-foreground">Company</p>
-                  <p className="font-medium">{person.company.name}</p>
-                  {person.company.domain && (
-                    <p className="text-xs text-muted-foreground">{person.company.domain}</p>
-                  )}
+                  ))}
                 </div>
               )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="tasks" className="flex-1 m-0 p-6">
+            <p className="text-sm text-muted-foreground">No tasks yet</p>
+          </TabsContent>
+
+          <TabsContent value="notes" className="flex-1 m-0 p-6">
+            {person.notes ? (
+              <p className="text-sm whitespace-pre-wrap">{person.notes}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No notes yet</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="files" className="flex-1 m-0 p-6">
+            <p className="text-sm text-muted-foreground">No files yet</p>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Right Details Panel */}
+      <div className="w-80 border-l p-6 overflow-auto">
+        <h3 className="font-semibold mb-4">Details</h3>
+        <div className="space-y-4 text-sm">
+          {person.company && (
+            <div>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Company</p>
+              <p className="font-medium">{person.company.name}</p>
+              {person.company.domain && (
+                <a 
+                  href={`https://${person.company.domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  {person.company.domain}
+                </a>
+              )}
+            </div>
+          )}
+          
+          <Separator />
+          
+          <div>
+            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Created</p>
+            <p>{format(new Date(person.created_at), "MMM d, yyyy")}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(person.created_at), { addSuffix: true })}
+            </p>
+          </div>
+
+          {person.title && (
+            <>
               <Separator />
               <div>
-                <p className="text-muted-foreground">Created</p>
-                <p>{format(new Date(person.created_at), "MMM d, yyyy")}</p>
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Title</p>
+                <p>{person.title}</p>
               </div>
-              {person.is_auto_created && (
-                <>
-                  <Separator />
-                  <Badge variant="outline">Auto-created from email</Badge>
-                </>
-              )}
-              {person.notes && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-muted-foreground">Notes</p>
-                    <p className="whitespace-pre-wrap">{person.notes}</p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+            </>
+          )}
+
+          {person.city && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Location</p>
+                <p>{person.city}</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
