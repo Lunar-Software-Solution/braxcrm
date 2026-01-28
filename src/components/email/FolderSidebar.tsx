@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +16,8 @@ import {
   Plus,
   Settings,
   Users,
+  Building2,
+  Mail,
 } from "lucide-react";
 import type { EmailFolder } from "@/types/email";
 import { UserMenu } from "./UserMenu";
@@ -42,6 +45,8 @@ export function FolderSidebar({
   onComposeClick,
 }: FolderSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -121,23 +126,58 @@ export function FolderSidebar({
           })}
         </nav>
 
-        {/* Additional sections */}
+        {/* CRM sections */}
         <div className="border-t border-sidebar-border mt-4 pt-4">
           <p className="px-3 text-xs font-medium text-muted-foreground mb-2">
-            WORKSPACE
+            CRM
           </p>
           <nav className="space-y-0.5">
-            <button className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors">
+            <button 
+              onClick={() => navigate("/people")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors",
+                location.pathname === "/people" && "bg-sidebar-accent font-medium"
+              )}
+            >
               <Users className="h-4 w-4 text-sidebar-foreground/70" />
-              <span>Contacts</span>
+              <span>People</span>
             </button>
-            <a 
-              href="/settings"
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors"
+            <button 
+              onClick={() => navigate("/companies")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors",
+                location.pathname === "/companies" && "bg-sidebar-accent font-medium"
+              )}
+            >
+              <Building2 className="h-4 w-4 text-sidebar-foreground/70" />
+              <span>Companies</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Settings */}
+        <div className="border-t border-sidebar-border mt-4 pt-4">
+          <nav className="space-y-0.5">
+            <button 
+              onClick={() => navigate("/")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors",
+                location.pathname === "/" && "bg-sidebar-accent font-medium"
+              )}
+            >
+              <Mail className="h-4 w-4 text-sidebar-foreground/70" />
+              <span>Inbox</span>
+            </button>
+            <button 
+              onClick={() => navigate("/settings")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors",
+                location.pathname === "/settings" && "bg-sidebar-accent font-medium"
+              )}
             >
               <Settings className="h-4 w-4 text-sidebar-foreground/70" />
               <span>Settings</span>
-            </a>
+            </button>
           </nav>
         </div>
       </ScrollArea>

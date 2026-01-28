@@ -14,52 +14,109 @@ export type Database = {
   }
   public: {
     Tables: {
-      contacts: {
+      companies: {
         Row: {
-          assigned_to: string | null
-          company: string | null
           created_at: string
           created_by: string
-          email: string | null
+          domain: string | null
           id: string
+          industry: string | null
           name: string
           notes: string | null
-          phone: string | null
-          title: string | null
           updated_at: string
+          website: string | null
           workspace_id: string
         }
         Insert: {
-          assigned_to?: string | null
-          company?: string | null
           created_at?: string
           created_by: string
-          email?: string | null
+          domain?: string | null
           id?: string
+          industry?: string | null
           name: string
           notes?: string | null
-          phone?: string | null
-          title?: string | null
           updated_at?: string
+          website?: string | null
           workspace_id: string
         }
         Update: {
-          assigned_to?: string | null
-          company?: string | null
           created_at?: string
           created_by?: string
-          email?: string | null
+          domain?: string | null
           id?: string
+          industry?: string | null
           name?: string
           notes?: string | null
-          phone?: string | null
-          title?: string | null
           updated_at?: string
+          website?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "contacts_workspace_id_fkey"
+            foreignKeyName: "companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_messages: {
+        Row: {
+          body_preview: string | null
+          conversation_id: string | null
+          created_at: string
+          direction: string
+          folder_id: string | null
+          has_attachments: boolean
+          id: string
+          is_read: boolean
+          microsoft_message_id: string
+          person_id: string | null
+          received_at: string
+          subject: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body_preview?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          direction: string
+          folder_id?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_read?: boolean
+          microsoft_message_id: string
+          person_id?: string | null
+          received_at: string
+          subject?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body_preview?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          direction?: string
+          folder_id?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_read?: boolean
+          microsoft_message_id?: string
+          person_id?: string | null
+          received_at?: string
+          subject?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -105,6 +162,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      people: {
+        Row: {
+          avatar_url: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          is_auto_created: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          is_auto_created?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          is_auto_created?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

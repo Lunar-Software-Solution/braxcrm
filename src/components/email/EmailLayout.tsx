@@ -6,6 +6,7 @@ import { EmailPreview } from "./EmailPreview";
 import { ComposeDialog } from "./ComposeDialog";
 import type { Email, EmailFolder } from "@/types/email";
 import { useGraphApi } from "@/hooks/use-graph-api";
+import { useCRM } from "@/hooks/use-crm";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -27,7 +28,12 @@ export function EmailLayout() {
   const [emailLoading, setEmailLoading] = useState(false);
 
   const { listFolders, listMessages, getMessage, markAsRead, deleteMessage, moveMessage, sendMessage } = useGraphApi();
+  const { syncEmails } = useCRM();
   const { toast } = useToast();
+
+  // TODO: Replace with actual workspace context
+  const TEMP_WORKSPACE_ID = "temp-workspace";
+  const userEmail = ""; // Will be populated from Microsoft token
 
   // Load folders on mount
   useEffect(() => {
