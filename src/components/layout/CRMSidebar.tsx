@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Users,
-  Building2,
+  Tag,
   Target,
   CheckSquare,
   FileText,
@@ -38,7 +38,7 @@ import {
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
-  { title: "Companies", url: "/companies", icon: Building2 },
+  { title: "Object Types", url: "/objects", icon: Tag },
   { title: "Inbox", url: "/inbox", icon: Mail },
 ];
 

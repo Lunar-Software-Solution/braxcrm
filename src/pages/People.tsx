@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
-  Users, Plus, Mail, Building2, Phone, Calendar, Briefcase, 
-  MapPin, Linkedin, Twitter, User
+  Users, Plus, Mail, Phone, Calendar, Briefcase, 
+  MapPin, Linkedin, Twitter, User, Tag
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -22,7 +22,7 @@ import { useCRM } from "@/hooks/use-crm";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Company, Person } from "@/types/crm";
+import type { Person, ObjectType } from "@/types/crm";
 import { useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
@@ -30,7 +30,7 @@ const columns = [
   { key: "select", label: "", icon: null, width: "w-10" },
   { key: "name", label: "Name", icon: User, width: "min-w-[180px]" },
   { key: "email", label: "Emails", icon: Mail, width: "min-w-[200px]" },
-  { key: "company", label: "Company", icon: Building2, width: "min-w-[150px]" },
+  { key: "object_types", label: "Object Types", icon: Tag, width: "min-w-[200px]" },
   { key: "phone", label: "Phones", icon: Phone, width: "min-w-[130px]" },
   { key: "title", label: "Job Title", icon: Briefcase, width: "min-w-[150px]" },
   { key: "city", label: "City", icon: MapPin, width: "min-w-[120px]" },
@@ -42,36 +42,36 @@ const columns = [
 
 export default function People() {
   const [people, setPeople] = useState<Person[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const { listPeople, listCompanies, createPerson, updatePerson, deletePerson, listEmailsByPerson } = useCRM();
+  const { listPeople, listObjectTypes, createPerson, updatePerson } = useCRM();
   const { workspaceId, loading: workspaceLoading } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const companyFilter = searchParams.get("company");
+  const objectTypeFilter = searchParams.get("objectType");
 
   useEffect(() => {
     if (workspaceId) {
       loadData();
     }
-  }, [workspaceId, companyFilter]);
+  }, [workspaceId, objectTypeFilter]);
 
   const loadData = async () => {
     if (!workspaceId) return;
     try {
       setLoading(true);
-      const [peopleData, companiesData] = await Promise.all([
-        listPeople(workspaceId, companyFilter ? { companyId: companyFilter } : undefined),
-        listCompanies(workspaceId),
+      const [peopleData, objectTypesData] = await Promise.all([
+        listPeople(workspaceId, objectTypeFilter ? { objectTypeId: objectTypeFilter } : undefined),
+        listObjectTypes(workspaceId),
       ]);
       setPeople(peopleData);
-      setCompanies(companiesData);
+      setObjectTypes(objectTypesData);
     } catch (error) {
       console.error("Failed to load people:", error);
       toast({
@@ -87,7 +87,6 @@ export default function People() {
   const handleSave = async (formData: FormData) => {
     if (!workspaceId || !user) return;
     try {
-      const companyId = formData.get("company_id") as string;
       const data = {
         name: formData.get("name") as string,
         email: formData.get("email") as string,
@@ -97,7 +96,6 @@ export default function People() {
         linkedin_url: formData.get("linkedin_url") as string || undefined,
         twitter_handle: formData.get("twitter_handle") as string || undefined,
         notes: formData.get("notes") as string || undefined,
-        company_id: companyId === "none" ? undefined : companyId,
       };
 
       if (editingPerson) {
@@ -152,9 +150,17 @@ export default function People() {
     }
   };
 
+  const getUniqueObjectTypeCount = () => {
+    const allTypeIds = new Set<string>();
+    people.forEach(p => {
+      p.object_types?.forEach(ot => allTypeIds.add(ot.object_type_id));
+    });
+    return allTypeIds.size;
+  };
+
   const aggregations = [
     { label: "Count all", value: people.length },
-    { label: "Unique companies", value: new Set(people.filter(p => p.company_id).map(p => p.company_id)).size },
+    { label: "Unique object types", value: getUniqueObjectTypeCount() },
     { label: "With email", value: people.filter(p => p.email).length },
   ];
 
@@ -177,113 +183,133 @@ export default function People() {
                 </div>
               ) : people.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No people yet</h3>
-            <p className="text-muted-foreground mb-4">
-              People will be auto-created when you receive emails
-            </p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Person
-            </Button>
-          </div>
-        ) : (
-          <ScrollArea className="flex-1">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  {columns.map((col) => (
-                    <TableHead key={col.key} className={`${col.width} bg-muted/50`}>
-                      {col.key === "select" ? (
-                        <Checkbox
-                          checked={selectedIds.size === people.length && people.length > 0}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      ) : col.key === "add" ? (
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          {col.icon && <col.icon className="h-3.5 w-3.5" />}
-                          {col.label}
-                        </div>
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {people.map((person) => (
-                  <TableRow
-                    key={person.id}
-                    className={`cursor-pointer ${selectedPerson?.id === person.id ? "bg-muted" : ""}`}
-                    onClick={() => setSelectedPerson(person)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedIds.has(person.id)}
-                        onCheckedChange={() => toggleSelect(person.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={person.avatar_url} />
-                          <AvatarFallback className="text-xs">{getInitials(person.name)}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium truncate">{person.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground truncate">{person.email}</TableCell>
-                    <TableCell>
-                      {person.company && (
-                        <span className="text-muted-foreground">{person.company.name}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{person.phone || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{person.title || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{person.city || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDistanceToNow(new Date(person.created_at), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
-                      {person.linkedin_url ? (
-                        <a
-                          href={person.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No people yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    People will be auto-created when you receive emails
+                  </p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Person
+                  </Button>
+                </div>
+              ) : (
+                <ScrollArea className="flex-1">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        {columns.map((col) => (
+                          <TableHead key={col.key} className={`${col.width} bg-muted/50`}>
+                            {col.key === "select" ? (
+                              <Checkbox
+                                checked={selectedIds.size === people.length && people.length > 0}
+                                onCheckedChange={toggleSelectAll}
+                              />
+                            ) : col.key === "add" ? (
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                {col.icon && <col.icon className="h-3.5 w-3.5" />}
+                                {col.label}
+                              </div>
+                            )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {people.map((person) => (
+                        <TableRow
+                          key={person.id}
+                          className={`cursor-pointer ${selectedPerson?.id === person.id ? "bg-muted" : ""}`}
+                          onClick={() => setSelectedPerson(person)}
                         >
-                          <Linkedin className="h-4 w-4" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {person.twitter_handle ? (
-                        <a
-                          href={`https://x.com/${person.twitter_handle}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          @{person.twitter_handle}
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell />
-                  </TableRow>
-                ))}
-                <AddNewRow colSpan={columns.length} onClick={() => setDialogOpen(true)} label="Add New" />
-              </TableBody>
-            </Table>
-          </ScrollArea>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(person.id)}
+                              onCheckedChange={() => toggleSelect(person.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={person.avatar_url} />
+                                <AvatarFallback className="text-xs">{getInitials(person.name)}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium truncate">{person.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground truncate">{person.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {person.object_types?.slice(0, 3).map((pot) => (
+                                <Badge
+                                  key={pot.id}
+                                  variant="outline"
+                                  className="text-xs"
+                                  style={{
+                                    borderColor: pot.object_type?.color,
+                                    color: pot.object_type?.color,
+                                  }}
+                                >
+                                  {pot.object_type?.name}
+                                </Badge>
+                              ))}
+                              {person.object_types && person.object_types.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{person.object_types.length - 3}
+                                </Badge>
+                              )}
+                              {(!person.object_types || person.object_types.length === 0) && (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{person.phone || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{person.title || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{person.city || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {formatDistanceToNow(new Date(person.created_at), { addSuffix: true })}
+                          </TableCell>
+                          <TableCell>
+                            {person.linkedin_url ? (
+                              <a
+                                href={person.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Linkedin className="h-4 w-4" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {person.twitter_handle ? (
+                              <a
+                                href={`https://x.com/${person.twitter_handle}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                @{person.twitter_handle}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell />
+                        </TableRow>
+                      ))}
+                      <AddNewRow colSpan={columns.length} onClick={() => setDialogOpen(true)} label="Add New" />
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               )}
 
               {people.length > 0 && <TableFooter aggregations={aggregations} />}
@@ -332,43 +358,27 @@ export default function People() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="company_id">Company</Label>
-                <Select name="company_id" defaultValue={editingPerson?.company_id || "none"}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select company" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    <SelectItem value="none">No company</SelectItem>
-                    {companies.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" placeholder="CEO" defaultValue={editingPerson?.title} />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" name="phone" placeholder="+1 555-1234" defaultValue={editingPerson?.phone} />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input id="city" name="city" placeholder="San Francisco" defaultValue={editingPerson?.city} />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="linkedin_url">LinkedIn URL</Label>
                 <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/..." defaultValue={editingPerson?.linkedin_url} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="twitter_handle">X Handle</Label>
-                <Input id="twitter_handle" name="twitter_handle" placeholder="username" defaultValue={editingPerson?.twitter_handle} />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="twitter_handle">X Handle</Label>
+              <Input id="twitter_handle" name="twitter_handle" placeholder="username" defaultValue={editingPerson?.twitter_handle} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>

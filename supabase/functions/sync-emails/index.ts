@@ -27,19 +27,6 @@ interface ClassificationResult {
   reasoning?: string;
 }
 
-function extractDomainFromEmail(email: string): string | null {
-  const match = email.match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/);
-  return match ? match[1].toLowerCase() : null;
-}
-
-function extractCompanyNameFromDomain(domain: string): string {
-  const name = domain
-    .replace(/\.(com|org|net|io|co|app|dev|tech|ai|xyz|info|biz)$/i, '')
-    .split('.')
-    .pop() || domain;
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
-
 async function classifyAndProcessEmail(
   supabaseUrl: string,
   authHeader: string,
@@ -143,15 +130,13 @@ serve(async (req) => {
 
     const results = {
       peopleCreated: 0,
-      companiesCreated: 0,
       emailsSynced: 0,
       emailsClassified: 0,
       rulesApplied: 0,
       errors: [] as string[],
     };
 
-    // Cache for companies and people to avoid duplicate lookups
-    const companyCache: Record<string, string | undefined> = {}; // domain -> company_id
+    // Cache for people to avoid duplicate lookups
     const personCache: Record<string, string | undefined> = {}; // email -> person_id
 
     // Track emails that need AI processing
@@ -192,67 +177,11 @@ serve(async (req) => {
             personId = existingPerson.id;
             personCache[safeContactEmail] = personId;
           } else {
-            // Create company first if domain exists
-            const domain = extractDomainFromEmail(safeContactEmail);
-            let companyId: string | undefined = undefined;
-
-            if (domain) {
-              companyId = companyCache[domain];
-
-              if (!companyId) {
-                // Check if company exists
-                const { data: existingCompany } = await supabase
-                  .from("companies")
-                  .select("id")
-                  .eq("workspace_id", workspaceId)
-                  .eq("domain", domain)
-                  .maybeSingle();
-
-                if (existingCompany) {
-                  companyId = existingCompany.id;
-                  companyCache[domain] = companyId;
-                } else {
-                  // Create new company
-                  const companyName = extractCompanyNameFromDomain(domain);
-                  const { data: newCompany, error: companyError } = await supabase
-                    .from("companies")
-                    .insert({
-                      workspace_id: workspaceId,
-                      name: companyName,
-                      domain: domain,
-                      created_by: userId,
-                    })
-                    .select("id")
-                    .single();
-
-                  if (companyError) {
-                    // Might be a race condition - try to fetch again
-                    const { data: retryCompany } = await supabase
-                      .from("companies")
-                      .select("id")
-                      .eq("workspace_id", workspaceId)
-                      .eq("domain", domain)
-                      .maybeSingle();
-                    
-                    if (retryCompany) {
-                      companyId = retryCompany.id;
-                      companyCache[domain] = companyId;
-                    }
-                  } else if (newCompany) {
-                    companyId = newCompany.id;
-                    companyCache[domain] = companyId;
-                    results.companiesCreated++;
-                  }
-                }
-              }
-            }
-
-            // Create new person
+            // Create new person (without company - companies are replaced by object types)
             const { data: newPerson, error: personError } = await supabase
               .from("people")
               .insert({
                 workspace_id: workspaceId,
-                company_id: companyId || null,
                 name: safeContactName,
                 email: safeContactEmail,
                 is_auto_created: true,

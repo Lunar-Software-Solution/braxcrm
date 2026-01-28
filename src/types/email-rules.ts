@@ -6,7 +6,8 @@ export type RuleActionType =
   | 'extract_attachments'
   | 'extract_invoice'
   | 'move_folder'
-  | 'mark_priority';
+  | 'mark_priority'
+  | 'assign_object_type';
 
 export type InvoiceStatus = 'pending' | 'reviewed' | 'approved' | 'rejected';
 
@@ -75,6 +76,12 @@ export interface MarkPriorityConfig {
   priority: 'high' | 'normal' | 'low';
 }
 
+export interface AssignObjectTypeConfig {
+  object_type_ids: string[];
+  assign_to_person: boolean;
+  assign_to_email: boolean;
+}
+
 export type RuleActionConfig = 
   | VisibilityActionConfig
   | TagActionConfig
@@ -82,6 +89,7 @@ export type RuleActionConfig =
   | ExtractInvoiceConfig
   | MoveFolderConfig
   | MarkPriorityConfig
+  | AssignObjectTypeConfig
   | Record<string, unknown>;
 
 export interface EmailTag {

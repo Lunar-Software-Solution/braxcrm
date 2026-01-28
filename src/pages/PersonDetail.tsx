@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
-  Mail, Phone, Building2, Send, Clock, ArrowDownLeft, ArrowUpRight,
-  Linkedin, Twitter, MapPin, Edit, Trash2
+  Mail, Phone, Send, Clock, ArrowDownLeft, ArrowUpRight,
+  Linkedin, Twitter, MapPin, Edit, Tag, Plus, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRM } from "@/hooks/use-crm";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Person, EmailMessage } from "@/types/crm";
+import type { Person, EmailMessage, ObjectType } from "@/types/crm";
 import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -19,29 +22,35 @@ export default function PersonDetail() {
   const { personId } = useParams<{ personId: string }>();
   const [person, setPerson] = useState<Person | null>(null);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
+  const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingObjectType, setAddingObjectType] = useState(false);
   
-  const { getPerson, listEmailsByPerson } = useCRM();
+  const { getPerson, listEmailsByPerson, listObjectTypes, assignObjectTypeToPerson, removeObjectTypeFromPerson } = useCRM();
+  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (personId) {
+    if (personId && workspaceId) {
       loadData();
     }
-  }, [personId]);
+  }, [personId, workspaceId]);
 
   const loadData = async () => {
-    if (!personId) return;
+    if (!personId || !workspaceId) return;
     
     try {
       setLoading(true);
-      const [personData, emailsData] = await Promise.all([
+      const [personData, emailsData, objectTypesData] = await Promise.all([
         getPerson(personId),
         listEmailsByPerson(personId),
+        listObjectTypes(workspaceId),
       ]);
       setPerson(personData);
       setEmails(emailsData);
+      setObjectTypes(objectTypesData);
     } catch (error) {
       console.error("Failed to load person:", error);
       toast({
@@ -54,6 +63,39 @@ export default function PersonDetail() {
     }
   };
 
+  const handleAssignObjectType = async (objectTypeId: string) => {
+    if (!personId || !user) return;
+    
+    try {
+      await assignObjectTypeToPerson(personId, objectTypeId, 'manual', user.id);
+      toast({ title: "Object type assigned" });
+      setAddingObjectType(false);
+      loadData();
+    } catch (error) {
+      toast({
+        title: "Failed to assign object type",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveObjectType = async (objectTypeId: string) => {
+    if (!personId) return;
+    
+    try {
+      await removeObjectTypeFromPerson(personId, objectTypeId);
+      toast({ title: "Object type removed" });
+      loadData();
+    } catch (error) {
+      toast({
+        title: "Failed to remove object type",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -62,6 +104,11 @@ export default function PersonDetail() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Get object types not yet assigned to this person
+  const availableObjectTypes = objectTypes.filter(
+    ot => !person?.object_types?.some(pot => pot.object_type_id === ot.id)
+  );
 
   if (loading) {
     return (
@@ -111,15 +158,6 @@ export default function PersonDetail() {
                     <Phone className="h-4 w-4" />
                     <span>{person.phone}</span>
                   </a>
-                )}
-                {person.company && (
-                  <button 
-                    onClick={() => navigate("/companies")}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <Building2 className="h-4 w-4" />
-                    <span>{person.company.name}</span>
-                  </button>
                 )}
                 {person.city && (
                   <span className="flex items-center gap-1 text-muted-foreground">
@@ -280,22 +318,71 @@ export default function PersonDetail() {
       <div className="w-80 border-l p-6 overflow-auto">
         <h3 className="font-semibold mb-4">Details</h3>
         <div className="space-y-4 text-sm">
-          {person.company && (
-            <div>
-              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Company</p>
-              <p className="font-medium">{person.company.name}</p>
-              {person.company.domain && (
-                <a 
-                  href={`https://${person.company.domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline"
+          {/* Object Types Section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-muted-foreground text-xs uppercase tracking-wide">Object Types</p>
+              {availableObjectTypes.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setAddingObjectType(!addingObjectType)}
                 >
-                  {person.company.domain}
-                </a>
+                  <Plus className="h-3 w-3" />
+                </Button>
               )}
             </div>
-          )}
+            
+            {addingObjectType && (
+              <div className="mb-2">
+                <Select onValueChange={handleAssignObjectType}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select object type..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {availableObjectTypes.map(ot => (
+                      <SelectItem key={ot.id} value={ot.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: ot.color }}
+                          />
+                          {ot.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-1">
+              {person.object_types?.map((pot) => (
+                <Badge
+                  key={pot.id}
+                  variant="outline"
+                  className="text-xs group"
+                  style={{
+                    borderColor: pot.object_type?.color,
+                    color: pot.object_type?.color,
+                  }}
+                >
+                  <Tag className="h-3 w-3 mr-1" />
+                  {pot.object_type?.name}
+                  <button
+                    className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveObjectType(pot.object_type_id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {(!person.object_types || person.object_types.length === 0) && !addingObjectType && (
+                <p className="text-muted-foreground text-xs">No object types assigned</p>
+              )}
+            </div>
+          </div>
           
           <Separator />
           
