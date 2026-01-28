@@ -11,7 +11,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AuthCallback from "./pages/AuthCallback";
 import Settings from "./pages/Settings";
-import Companies from "./pages/Companies";
+import Objects from "./pages/Objects";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import Inbox from "./pages/Inbox";
@@ -41,7 +41,7 @@ const App = () => (
             >
               <Route path="/" element={<Index />} />
               <Route path="/people" element={<People />} />
-              <Route path="/companies" element={<Companies />} />
+              <Route path="/objects" element={<Objects />} />
               <Route path="/person/:personId" element={<PersonDetail />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />

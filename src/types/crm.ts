@@ -1,27 +1,40 @@
-// CRM types for Companies, People, and Email tracking
+// CRM types for People, Object Types, and Email tracking
 
-export interface Company {
+export interface ObjectType {
   id: string;
   workspace_id: string;
   name: string;
-  domain?: string;
-  website?: string;
-  industry?: string;
-  notes?: string;
-  employees?: number;
-  linkedin_url?: string;
-  address?: string;
-  account_owner_id?: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  is_active: boolean;
+  sort_order: number;
   created_by: string;
   created_at: string;
   updated_at: string;
 }
 
+export interface PersonObjectType {
+  id: string;
+  person_id: string;
+  object_type_id: string;
+  assigned_by: string | null;
+  assigned_at: string;
+  source: 'manual' | 'email_rule' | 'ai_suggestion';
+  object_type?: ObjectType;
+}
+
+export interface EmailObjectType {
+  id: string;
+  email_id: string;
+  object_type_id: string;
+  assigned_at: string;
+  object_type?: ObjectType;
+}
+
 export interface Person {
   id: string;
   workspace_id: string;
-  company_id?: string;
-  company?: Company;
   name: string;
   email: string;
   title?: string;
@@ -35,6 +48,8 @@ export interface Person {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Object types assigned to this person
+  object_types?: PersonObjectType[];
 }
 
 export interface EmailMessage {
@@ -52,21 +67,12 @@ export interface EmailMessage {
   conversation_id?: string;
   folder_id?: string;
   created_at: string;
+  // Object types assigned to this email
+  object_types?: EmailObjectType[];
 }
 
 // Helper to extract domain from email
 export function extractDomainFromEmail(email: string): string | null {
   const match = email.match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/);
   return match ? match[1].toLowerCase() : null;
-}
-
-// Helper to extract company name from domain
-export function extractCompanyNameFromDomain(domain: string): string {
-  // Remove common TLDs and capitalize
-  const name = domain
-    .replace(/\.(com|org|net|io|co|app|dev|tech|ai|xyz|info|biz)$/i, '')
-    .split('.')
-    .pop() || domain;
-  
-  return name.charAt(0).toUpperCase() + name.slice(1);
 }

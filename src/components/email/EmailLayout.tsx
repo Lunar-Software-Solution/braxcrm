@@ -174,10 +174,10 @@ export function EmailLayout() {
         const result = await syncEmails(workspaceId, messagesToSync, userEmail);
         console.log("Sync result:", result);
         
-        if (result.peopleCreated > 0 || result.companiesCreated > 0) {
+        if (result.peopleCreated > 0) {
           toast({
             title: "Contacts synced",
-            description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
+            description: `Created ${result.peopleCreated} people`,
           });
         }
       } catch (syncError) {
@@ -294,7 +294,7 @@ export function EmailLayout() {
       
       toast({
         title: "Contacts synced",
-        description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
+        description: `Created ${result.peopleCreated} people`,
       });
     } catch (error) {
       toast({

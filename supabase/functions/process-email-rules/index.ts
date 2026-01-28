@@ -233,6 +233,62 @@ async function processAction(
       return { action_type: "tag", success: true };
     }
 
+    case "assign_object_type": {
+      const objectTypeIds = config.object_type_ids as string[];
+      const assignToPerson = config.assign_to_person as boolean;
+      const assignToEmail = config.assign_to_email as boolean;
+
+      if (!objectTypeIds || objectTypeIds.length === 0) {
+        return { action_type: "assign_object_type", success: false, error: "No object types configured" };
+      }
+
+      // Get the email to find the person_id
+      const { data: email } = await supabase
+        .from("email_messages")
+        .select("person_id")
+        .eq("id", emailId)
+        .single();
+
+      if (!email) {
+        return { action_type: "assign_object_type", success: false, error: "Email not found" };
+      }
+
+      // Assign to person if configured and person exists
+      if (assignToPerson && email.person_id) {
+        const personEntries = objectTypeIds.map((objectTypeId) => ({
+          person_id: email.person_id,
+          object_type_id: objectTypeId,
+          source: "email_rule",
+        }));
+
+        const { error: personError } = await supabase
+          .from("person_object_types")
+          .upsert(personEntries, { onConflict: "person_id,object_type_id" });
+
+        if (personError) {
+          console.warn("Failed to assign object types to person:", personError);
+        }
+      }
+
+      // Assign to email if configured
+      if (assignToEmail) {
+        const emailEntries = objectTypeIds.map((objectTypeId) => ({
+          email_id: emailId,
+          object_type_id: objectTypeId,
+        }));
+
+        const { error: emailError } = await supabase
+          .from("email_object_types")
+          .upsert(emailEntries, { onConflict: "email_id,object_type_id" });
+
+        if (emailError) {
+          console.warn("Failed to assign object types to email:", emailError);
+        }
+      }
+
+      return { action_type: "assign_object_type", success: true };
+    }
+
     case "extract_invoice": {
       // Call the extract-invoice edge function
       try {
