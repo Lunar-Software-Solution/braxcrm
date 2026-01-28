@@ -1,64 +1,68 @@
-# CRM Layout Restructure - COMPLETED ✅
 
-## Summary
-Successfully transformed the application from a card-based layout to a professional Attio/Notion-style CRM interface.
+# Plan: Implement Flexible Separator Handles Between Sections
 
-## Completed Features
+## Overview
+Enhance the resizable panel dividers in the email layout to display more prominent, always-visible drag handles similar to the reference image. The current implementation uses small centered grip icons, while the desired design shows larger dotted/grid-pattern handles that are visible on hover or always present.
 
-### Phase 1: App Shell Layout ✅
-- Created `CRMSidebar.tsx` with workspace selector, search, settings, and navigation
-- Created `AppLayout.tsx` wrapper with persistent sidebar
+## Technical Approach
 
-### Phase 2: CRM Table Components ✅
-- `TableHeader.tsx` - Header with title, count, filter/sort buttons
-- `TableFooter.tsx` - Aggregation calculations (count, unique, totals)
-- `DetailPanel.tsx` - Slide-out panel for viewing details
-- `AddNewRow.tsx` - Inline "+ Add New" row
+### 1. Update the ResizableHandle Component
+Modify `src/components/ui/resizable.tsx` to support a more prominent handle style:
+- Add a new variant or enhance the existing `withHandle` prop to show a taller, more visible grip pattern
+- The handle should span more vertical space (currently only 4 units tall)
+- Add hover states for better interactivity feedback
+- Use a dotted/grid pattern similar to the reference image
 
-### Phase 3: People Page ✅
-- Converted to spreadsheet-style table view
-- Columns: Checkbox, Name, Email, Company, Phone, Title, City, Created, LinkedIn, X
-- Row selection with slide-out detail panel
-- Footer aggregations
+### 2. Style Enhancements
+- Increase the height of the grip handle area from `h-4` to something taller (e.g., `h-8` or full height option)
+- Add subtle background on hover to indicate the draggable area
+- Consider adding a subtle border or shadow to make handles more prominent
+- Match the professional enterprise design aesthetic
 
-### Phase 4: Companies Page ✅
-- Converted to spreadsheet-style table view
-- Columns: Checkbox, Name, Domain, Created by, Account Owner, Created, Employees, LinkedIn, Address
-- Row selection with detail panel
-- Footer aggregations
+### 3. Implementation Details
 
-### Phase 5: Database Schema ✅
-- Added to `companies`: employees, linkedin_url, address, account_owner_id
-- Added to `people`: city, linkedin_url, twitter_handle
+**File: `src/components/ui/resizable.tsx`**
 
-### Phase 6: Routing ✅
-- Index redirects to /people
-- Email inbox moved to /inbox
-- All CRM routes use AppLayout wrapper
+Update the `ResizableHandle` component to:
+- Support a wider hit target for easier grabbing
+- Show a more prominent visual indicator (6-dot grip pattern instead of current 3-dot)
+- Add hover effects that highlight the entire separator region
+- Optional: Show handles on hover only vs always visible
 
-## Files Created
-- `src/components/layout/AppLayout.tsx`
-- `src/components/layout/CRMSidebar.tsx`
-- `src/components/crm/TableHeader.tsx`
-- `src/components/crm/TableFooter.tsx`
-- `src/components/crm/DetailPanel.tsx`
-- `src/components/crm/AddNewRow.tsx`
-- `src/pages/Inbox.tsx`
+Example styling for enhanced handle:
+```text
++------------------+
+|   Folder Panel   | :: |   Email List   | :: |   Preview    |
++------------------+
+                    ^                      ^
+              Grip handles with 6-dot pattern
+              Visible on hover, larger hit area
+```
 
-## Files Modified
-- `src/App.tsx` - Updated routing with AppLayout
-- `src/pages/Index.tsx` - Redirects to /people
-- `src/pages/People.tsx` - Complete table view rewrite
-- `src/pages/Companies.tsx` - Complete table view rewrite
-- `src/pages/PersonDetail.tsx` - Updated for new layout
-- `src/pages/Settings.tsx` - Removed duplicate header
-- `src/types/crm.ts` - Added new fields
-- `src/components/email/UserMenu.tsx` - Added collapsed prop
+---
 
-## Next Steps (Future Enhancements)
-- [ ] Add inline cell editing
-- [ ] Implement column sorting
-- [ ] Add column resizing
-- [ ] Create workspace context provider
-- [ ] Add search functionality
-- [ ] Implement bulk actions for selected rows
+## Technical Details
+
+### Component Changes
+
+**`src/components/ui/resizable.tsx`**
+- Modify the handle container from `h-4 w-3` to `h-8 w-3` for taller grip
+- Add hover state: `hover:bg-accent/50` to the handle wrapper
+- Change the grip pattern to show 6 dots (2 columns x 3 rows) using CSS or nested divs
+- Add `group` class to parent for hover-based visibility
+
+### CSS/Styling
+- The grip dots will be small circles arranged in a 2x3 grid
+- Color: `text-muted-foreground` in default state
+- Hover: Slight background highlight and increased opacity
+
+### No Database Changes Required
+This is a purely frontend UI enhancement.
+
+---
+
+## Summary of Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/ui/resizable.tsx` | Enhance ResizableHandle with taller grip pattern and hover states |
