@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
 import { TableFooter } from "@/components/crm/TableFooter";
 import { DetailPanel } from "@/components/crm/DetailPanel";
@@ -146,21 +147,24 @@ export default function Companies() {
   ];
 
   return (
-    <div className="h-full flex bg-background">
-      {/* Main Table Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <CRMTableHeader title="Companies" count={companies.length} />
-
-        {loading || workspaceLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Loading companies...</p>
-          </div>
-        ) : !workspaceId ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Please log in to view companies</p>
-          </div>
-        ) : companies.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
+    <div className="h-full flex flex-col bg-background">
+      <CRMTableHeader title="Companies" count={companies.length} />
+      
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Main Table Area */}
+          <ResizablePanel defaultSize={selectedCompany ? 65 : 100} minSize={50}>
+            <div className="h-full flex flex-col overflow-hidden">
+              {loading || workspaceLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Loading companies...</p>
+                </div>
+              ) : !workspaceId ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Please log in to view companies</p>
+                </div>
+              ) : companies.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No companies yet</h3>
             <p className="text-muted-foreground mb-4">
@@ -268,45 +272,54 @@ export default function Companies() {
           </ScrollArea>
         )}
 
-        {companies.length > 0 && <TableFooter aggregations={aggregations} />}
-      </div>
-
-      {/* Detail Panel */}
-      <DetailPanel
-        isOpen={!!selectedCompany}
-        onClose={() => setSelectedCompany(null)}
-        title={selectedCompany?.name || ""}
-        subtitle={selectedCompany?.industry}
-        createdAt={selectedCompany?.created_at}
-      >
-        {selectedCompany && (
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">People</h4>
-              <p className="text-sm">{getPeopleCount(selectedCompany.id)} contacts</p>
+              {companies.length > 0 && <TableFooter aggregations={aggregations} />}
             </div>
-            {selectedCompany.website && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Website</h4>
-                <a
-                  href={selectedCompany.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
+          </ResizablePanel>
+
+          {/* Detail Panel with Resizable Handle */}
+          {selectedCompany && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+                <DetailPanel
+                  isOpen={true}
+                  onClose={() => setSelectedCompany(null)}
+                  title={selectedCompany.name}
+                  subtitle={selectedCompany.industry}
+                  createdAt={selectedCompany.created_at}
+                  isResizable
                 >
-                  {selectedCompany.website}
-                </a>
-              </div>
-            )}
-            {selectedCompany.notes && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">Notes</h4>
-                <p className="text-sm">{selectedCompany.notes}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </DetailPanel>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">People</h4>
+                      <p className="text-sm">{getPeopleCount(selectedCompany.id)} contacts</p>
+                    </div>
+                    {selectedCompany.website && (
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Website</h4>
+                        <a
+                          href={selectedCompany.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          {selectedCompany.website}
+                        </a>
+                      </div>
+                    )}
+                    {selectedCompany.notes && (
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Notes</h4>
+                        <p className="text-sm">{selectedCompany.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </DetailPanel>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

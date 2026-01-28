@@ -13,6 +13,7 @@ interface DetailPanelProps {
   avatarUrl?: string;
   createdAt?: string;
   children?: React.ReactNode;
+  isResizable?: boolean;
 }
 
 export function DetailPanel({
@@ -23,6 +24,7 @@ export function DetailPanel({
   avatarUrl,
   createdAt,
   children,
+  isResizable = false,
 }: DetailPanelProps) {
   if (!isOpen) return null;
 
@@ -34,7 +36,7 @@ export function DetailPanel({
     .slice(0, 2);
 
   return (
-    <div className="w-[400px] border-l bg-background flex flex-col h-full">
+    <div className={`${isResizable ? "w-full" : "w-[400px] border-l"} bg-background flex flex-col h-full`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
