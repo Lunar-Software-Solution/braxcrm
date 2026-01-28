@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,7 +6,6 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithMicrosoft: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -22,26 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-
-        // Store Microsoft tokens if available
-        if (session?.provider_token && session?.provider_refresh_token) {
-          const expiresAt = new Date();
-          expiresAt.setSeconds(expiresAt.getSeconds() + (session.expires_in || 3600));
-
-          // Use setTimeout to avoid blocking the auth state change
-          setTimeout(async () => {
-            await supabase.from("microsoft_tokens").upsert({
-              user_id: session.user.id,
-              access_token: session.provider_token!,
-              refresh_token: session.provider_refresh_token!,
-              expires_at: expiresAt.toISOString(),
-            });
-          }, 0);
-        }
       }
     );
 
@@ -54,17 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const signInWithMicrosoft = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "azure",
-      options: {
-        scopes: "email profile openid offline_access Mail.Read Mail.ReadWrite Mail.Send",
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
-  };
 
   const signInWithEmail = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -99,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         loading,
-        signInWithMicrosoft,
         signInWithEmail,
         signUpWithEmail,
         signOut,
