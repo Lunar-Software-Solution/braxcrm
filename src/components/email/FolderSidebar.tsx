@@ -131,10 +131,13 @@ export function FolderSidebar({
               <Users className="h-4 w-4 text-sidebar-foreground/70" />
               <span>Contacts</span>
             </button>
-            <button className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors">
+            <a 
+              href="/settings"
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent transition-colors"
+            >
               <Settings className="h-4 w-4 text-sidebar-foreground/70" />
               <span>Settings</span>
-            </button>
+            </a>
           </nav>
         </div>
       </ScrollArea>
