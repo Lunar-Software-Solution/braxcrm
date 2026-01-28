@@ -20,6 +20,13 @@ interface GraphMessage {
   parentFolderId?: string;
 }
 
+interface ClassificationResult {
+  category_id: string | null;
+  category_name: string | null;
+  confidence: number;
+  reasoning?: string;
+}
+
 function extractDomainFromEmail(email: string): string | null {
   const match = email.match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/);
   return match ? match[1].toLowerCase() : null;
@@ -33,6 +40,76 @@ function extractCompanyNameFromDomain(domain: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+async function classifyAndProcessEmail(
+  supabaseUrl: string,
+  authHeader: string,
+  emailId: string,
+  msg: GraphMessage,
+  workspaceId: string
+): Promise<{ classified: boolean; rulesApplied: boolean; error?: string }> {
+  try {
+    // Step 1: Classify the email
+    const classifyResponse = await fetch(`${supabaseUrl}/functions/v1/classify-email`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email_id: emailId,
+        subject: msg.subject || "",
+        body_preview: msg.bodyPreview || "",
+        sender_email: msg.from?.emailAddress?.address || "",
+        sender_name: msg.from?.emailAddress?.name || "",
+        workspace_id: workspaceId,
+      }),
+    });
+
+    if (!classifyResponse.ok) {
+      const errorText = await classifyResponse.text();
+      console.warn("Classification failed:", errorText);
+      return { classified: false, rulesApplied: false, error: `Classification failed: ${errorText}` };
+    }
+
+    const classification: ClassificationResult = await classifyResponse.json();
+
+    // If no category matched, skip rule processing
+    if (!classification.category_id) {
+      return { classified: true, rulesApplied: false };
+    }
+
+    // Step 2: Process rules for this category
+    const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-email-rules`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email_id: emailId,
+        category_id: classification.category_id,
+        workspace_id: workspaceId,
+        microsoft_message_id: msg.id,
+      }),
+    });
+
+    if (!processResponse.ok) {
+      const errorText = await processResponse.text();
+      console.warn("Rule processing failed:", errorText);
+      return { classified: true, rulesApplied: false, error: `Rule processing failed: ${errorText}` };
+    }
+
+    return { classified: true, rulesApplied: true };
+  } catch (error) {
+    console.error("AI processing error:", error);
+    return { 
+      classified: false, 
+      rulesApplied: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -44,8 +121,9 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
@@ -57,7 +135,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { workspaceId, messages, userEmail } = await req.json();
+    const { workspaceId, messages, userEmail, enableAiProcessing = true } = await req.json();
 
     if (!workspaceId || !messages || !Array.isArray(messages)) {
       throw new Error("Missing workspaceId or messages");
@@ -67,12 +145,17 @@ serve(async (req) => {
       peopleCreated: 0,
       companiesCreated: 0,
       emailsSynced: 0,
+      emailsClassified: 0,
+      rulesApplied: 0,
       errors: [] as string[],
     };
 
     // Cache for companies and people to avoid duplicate lookups
     const companyCache: Record<string, string | undefined> = {}; // domain -> company_id
     const personCache: Record<string, string | undefined> = {}; // email -> person_id
+
+    // Track emails that need AI processing
+    const emailsToProcess: Array<{ emailId: string; msg: GraphMessage }> = [];
 
     for (const msg of messages as GraphMessage[]) {
       try {
@@ -199,8 +282,15 @@ serve(async (req) => {
           }
         }
 
-        // Upsert email message
-        const { error: emailError } = await supabase
+        // Upsert email message - check if it already exists and is processed
+        const { data: existingEmail } = await supabase
+          .from("email_messages")
+          .select("id, is_processed")
+          .eq("workspace_id", workspaceId)
+          .eq("microsoft_message_id", msg.id)
+          .maybeSingle();
+
+        const { data: upsertedEmail, error: emailError } = await supabase
           .from("email_messages")
           .upsert({
             workspace_id: workspaceId,
@@ -214,18 +304,56 @@ serve(async (req) => {
             has_attachments: msg.hasAttachments,
             conversation_id: msg.conversationId || null,
             folder_id: msg.parentFolderId || null,
+            // Only set is_processed to false for new emails
+            ...(existingEmail ? {} : { is_processed: false }),
           }, {
             onConflict: "workspace_id,microsoft_message_id",
-          });
+          })
+          .select("id, is_processed")
+          .single();
 
         if (emailError) {
           results.errors.push(`Email ${msg.id}: ${emailError.message}`);
         } else {
           results.emailsSynced++;
+
+          // Queue for AI processing if not already processed
+          if (enableAiProcessing && upsertedEmail && !upsertedEmail.is_processed) {
+            emailsToProcess.push({ emailId: upsertedEmail.id, msg });
+          }
         }
       } catch (msgError) {
         results.errors.push(`Message error: ${msgError instanceof Error ? msgError.message : "Unknown"}`);
       }
+    }
+
+    // Process AI classification for unprocessed emails (limit to avoid timeout)
+    const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
+    const emailsToClassify = emailsToProcess.slice(0, maxAiProcessing);
+
+    for (const { emailId, msg } of emailsToClassify) {
+      const aiResult = await classifyAndProcessEmail(
+        supabaseUrl,
+        authHeader,
+        emailId,
+        msg,
+        workspaceId
+      );
+
+      if (aiResult.classified) {
+        results.emailsClassified++;
+      }
+      if (aiResult.rulesApplied) {
+        results.rulesApplied++;
+      }
+      if (aiResult.error) {
+        results.errors.push(`AI processing: ${aiResult.error}`);
+      }
+    }
+
+    // Log if there are more emails pending AI processing
+    if (emailsToProcess.length > maxAiProcessing) {
+      console.log(`${emailsToProcess.length - maxAiProcessing} emails pending AI processing`);
     }
 
     return new Response(JSON.stringify(results), {
