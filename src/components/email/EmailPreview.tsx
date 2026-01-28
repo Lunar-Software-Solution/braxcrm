@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Mail,
   Download,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ interface EmailPreviewProps {
   onForward: (email: Email) => void;
   onDelete: (email: Email) => void;
   onArchive: (email: Email) => void;
+  isLoading?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -57,7 +59,17 @@ export function EmailPreview({
   onForward,
   onDelete,
   onArchive,
+  isLoading = false,
 }: EmailPreviewProps) {
+  if (isLoading) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center bg-muted/20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading email...</p>
+      </div>
+    );
+  }
+
   if (!email) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-muted/20">
