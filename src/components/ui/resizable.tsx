@@ -27,7 +27,7 @@ const ResizableHandle = ({
     {...props}
   >
     {withHandle && (
-      <div className="z-10 flex h-8 w-4 items-center justify-center rounded-sm border bg-border/80 group-hover:bg-accent/50 transition-colors">
+      <div className="z-10 sticky top-1/2 -translate-y-1/2 flex h-8 w-4 items-center justify-center rounded-sm border bg-border/80 group-hover:bg-accent/50 transition-colors shadow-sm">
         <div className="grid grid-cols-2 gap-0.5">
           <div className="h-1 w-1 rounded-full bg-muted-foreground/60" />
           <div className="h-1 w-1 rounded-full bg-muted-foreground/60" />
