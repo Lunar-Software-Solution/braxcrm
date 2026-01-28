@@ -109,7 +109,7 @@ export function EmailLayout() {
   const currentFolder = folders.find((f) => f.id === selectedFolderId);
   const currentAccount = accounts.find(a => a.id === selectedAccountId);
 
-  // Load emails when folder changes and sync to CRM
+  // Load emails when folder changes
   useEffect(() => {
     if (!selectedFolderId || !selectedAccountId) return;
     
@@ -118,46 +118,6 @@ export function EmailLayout() {
         setEmailsLoading(true);
         const emailList = await listMessages(selectedFolderId);
         setEmails(emailList);
-
-        // Sync emails to CRM to auto-create people and companies
-        const folderKey = `${selectedAccountId}-${selectedFolderId}`;
-        if (workspaceId && emailList.length > 0 && !syncedFolders.current.has(folderKey)) {
-          syncedFolders.current.add(folderKey);
-          const userEmail = currentAccount?.microsoft_email;
-          
-          if (userEmail) {
-            setSyncing(true);
-            try {
-              // Transform emails to the format expected by sync-emails
-              const messagesToSync = emailList.map(email => ({
-                id: email.id,
-                subject: email.subject,
-                bodyPreview: email.bodyPreview,
-                from: email.from,
-                toRecipients: email.toRecipients,
-                receivedDateTime: email.receivedDateTime,
-                isRead: email.isRead,
-                hasAttachments: email.hasAttachments,
-                conversationId: undefined,
-                parentFolderId: email.parentFolderId,
-              }));
-              
-              const result = await syncEmails(workspaceId, messagesToSync, userEmail);
-              
-              if (result.peopleCreated > 0 || result.companiesCreated > 0) {
-                toast({
-                  title: "Contacts synced",
-                  description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
-                });
-              }
-            } catch (syncError) {
-              console.error("Failed to sync emails to CRM:", syncError);
-              // Don't show error to user - sync is a background task
-            } finally {
-              setSyncing(false);
-            }
-          }
-        }
       } catch (error) {
         console.error("Failed to load emails:", error);
         toast({
@@ -171,7 +131,66 @@ export function EmailLayout() {
     };
     
     loadEmails();
-  }, [selectedFolderId, selectedAccountId, listMessages, toast, workspaceId, currentAccount, syncEmails]);
+  }, [selectedFolderId, selectedAccountId, listMessages, toast]);
+
+  // Sync emails to CRM (separate effect to handle async dependencies)
+  useEffect(() => {
+    if (!workspaceId || !selectedAccountId || !selectedFolderId || emails.length === 0) {
+      return;
+    }
+
+    const userEmail = currentAccount?.microsoft_email;
+    if (!userEmail) {
+      console.log("No user email available for sync");
+      return;
+    }
+
+    const folderKey = `${selectedAccountId}-${selectedFolderId}`;
+    if (syncedFolders.current.has(folderKey)) {
+      return;
+    }
+
+    const syncToBackend = async () => {
+      syncedFolders.current.add(folderKey);
+      setSyncing(true);
+      
+      try {
+        console.log(`Syncing ${emails.length} emails to CRM for ${userEmail}`);
+        
+        // Transform emails to the format expected by sync-emails
+        const messagesToSync = emails.map(email => ({
+          id: email.id,
+          subject: email.subject,
+          bodyPreview: email.bodyPreview,
+          from: email.from,
+          toRecipients: email.toRecipients,
+          receivedDateTime: email.receivedDateTime,
+          isRead: email.isRead,
+          hasAttachments: email.hasAttachments,
+          conversationId: undefined,
+          parentFolderId: email.parentFolderId,
+        }));
+        
+        const result = await syncEmails(workspaceId, messagesToSync, userEmail);
+        console.log("Sync result:", result);
+        
+        if (result.peopleCreated > 0 || result.companiesCreated > 0) {
+          toast({
+            title: "Contacts synced",
+            description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
+          });
+        }
+      } catch (syncError) {
+        console.error("Failed to sync emails to CRM:", syncError);
+        // Remove from synced set so it can retry
+        syncedFolders.current.delete(folderKey);
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    syncToBackend();
+  }, [workspaceId, selectedAccountId, selectedFolderId, emails, currentAccount, syncEmails, toast]);
 
   const handleAccountSelect = (accountId: string) => {
     setSelectedAccountId(accountId);

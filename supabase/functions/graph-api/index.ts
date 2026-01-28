@@ -52,7 +52,7 @@ async function getValidToken(
   supabase: SupabaseClient,
   userId: string,
   accountId?: string | null
-): Promise<string> {
+): Promise<{ accessToken: string; tokenId: string; microsoftEmail: string | null }> {
   // Build query to get tokens
   let query = supabase
     .from("microsoft_tokens")
@@ -77,6 +77,9 @@ async function getValidToken(
   const expiresAt = new Date(tokens.expires_at);
   const now = new Date();
 
+  let accessToken = tokens.access_token;
+  let microsoftEmail = tokens.microsoft_email;
+
   // If token expires in less than 5 minutes, refresh it
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
     const newTokens = await refreshAccessToken(tokens.refresh_token);
@@ -94,10 +97,35 @@ async function getValidToken(
       })
       .eq("id", tokens.id);
 
-    return newTokens.access_token;
+    accessToken = newTokens.access_token;
   }
 
-  return tokens.access_token;
+  // If microsoft_email is missing, fetch it from Graph API and update
+  if (!microsoftEmail) {
+    try {
+      const userResponse = await fetch("https://graph.microsoft.com/v1.0/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (userResponse.ok) {
+        const msUser = await userResponse.json();
+        microsoftEmail = msUser.mail || msUser.userPrincipalName;
+        
+        if (microsoftEmail) {
+          await supabase
+            .from("microsoft_tokens")
+            .update({
+              microsoft_email: microsoftEmail,
+              display_name: msUser.displayName,
+            })
+            .eq("id", tokens.id);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch user email:", e);
+    }
+  }
+
+  return { accessToken, tokenId: tokens.id, microsoftEmail };
 }
 
 async function callGraphApi(
@@ -164,7 +192,7 @@ Deno.serve(async (req) => {
     const accountId = url.searchParams.get("accountId"); // Optional: specific account to use
 
     // Get valid access token (for specific account or primary)
-    const accessToken = await getValidToken(supabase, userId, accountId);
+    const { accessToken } = await getValidToken(supabase, userId, accountId);
 
     let result: unknown;
 
@@ -180,7 +208,7 @@ Deno.serve(async (req) => {
         const skip = url.searchParams.get("skip") || "0";
         const search = url.searchParams.get("search");
 
-        let endpoint = `/me/mailFolders/${folderId}/messages?$top=${top}&$skip=${skip}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,importance,flag`;
+        let endpoint = `/me/mailFolders/${folderId}/messages?$top=${top}&$skip=${skip}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,importance,flag,parentFolderId`;
 
         if (search) {
           endpoint += `&$search="${encodeURIComponent(search)}"`;
