@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Users,
   Building2,
   Target,
   CheckSquare,
   FileText,
-  GitBranch,
   LayoutDashboard,
   Settings,
   Search,
@@ -48,7 +46,6 @@ const futureItems = [
   { title: "Opportunities", url: "/opportunities", icon: Target, disabled: true },
   { title: "Tasks", url: "/tasks", icon: CheckSquare, disabled: true },
   { title: "Notes", url: "/notes", icon: FileText, disabled: true },
-  { title: "Workflows", url: "/workflows", icon: GitBranch, disabled: true },
   { title: "Dashboards", url: "/dashboards", icon: LayoutDashboard, disabled: true },
 ];
 
@@ -56,7 +53,6 @@ export function CRMSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
