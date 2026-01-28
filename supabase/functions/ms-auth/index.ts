@@ -102,77 +102,61 @@ Deno.serve(async (req) => {
 
         const msUser = await userResponse.json();
 
-        // Create or update user in Supabase using service role
+        // Create supabase client with service role
         const supabase = createClient(supabaseUrl, supabaseServiceKey, {
           auth: { autoRefreshToken: false, persistSession: false },
         });
 
-        // Check if user exists by email
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
+        // Check if there's an authenticated user (adding account to existing user)
+        const authHeader = req.headers.get("Authorization");
         let userId: string;
-        let isNewUser = false;
-
-        const existingUser = existingUsers?.users?.find(
-          (u) => u.email === msUser.mail || u.email === msUser.userPrincipalName
-        );
-
-        if (existingUser) {
-          userId = existingUser.id;
+        
+        if (authHeader?.startsWith("Bearer ")) {
+          // User is already logged in - adding a new Microsoft account
+          const token = authHeader.replace("Bearer ", "");
+          const { data: userData, error: userError } = await supabase.auth.getUser(token);
+          
+          if (userError || !userData.user) {
+            throw new Error("Invalid session - please log in again");
+          }
+          
+          userId = userData.user.id;
         } else {
-          // Create new user
-          const { data: newUser, error: createError } =
-            await supabase.auth.admin.createUser({
-              email: msUser.mail || msUser.userPrincipalName,
-              email_confirm: true,
-              user_metadata: {
-                full_name: msUser.displayName,
-                avatar_url: null,
-                provider: "azure",
-                microsoft_id: msUser.id,
-              },
-            });
-
-          if (createError) throw createError;
-          userId = newUser.user.id;
-          isNewUser = true;
+          // No authenticated user - this shouldn't happen in our new flow
+          throw new Error("You must be logged in to connect a Microsoft account");
         }
 
-        // Store Microsoft tokens
+        // Store Microsoft tokens with email info
         const expiresAt = new Date();
         expiresAt.setSeconds(expiresAt.getSeconds() + tokens.expires_in);
+        const microsoftEmail = msUser.mail || msUser.userPrincipalName;
 
-        await supabase.from("microsoft_tokens").upsert({
-          user_id: userId,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          expires_at: expiresAt.toISOString(),
-        });
+        // Check if this is the first account (make it primary)
+        const { data: existingTokens } = await supabase
+          .from("microsoft_tokens")
+          .select("id")
+          .eq("user_id", userId);
+        
+        const isFirstAccount = !existingTokens || existingTokens.length === 0;
 
-        // Generate a Supabase session for this user
-        const { data: session, error: sessionError } =
-          await supabase.auth.admin.generateLink({
-            type: "magiclink",
-            email: msUser.mail || msUser.userPrincipalName,
-          });
-
-        if (sessionError) throw sessionError;
-
-        // Extract token from the magic link
-        const magicLinkUrl = new URL(session.properties.action_link);
-        const token = magicLinkUrl.searchParams.get("token");
-        const tokenType = magicLinkUrl.searchParams.get("type");
+        await supabase.from("microsoft_tokens").upsert(
+          {
+            user_id: userId,
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: expiresAt.toISOString(),
+            microsoft_email: microsoftEmail,
+            display_name: msUser.displayName,
+            is_primary: isFirstAccount,
+          },
+          { onConflict: "user_id,microsoft_email" }
+        );
 
         return new Response(
           JSON.stringify({
-            token,
-            token_type: tokenType,
-            email: msUser.mail || msUser.userPrincipalName,
-            user: {
-              id: userId,
-              email: msUser.mail || msUser.userPrincipalName,
-              name: msUser.displayName,
-            },
-            is_new_user: isNewUser,
+            success: true,
+            microsoft_email: microsoftEmail,
+            display_name: msUser.displayName,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

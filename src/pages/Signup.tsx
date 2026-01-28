@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMicrosoftAuth } from "@/hooks/use-microsoft-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,7 +15,6 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signUpWithEmail } = useAuth();
-  const { initiateLogin: signInWithMicrosoft, loading: microsoftLoading } = useMicrosoftAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -62,19 +59,6 @@ export default function Signup() {
     }
   };
 
-  const handleMicrosoftLogin = async () => {
-    try {
-      await signInWithMicrosoft();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Could not connect to Microsoft";
-      toast({
-        title: "Microsoft signup failed",
-        description: message,
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
@@ -88,40 +72,7 @@ export default function Signup() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {/* Microsoft OAuth Button */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full gap-2 h-11"
-            onClick={handleMicrosoftLogin}
-            disabled={microsoftLoading}
-          >
-            {microsoftLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <svg className="h-5 w-5" viewBox="0 0 21 21">
-                <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-              </svg>
-            )}
-            Continue with Microsoft
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                or sign up with email
-              </span>
-            </div>
-          </div>
-
-          {/* Email/Password Form */}
+        <CardContent>
           <form onSubmit={handleEmailSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="displayName">Full Name</Label>
