@@ -1,1 +1,4 @@
 project_id = "ypmkbrdymnfxxwoogpdb"
+
+[functions.graph-api]
+verify_jwt = false
