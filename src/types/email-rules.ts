@@ -7,7 +7,10 @@ export type RuleActionType =
   | 'extract_invoice'
   | 'move_folder'
   | 'mark_priority'
-  | 'assign_object_type';
+  | 'assign_object_type'
+  | 'assign_entity';
+
+export type EntityType = 'influencer' | 'reseller' | 'supplier';
 
 export type InvoiceStatus = 'pending' | 'reviewed' | 'approved' | 'rejected';
 
@@ -82,6 +85,11 @@ export interface AssignObjectTypeConfig {
   assign_to_email: boolean;
 }
 
+export interface AssignEntityConfig {
+  entity_type: EntityType;
+  create_if_not_exists: boolean;
+}
+
 export type RuleActionConfig = 
   | VisibilityActionConfig
   | TagActionConfig
@@ -90,6 +98,7 @@ export type RuleActionConfig =
   | MoveFolderConfig
   | MarkPriorityConfig
   | AssignObjectTypeConfig
+  | AssignEntityConfig
   | Record<string, unknown>;
 
 export interface EmailTag {

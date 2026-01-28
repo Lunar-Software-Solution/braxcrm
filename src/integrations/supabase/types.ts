@@ -64,6 +64,42 @@ export type Database = {
           },
         ]
       }
+      email_influencers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          influencer_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          influencer_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          influencer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_influencers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_influencers_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_message_categories: {
         Row: {
           category_id: string
@@ -264,6 +300,42 @@ export type Database = {
           },
         ]
       }
+      email_resellers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          reseller_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          reseller_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          reseller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_resellers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_resellers_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_rule_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["rule_action_type"]
@@ -346,6 +418,42 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_suppliers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          supplier_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          supplier_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_suppliers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -969,6 +1077,7 @@ export type Database = {
         | "move_folder"
         | "mark_priority"
         | "assign_object_type"
+        | "assign_entity"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1106,6 +1215,7 @@ export const Constants = {
         "move_folder",
         "mark_priority",
         "assign_object_type",
+        "assign_entity",
       ],
     },
   },
