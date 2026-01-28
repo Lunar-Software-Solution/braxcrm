@@ -12,6 +12,7 @@ import {
   Flag,
   Star,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ interface EmailListProps {
   folderName: string;
   onEmailSelect: (email: Email) => void;
   onRefresh: () => void;
+  isLoading?: boolean;
 }
 
 function formatEmailDate(dateString: string): string {
@@ -50,6 +52,7 @@ export function EmailList({
   folderName,
   onEmailSelect,
   onRefresh,
+  isLoading = false,
 }: EmailListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
@@ -143,6 +146,12 @@ export function EmailList({
 
       {/* Email list */}
       <ScrollArea className="flex-1">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+            <p className="text-sm text-muted-foreground">Loading emails...</p>
+          </div>
+        ) : (
         <div className="divide-y divide-border">
           {filteredEmails.map((email) => {
             const isSelected = selectedEmailId === email.id;
@@ -226,6 +235,7 @@ export function EmailList({
             </div>
           )}
         </div>
+        )}
       </ScrollArea>
     </div>
   );

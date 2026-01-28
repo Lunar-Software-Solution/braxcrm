@@ -31,9 +31,10 @@ interface ComposeDialogProps {
     subject: string;
     body?: string;
   };
+  onSend?: (message: { to: string; cc?: string; subject: string; body: string }) => Promise<void>;
 }
 
-export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProps) {
+export function ComposeDialog({ open, onOpenChange, replyTo, onSend }: ComposeDialogProps) {
   const [to, setTo] = useState(replyTo?.to || "");
   const [cc, setCc] = useState("");
   const [bcc, setBcc] = useState("");
@@ -42,11 +43,36 @@ export function ComposeDialog({ open, onOpenChange, replyTo }: ComposeDialogProp
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSend = () => {
-    // TODO: Implement send functionality with Microsoft Graph API
-    console.log("Sending email:", { to, cc, bcc, subject, body });
-    onOpenChange(false);
+  // Reset form when replyTo changes
+  useState(() => {
+    if (replyTo) {
+      setTo(replyTo.to);
+      setSubject(replyTo.subject);
+      setBody(replyTo.body || "");
+    }
+  });
+
+  const handleSend = async () => {
+    if (!onSend) {
+      console.log("Sending email:", { to, cc, bcc, subject, body });
+      onOpenChange(false);
+      return;
+    }
+    
+    setIsSending(true);
+    try {
+      await onSend({ to, cc: cc || undefined, subject, body });
+      // Reset form
+      setTo("");
+      setCc("");
+      setBcc("");
+      setSubject("");
+      setBody("");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleDiscard = () => {
