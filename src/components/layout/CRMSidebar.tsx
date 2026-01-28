@@ -178,19 +178,6 @@ export function CRMSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {/* Manage Object Types link */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/objects"
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md text-muted-foreground"
-                    activeClassName="bg-muted text-primary font-medium"
-                  >
-                    <Layers className="h-4 w-4" />
-                    {!collapsed && <span className="text-xs">Manage Types</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
