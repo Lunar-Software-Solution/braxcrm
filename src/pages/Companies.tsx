@@ -1,31 +1,51 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Search, Users, Mail, ExternalLink, Trash2, Edit } from "lucide-react";
+import { 
+  Building2, Plus, Globe, Calendar, Users as UsersIcon, 
+  Linkedin, MapPin, UserCircle, User
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
+import { TableFooter } from "@/components/crm/TableFooter";
+import { DetailPanel } from "@/components/crm/DetailPanel";
+import { AddNewRow } from "@/components/crm/AddNewRow";
 import { useCRM } from "@/hooks/use-crm";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Person } from "@/types/crm";
-import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
-// Temporary workspace ID - will be replaced with actual workspace context
 const TEMP_WORKSPACE_ID = "temp-workspace";
+
+const columns = [
+  { key: "select", label: "", icon: null, width: "w-10" },
+  { key: "name", label: "Name", icon: Building2, width: "min-w-[180px]" },
+  { key: "domain", label: "Domain", icon: Globe, width: "min-w-[150px]" },
+  { key: "created_by", label: "Created by", icon: User, width: "min-w-[130px]" },
+  { key: "account_owner", label: "Account Owner", icon: UserCircle, width: "min-w-[150px]" },
+  { key: "created_at", label: "Creation date", icon: Calendar, width: "min-w-[130px]" },
+  { key: "employees", label: "Employees", icon: UsersIcon, width: "min-w-[100px]" },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin, width: "min-w-[100px]" },
+  { key: "address", label: "Address", icon: MapPin, width: "min-w-[150px]" },
+  { key: "add", label: "+", icon: null, width: "w-10" },
+];
 
 export default function Companies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const { listCompanies, listPeople, createCompany, updateCompany, deleteCompany } = useCRM();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -54,11 +74,15 @@ export default function Companies() {
 
   const handleSave = async (formData: FormData) => {
     try {
+      const employeesValue = formData.get("employees") as string;
       const data = {
         name: formData.get("name") as string,
         domain: formData.get("domain") as string || undefined,
         website: formData.get("website") as string || undefined,
         industry: formData.get("industry") as string || undefined,
+        employees: employeesValue ? parseInt(employeesValue, 10) : undefined,
+        linkedin_url: formData.get("linkedin_url") as string || undefined,
+        address: formData.get("address") as string || undefined,
         notes: formData.get("notes") as string || undefined,
       };
 
@@ -69,7 +93,7 @@ export default function Companies() {
         await createCompany({
           ...data,
           workspace_id: TEMP_WORKSPACE_ID,
-          created_by: "temp-user", // Will be replaced with actual user
+          created_by: "temp-user",
         });
         toast({ title: "Company created" });
       }
@@ -86,107 +110,47 @@ export default function Companies() {
     }
   };
 
-  const handleDelete = async (company: Company) => {
-    if (!confirm(`Delete ${company.name}? This will also remove all associated people.`)) return;
-
-    try {
-      await deleteCompany(company.id);
-      toast({ title: "Company deleted" });
-      loadData();
-    } catch (error) {
-      toast({
-        title: "Failed to delete company",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getPeopleCount = (companyId: string) => {
     return people.filter(p => p.company_id === companyId).length;
   };
 
-  const filteredCompanies = companies.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.domain?.toLowerCase().includes(search.toLowerCase())
-  );
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === companies.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(companies.map(c => c.id)));
+    }
+  };
+
+  const totalEmployees = companies.reduce((sum, c) => sum + (c.employees || 0), 0);
+  const aggregations = [
+    { label: "Count all", value: companies.length },
+    { label: "Total employees", value: totalEmployees },
+    { label: "With domain", value: companies.filter(c => c.domain).length },
+  ];
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            <h1 className="text-xl font-semibold">Companies</h1>
-            <Badge variant="secondary">{companies.length}</Badge>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingCompany(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Company
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingCompany ? "Edit Company" : "New Company"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleSave(new FormData(e.currentTarget));
-              }} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Company Name *</Label>
-                  <Input id="name" name="name" defaultValue={editingCompany?.name} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="domain">Domain</Label>
-                  <Input id="domain" name="domain" placeholder="example.com" defaultValue={editingCompany?.domain} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input id="website" name="website" placeholder="https://example.com" defaultValue={editingCompany?.website} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="industry">Industry</Label>
-                  <Input id="industry" name="industry" placeholder="Technology" defaultValue={editingCompany?.industry} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea id="notes" name="notes" defaultValue={editingCompany?.notes} />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingCompany ? "Update" : "Create"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search companies..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
+    <div className="h-full flex bg-background">
+      {/* Main Table Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <CRMTableHeader title="Companies" count={companies.length} />
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Loading companies...</p>
           </div>
-        ) : filteredCompanies.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+        ) : companies.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No companies yet</h3>
             <p className="text-muted-foreground mb-4">
@@ -198,60 +162,199 @@ export default function Companies() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCompanies.map((company) => (
-              <Card key={company.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{company.name}</CardTitle>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingCompany(company);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(company)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {company.domain && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <ExternalLink className="h-4 w-4" />
-                        <span>{company.domain}</span>
+          <ScrollArea className="flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  {columns.map((col) => (
+                    <TableHead key={col.key} className={`${col.width} bg-muted/50`}>
+                      {col.key === "select" ? (
+                        <Checkbox
+                          checked={selectedIds.size === companies.length && companies.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      ) : col.key === "add" ? (
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                          {col.icon && <col.icon className="h-3.5 w-3.5" />}
+                          {col.label}
+                        </div>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {companies.map((company) => (
+                  <TableRow
+                    key={company.id}
+                    className={`cursor-pointer ${selectedCompany?.id === company.id ? "bg-muted" : ""}`}
+                    onClick={() => setSelectedCompany(company)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(company.id)}
+                        onCheckedChange={() => toggleSelect(company.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="font-medium truncate">{company.name}</span>
                       </div>
-                    )}
-                    {company.industry && (
-                      <Badge variant="outline">{company.industry}</Badge>
-                    )}
-                    <div className="flex items-center gap-4 pt-2">
-                      <button
-                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(`/people?company=${company.id}`)}
-                      >
-                        <Users className="h-4 w-4" />
-                        <span>{getPeopleCount(company.id)} people</span>
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </TableCell>
+                    <TableCell>
+                      {company.domain ? (
+                        <a
+                          href={`https://${company.domain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {company.domain}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">—</TableCell>
+                    <TableCell className="text-muted-foreground">—</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {formatDistanceToNow(new Date(company.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {company.employees || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {company.linkedin_url ? (
+                        <a
+                          href={company.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[200px]">
+                      {company.address || "—"}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                ))}
+                <AddNewRow colSpan={columns.length} onClick={() => setDialogOpen(true)} label="Add New" />
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        )}
+
+        {companies.length > 0 && <TableFooter aggregations={aggregations} />}
+      </div>
+
+      {/* Detail Panel */}
+      <DetailPanel
+        isOpen={!!selectedCompany}
+        onClose={() => setSelectedCompany(null)}
+        title={selectedCompany?.name || ""}
+        subtitle={selectedCompany?.industry}
+        createdAt={selectedCompany?.created_at}
+      >
+        {selectedCompany && (
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">People</h4>
+              <p className="text-sm">{getPeopleCount(selectedCompany.id)} contacts</p>
+            </div>
+            {selectedCompany.website && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Website</h4>
+                <a
+                  href={selectedCompany.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  {selectedCompany.website}
+                </a>
+              </div>
+            )}
+            {selectedCompany.notes && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Notes</h4>
+                <p className="text-sm">{selectedCompany.notes}</p>
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </DetailPanel>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCompany ? "Edit Company" : "New Company"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSave(new FormData(e.currentTarget));
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Company Name *</Label>
+              <Input id="name" name="name" defaultValue={editingCompany?.name} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="domain">Domain</Label>
+                <Input id="domain" name="domain" placeholder="example.com" defaultValue={editingCompany?.domain} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input id="website" name="website" placeholder="https://example.com" defaultValue={editingCompany?.website} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Input id="industry" name="industry" placeholder="Technology" defaultValue={editingCompany?.industry} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employees">Employees</Label>
+                <Input id="employees" name="employees" type="number" placeholder="100" defaultValue={editingCompany?.employees} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+              <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/company/..." defaultValue={editingCompany?.linkedin_url} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" name="address" placeholder="123 Main St, San Francisco, CA" defaultValue={editingCompany?.address} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes" name="notes" defaultValue={editingCompany?.notes} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingCompany ? "Update" : "Create"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

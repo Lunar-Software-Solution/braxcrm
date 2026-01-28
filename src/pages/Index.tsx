@@ -1,7 +1,7 @@
-import { EmailLayout } from "@/components/email/EmailLayout";
+import { Navigate } from "react-router-dom";
 
 const Index = () => {
-  return <EmailLayout />;
+  return <Navigate to="/people" replace />;
 };
 
 export default Index;
