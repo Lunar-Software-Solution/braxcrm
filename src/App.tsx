@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -13,6 +14,7 @@ import Settings from "./pages/Settings";
 import Companies from "./pages/Companies";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
+import Inbox from "./pages/Inbox";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,49 +27,26 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* CRM Routes with AppLayout */}
             <Route
-              path="/settings"
               element={
                 <ProtectedRoute>
-                  <Settings />
+                  <AppLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/companies"
-              element={
-                <ProtectedRoute>
-                  <Companies />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/people"
-              element={
-                <ProtectedRoute>
-                  <People />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/person/:personId"
-              element={
-                <ProtectedRoute>
-                  <PersonDetail />
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route path="/" element={<Index />} />
+              <Route path="/people" element={<People />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/person/:personId" element={<PersonDetail />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/inbox" element={<Inbox />} />
+            </Route>
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

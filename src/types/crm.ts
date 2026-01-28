@@ -8,6 +8,10 @@ export interface Company {
   website?: string;
   industry?: string;
   notes?: string;
+  employees?: number;
+  linkedin_url?: string;
+  address?: string;
+  account_owner_id?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -24,6 +28,9 @@ export interface Person {
   phone?: string;
   notes?: string;
   avatar_url?: string;
+  city?: string;
+  linkedin_url?: string;
+  twitter_handle?: string;
   is_auto_created: boolean;
   created_by: string;
   created_at: string;

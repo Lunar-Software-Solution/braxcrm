@@ -16,11 +16,15 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          account_owner_id: string | null
+          address: string | null
           created_at: string
           created_by: string
           domain: string | null
+          employees: number | null
           id: string
           industry: string | null
+          linkedin_url: string | null
           name: string
           notes: string | null
           updated_at: string
@@ -28,11 +32,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          account_owner_id?: string | null
+          address?: string | null
           created_at?: string
           created_by: string
           domain?: string | null
+          employees?: number | null
           id?: string
           industry?: string | null
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           updated_at?: string
@@ -40,11 +48,15 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          account_owner_id?: string | null
+          address?: string | null
           created_at?: string
           created_by?: string
           domain?: string | null
+          employees?: number | null
           id?: string
           industry?: string | null
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           updated_at?: string
@@ -166,46 +178,55 @@ export type Database = {
       people: {
         Row: {
           avatar_url: string | null
+          city: string | null
           company_id: string | null
           created_at: string
           created_by: string
           email: string
           id: string
           is_auto_created: boolean
+          linkedin_url: string | null
           name: string
           notes: string | null
           phone: string | null
           title: string | null
+          twitter_handle: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
+          city?: string | null
           company_id?: string | null
           created_at?: string
           created_by: string
           email: string
           id?: string
           is_auto_created?: boolean
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           title?: string | null
+          twitter_handle?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           avatar_url?: string | null
+          city?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string
           email?: string
           id?: string
           is_auto_created?: boolean
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           title?: string | null
+          twitter_handle?: string | null
           updated_at?: string
           workspace_id?: string
         }
