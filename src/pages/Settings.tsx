@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EmailRulesSettings from "@/components/settings/EmailRulesSettings";
+import EmailCategoriesSettings from "@/components/settings/EmailCategoriesSettings";
 
 interface MicrosoftAccount {
   id: string;
@@ -300,6 +301,9 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+
+          {/* Email Categories Section */}
+          <EmailCategoriesSettings />
 
           {/* Email Rules Section */}
           <EmailRulesSettings />
