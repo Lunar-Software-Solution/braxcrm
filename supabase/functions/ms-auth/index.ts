@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
         authUrl.searchParams.set("scope", scopes);
         authUrl.searchParams.set("state", state);
         authUrl.searchParams.set("response_mode", "query");
+        authUrl.searchParams.set("prompt", "consent");
 
         return new Response(
           JSON.stringify({ url: authUrl.toString(), state }),
