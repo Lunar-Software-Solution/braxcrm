@@ -35,7 +35,15 @@ interface GraphFolder {
   isHidden?: boolean;
 }
 
-export function useGraphApi() {
+export interface MicrosoftAccount {
+  id: string;
+  microsoft_email: string | null;
+  display_name: string | null;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export function useGraphApi(accountId?: string) {
   const callApi = useCallback(
     async <T>(
       action: string,
@@ -51,6 +59,12 @@ export function useGraphApi() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/graph-api`
       );
       url.searchParams.set("action", action);
+      
+      // Add accountId if specified
+      if (accountId) {
+        url.searchParams.set("accountId", accountId);
+      }
+      
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.set(key, value);
       });
@@ -72,7 +86,7 @@ export function useGraphApi() {
 
       return result;
     },
-    []
+    [accountId]
   );
 
   const listFolders = useCallback(async (): Promise<EmailFolder[]> => {
@@ -212,4 +226,20 @@ export function useGraphApi() {
     deleteMessage,
     moveMessage,
   };
+}
+
+// Hook to list connected Microsoft accounts
+export function useMicrosoftAccounts() {
+  const listAccounts = useCallback(async (): Promise<MicrosoftAccount[]> => {
+    const { data, error } = await supabase
+      .from("microsoft_tokens")
+      .select("id, microsoft_email, display_name, is_primary, created_at")
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }, []);
+
+  return { listAccounts };
 }
