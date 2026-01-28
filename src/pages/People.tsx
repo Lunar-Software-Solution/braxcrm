@@ -18,12 +18,12 @@ import { TableFooter } from "@/components/crm/TableFooter";
 import { DetailPanel } from "@/components/crm/DetailPanel";
 import { AddNewRow } from "@/components/crm/AddNewRow";
 import { useCRM } from "@/hooks/use-crm";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Person } from "@/types/crm";
 import { useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-
-const TEMP_WORKSPACE_ID = "temp-workspace";
 
 const columns = [
   { key: "select", label: "", icon: null, width: "w-10" },
@@ -49,20 +49,25 @@ export default function People() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { listPeople, listCompanies, createPerson, updatePerson, deletePerson, listEmailsByPerson } = useCRM();
+  const { workspaceId, loading: workspaceLoading } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const companyFilter = searchParams.get("company");
 
   useEffect(() => {
-    loadData();
-  }, [companyFilter]);
+    if (workspaceId) {
+      loadData();
+    }
+  }, [workspaceId, companyFilter]);
 
   const loadData = async () => {
+    if (!workspaceId) return;
     try {
       setLoading(true);
       const [peopleData, companiesData] = await Promise.all([
-        listPeople(TEMP_WORKSPACE_ID, companyFilter ? { companyId: companyFilter } : undefined),
-        listCompanies(TEMP_WORKSPACE_ID),
+        listPeople(workspaceId, companyFilter ? { companyId: companyFilter } : undefined),
+        listCompanies(workspaceId),
       ]);
       setPeople(peopleData);
       setCompanies(companiesData);
@@ -79,6 +84,7 @@ export default function People() {
   };
 
   const handleSave = async (formData: FormData) => {
+    if (!workspaceId || !user) return;
     try {
       const companyId = formData.get("company_id") as string;
       const data = {
@@ -99,9 +105,9 @@ export default function People() {
       } else {
         await createPerson({
           ...data,
-          workspace_id: TEMP_WORKSPACE_ID,
+          workspace_id: workspaceId,
           is_auto_created: false,
-          created_by: "temp-user",
+          created_by: user.id,
         });
         toast({ title: "Person created" });
       }
@@ -157,9 +163,13 @@ export default function People() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <CRMTableHeader title="People" count={people.length} />
 
-        {loading ? (
+        {loading || workspaceLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Loading people...</p>
+          </div>
+        ) : !workspaceId ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Please log in to view people</p>
           </div>
         ) : people.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
