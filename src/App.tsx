@@ -10,6 +10,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AuthCallback from "./pages/AuthCallback";
 import Settings from "./pages/Settings";
+import Companies from "./pages/Companies";
+import People from "./pages/People";
+import PersonDetail from "./pages/PersonDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +41,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/companies"
+              element={
+                <ProtectedRoute>
+                  <Companies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/people"
+              element={
+                <ProtectedRoute>
+                  <People />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/person/:personId"
+              element={
+                <ProtectedRoute>
+                  <PersonDetail />
                 </ProtectedRoute>
               }
             />
