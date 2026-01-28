@@ -15,6 +15,9 @@ import Objects from "./pages/Objects";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import Inbox from "./pages/Inbox";
+import Influencers from "./pages/Influencers";
+import Resellers from "./pages/Resellers";
+import Suppliers from "./pages/Suppliers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +46,9 @@ const App = () => (
               <Route path="/people" element={<People />} />
               <Route path="/objects" element={<Objects />} />
               <Route path="/person/:personId" element={<PersonDetail />} />
+              <Route path="/influencers" element={<Influencers />} />
+              <Route path="/resellers" element={<Resellers />} />
+              <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
             </Route>
