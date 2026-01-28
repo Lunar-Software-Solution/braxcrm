@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +16,9 @@ import {
   Mail,
   Download,
   Loader2,
+  Users,
+  Building2,
+  Truck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +34,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Email } from "@/types/email";
 import { format } from "date-fns";
+import { useEmailLinkedEntities } from "@/hooks/use-email-entities";
 
 interface EmailPreviewProps {
   email: Email | null;
@@ -61,6 +64,14 @@ export function EmailPreview({
   onArchive,
   isLoading = false,
 }: EmailPreviewProps) {
+  const { data: linkedEntities, isLoading: loadingEntities } = useEmailLinkedEntities(email?.id || null);
+  
+  const hasLinkedEntities = linkedEntities && (
+    linkedEntities.influencers.length > 0 ||
+    linkedEntities.resellers.length > 0 ||
+    linkedEntities.suppliers.length > 0
+  );
+
   if (isLoading) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-muted/20">
@@ -193,7 +204,51 @@ export function EmailPreview({
             </div>
           </div>
 
-          {/* Attachments */}
+          {/* Linked Entities */}
+          {hasLinkedEntities && (
+            <div className="mb-6 p-3 rounded-lg bg-muted/50 border border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <Users className="h-4 w-4" />
+                <span>Linked Entities</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {linkedEntities.influencers.map((influencer) => (
+                  <Badge
+                    key={influencer.id}
+                    variant="secondary"
+                    className="flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                  >
+                    <Users className="h-3 w-3" />
+                    {influencer.name}
+                    <span className="text-xs opacity-70">Influencer</span>
+                  </Badge>
+                ))}
+                {linkedEntities.resellers.map((reseller) => (
+                  <Badge
+                    key={reseller.id}
+                    variant="secondary"
+                    className="flex items-center gap-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                  >
+                    <Building2 className="h-3 w-3" />
+                    {reseller.name}
+                    <span className="text-xs opacity-70">Reseller</span>
+                  </Badge>
+                ))}
+                {linkedEntities.suppliers.map((supplier) => (
+                  <Badge
+                    key={supplier.id}
+                    variant="secondary"
+                    className="flex items-center gap-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                  >
+                    <Truck className="h-3 w-3" />
+                    {supplier.name}
+                    <span className="text-xs opacity-70">Supplier</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           {email.hasAttachments && (
             <div className="mb-6 p-3 rounded-lg bg-muted/50 border border-border">
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
