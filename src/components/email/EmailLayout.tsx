@@ -255,6 +255,58 @@ export function EmailLayout() {
     }
   }, [selectedFolderId, listMessages, toast]);
 
+  const handleSyncContacts = useCallback(async () => {
+    if (!workspaceId || emails.length === 0) {
+      toast({
+        title: "Cannot sync",
+        description: "No emails to sync or workspace not ready",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userEmail = currentAccount?.microsoft_email;
+    if (!userEmail) {
+      toast({
+        title: "Cannot sync",
+        description: "Email address not available. Try refreshing the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const messagesToSync = emails.map(email => ({
+        id: email.id,
+        subject: email.subject,
+        bodyPreview: email.bodyPreview,
+        from: email.from,
+        toRecipients: email.toRecipients,
+        receivedDateTime: email.receivedDateTime,
+        isRead: email.isRead,
+        hasAttachments: email.hasAttachments,
+        conversationId: undefined,
+        parentFolderId: email.parentFolderId,
+      }));
+      
+      const result = await syncEmails(workspaceId, messagesToSync, userEmail);
+      
+      toast({
+        title: "Contacts synced",
+        description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
+      });
+    } catch (error) {
+      toast({
+        title: "Sync failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }, [workspaceId, emails, currentAccount, syncEmails, toast]);
+
   const handleCompose = () => {
     setReplyData(undefined);
     setComposeOpen(true);
@@ -469,7 +521,9 @@ export function EmailLayout() {
                 folderName={currentFolder?.displayName || "Inbox"}
                 onEmailSelect={handleEmailSelect}
                 onRefresh={handleRefresh}
+                onSyncContacts={handleSyncContacts}
                 isLoading={emailsLoading}
+                isSyncing={syncing}
               />
             </ResizablePanel>
 

@@ -13,6 +13,7 @@ import {
   Star,
   ChevronDown,
   Loader2,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,7 +30,9 @@ interface EmailListProps {
   folderName: string;
   onEmailSelect: (email: Email) => void;
   onRefresh: () => void;
+  onSyncContacts?: () => void;
   isLoading?: boolean;
+  isSyncing?: boolean;
 }
 
 function formatEmailDate(dateString: string): string {
@@ -52,7 +55,9 @@ export function EmailList({
   folderName,
   onEmailSelect,
   onRefresh,
+  onSyncContacts,
   isLoading = false,
+  isSyncing = false,
 }: EmailListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
@@ -92,6 +97,22 @@ export function EmailList({
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <h2 className="text-lg font-semibold">{folderName}</h2>
         <div className="flex items-center gap-1">
+          {onSyncContacts && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onSyncContacts} 
+              disabled={isSyncing || isLoading}
+              className="h-8 gap-1.5 text-xs"
+            >
+              {isSyncing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Users className="h-3.5 w-3.5" />
+              )}
+              {isSyncing ? "Syncing..." : "Sync"}
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={onRefresh} className="h-8 w-8">
             <RefreshCw className="h-4 w-4" />
           </Button>
