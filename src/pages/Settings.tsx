@@ -32,6 +32,7 @@ import {
   Bell,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import EmailRulesSettings from "@/components/settings/EmailRulesSettings";
 
 interface MicrosoftAccount {
   id: string;
@@ -299,6 +300,9 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+
+          {/* Email Rules Section */}
+          <EmailRulesSettings />
 
           {/* Security Section */}
           <Card>
