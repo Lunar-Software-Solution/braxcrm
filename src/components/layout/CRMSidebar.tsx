@@ -12,7 +12,9 @@ import {
   FolderPlus,
   ChevronDown,
   Mail,
-  ChevronRight,
+  Sparkles,
+  Store,
+  Truck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,20 +38,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { ObjectType } from "@/types/crm";
-import { useState } from "react";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
   { title: "Inbox", url: "/inbox", icon: Mail },
+];
+
+const entityItems = [
+  { title: "Influencers", url: "/influencers", icon: Sparkles, color: "#ec4899" },
+  { title: "Resellers", url: "/resellers", icon: Store, color: "#22c55e" },
+  { title: "Suppliers", url: "/suppliers", icon: Truck, color: "#3b82f6" },
 ];
 
 const futureItems = [
@@ -64,29 +63,6 @@ export function CRMSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { workspaceId } = useWorkspace();
-  const [objectTypesOpen, setObjectTypesOpen] = useState(true);
-
-  const { data: objectTypes = [] } = useQuery({
-    queryKey: ["object-types-sidebar", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      
-      const { data, error } = await supabase
-        .from("object_types")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-      return data as ObjectType[];
-    },
-    enabled: !!workspaceId,
-  });
-
-  // Check if current route is an object type filter
-  const isObjectTypeRoute = location.pathname.startsWith("/people?type=") || 
-    location.search.includes("type=");
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
@@ -181,88 +157,43 @@ export function CRMSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Object Types Section */}
-        {objectTypes.length > 0 && (
-          <SidebarGroup>
-            <Collapsible open={objectTypesOpen} onOpenChange={setObjectTypesOpen}>
-              <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2 cursor-pointer hover:text-foreground flex items-center justify-between">
-                  {!collapsed && (
-                    <>
-                      <span>Object Types</span>
-                      <ChevronRight 
-                        className={`h-3 w-3 transition-transform ${objectTypesOpen ? "rotate-90" : ""}`} 
-                      />
-                    </>
-                  )}
-                  {collapsed && <Layers className="h-4 w-4" />}
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {/* Manage Object Types link */}
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to="/objects"
-                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md text-muted-foreground"
-                          activeClassName="bg-muted text-primary font-medium"
-                        >
-                          <Layers className="h-4 w-4" />
-                          {!collapsed && <span className="text-xs">Manage Types</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {/* Dynamic Object Types */}
-                    {objectTypes.map((type) => (
-                      <SidebarMenuItem key={type.id}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={`/people?type=${type.id}`}
-                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md"
-                            activeClassName="bg-muted text-primary font-medium"
-                          >
-                            <div
-                              className="h-3 w-3 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: type.color }}
-                            />
-                            {!collapsed && <span>{type.name}</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Show link to create object types if none exist */}
-        {objectTypes.length === 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2">
-              {!collapsed && "Object Types"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
+        {/* Entities Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2">
+            {!collapsed && "Categories"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {entityItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to="/objects"
+                      to={item.url}
                       className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md"
                       activeClassName="bg-muted text-primary font-medium"
                     >
-                      <Layers className="h-4 w-4" />
-                      {!collapsed && <span>Manage Types</span>}
+                      <item.icon className="h-4 w-4" style={{ color: item.color }} />
+                      {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              ))}
+              {/* Manage Object Types link */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/objects"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md text-muted-foreground"
+                    activeClassName="bg-muted text-primary font-medium"
+                  >
+                    <Layers className="h-4 w-4" />
+                    {!collapsed && <span className="text-xs">Manage Types</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {/* Future Items (disabled) */}
         <SidebarGroup>
