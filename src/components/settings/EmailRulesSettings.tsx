@@ -45,6 +45,7 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Users,
 } from "lucide-react";
 import {
   useEmailCategories,
@@ -63,7 +64,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ObjectType } from "@/types/crm";
-import type { RuleActionType, AssignObjectTypeConfig } from "@/types/email-rules";
+import type { RuleActionType, AssignObjectTypeConfig, AssignEntityConfig, EntityType } from "@/types/email-rules";
 
 const ACTION_TYPE_LABELS: Record<RuleActionType, { label: string; icon: React.ReactNode; description: string }> = {
   visibility: { label: "Set Visibility", icon: <Eye className="h-4 w-4" />, description: "Restrict who can see this email" },
@@ -73,6 +74,7 @@ const ACTION_TYPE_LABELS: Record<RuleActionType, { label: string; icon: React.Re
   move_folder: { label: "Move to Folder", icon: <FolderInput className="h-4 w-4" />, description: "Move email to a specific folder" },
   mark_priority: { label: "Set Priority", icon: <AlertTriangle className="h-4 w-4" />, description: "Mark email priority level" },
   assign_object_type: { label: "Assign Object Type", icon: <Layers className="h-4 w-4" />, description: "Assign object types to person/email" },
+  assign_entity: { label: "Assign to Entity", icon: <Users className="h-4 w-4" />, description: "Create/link to Influencer, Reseller, or Supplier" },
 };
 
 function useObjectTypes() {
@@ -164,6 +166,8 @@ export default function EmailRulesSettings() {
         return { visibility_group_id: "" };
       case "assign_object_type":
         return { object_type_ids: [], assign_to_person: true, assign_to_email: false };
+      case "assign_entity":
+        return { entity_type: "influencer", create_if_not_exists: true };
       case "mark_priority":
         return { priority: "normal" };
       default:
@@ -289,6 +293,41 @@ export default function EmailRulesSettings() {
           </div>
         );
       
+      case "assign_entity": {
+        const entityConfig = config as unknown as AssignEntityConfig;
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Entity Type</Label>
+              <Select
+                value={entityConfig.entity_type || "influencer"}
+                onValueChange={(value: EntityType) => onChange({ ...config, entity_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="influencer">Influencer</SelectItem>
+                  <SelectItem value="reseller">Reseller</SelectItem>
+                  <SelectItem value="supplier">Supplier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="create-if-not-exists"
+                checked={entityConfig.create_if_not_exists ?? true}
+                onCheckedChange={(checked) => onChange({ ...config, create_if_not_exists: checked })}
+              />
+              <Label htmlFor="create-if-not-exists" className="font-normal">
+                Create entity if not exists
+              </Label>
+            </div>
+          </div>
+        );
+      }
+
       case "mark_priority":
         return (
           <div className="space-y-2">

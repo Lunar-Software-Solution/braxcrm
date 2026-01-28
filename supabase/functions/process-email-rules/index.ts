@@ -338,6 +338,97 @@ async function processAction(
       return { action_type: "mark_priority", success: true };
     }
 
+    case "assign_entity": {
+      const entityType = config.entity_type as string;
+      const createIfNotExists = config.create_if_not_exists as boolean;
+
+      if (!entityType || !["influencer", "reseller", "supplier"].includes(entityType)) {
+        return { action_type: "assign_entity", success: false, error: "Invalid entity type" };
+      }
+
+      // Get email details including the person
+      const { data: email } = await supabase
+        .from("email_messages")
+        .select("person_id, workspace_id")
+        .eq("id", emailId)
+        .single();
+
+      if (!email) {
+        return { action_type: "assign_entity", success: false, error: "Email not found" };
+      }
+
+      // Get person details
+      const { data: person } = await supabase
+        .from("people")
+        .select("id, name, email, phone, notes")
+        .eq("id", email.person_id)
+        .single();
+
+      if (!person && !createIfNotExists) {
+        return { action_type: "assign_entity", success: false, error: "No person linked to email" };
+      }
+
+      if (!person) {
+        return { action_type: "assign_entity", success: true }; // Nothing to do
+      }
+
+      // Determine which table to use
+      const tableName = `${entityType}s`; // influencers, resellers, suppliers
+      const linkTable = `email_${tableName}`; // email_influencers, etc.
+      const entityIdField = `${entityType}_id`; // influencer_id, etc.
+
+      // Check if entity already exists by email
+      const { data: existingEntity } = await supabase
+        .from(tableName)
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("email", person.email)
+        .maybeSingle();
+
+      let entityId: string;
+
+      if (existingEntity) {
+        entityId = existingEntity.id;
+      } else if (createIfNotExists) {
+        // Create new entity
+        const { data: newEntity, error: createError } = await supabase
+          .from(tableName)
+          .insert({
+            workspace_id: workspaceId,
+            name: person.name,
+            email: person.email,
+            phone: person.phone,
+            notes: person.notes,
+            created_by: (await supabase.auth.getUser()).data.user?.id,
+          })
+          .select("id")
+          .single();
+
+        if (createError || !newEntity) {
+          return { action_type: "assign_entity", success: false, error: createError?.message || "Failed to create entity" };
+        }
+        entityId = newEntity.id;
+      } else {
+        return { action_type: "assign_entity", success: true }; // No entity, nothing to link
+      }
+
+      // Link email to entity
+      const linkData: Record<string, string> = {
+        email_id: emailId,
+        [entityIdField]: entityId,
+      };
+
+      const { error: linkError } = await supabase
+        .from(linkTable)
+        .upsert(linkData, { onConflict: `email_id,${entityIdField}` });
+
+      if (linkError) {
+        console.warn(`Failed to link email to ${entityType}:`, linkError);
+      }
+
+      return { action_type: "assign_entity", success: true };
+    }
+
     default:
       return { action_type: action.action_type, success: false, error: "Unknown action type" };
   }
