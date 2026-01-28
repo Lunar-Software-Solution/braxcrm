@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { FolderSidebar } from "./FolderSidebar";
 import { EmailList } from "./EmailList";
@@ -14,6 +14,7 @@ import {
 import type { Email, EmailFolder } from "@/types/email";
 import { useGraphApi, useMicrosoftAccounts, MicrosoftAccount } from "@/hooks/use-graph-api";
 import { useCRM } from "@/hooks/use-crm";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronDown, Mail, Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -37,15 +38,15 @@ export function EmailLayout() {
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [emailsLoading, setEmailsLoading] = useState(true);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const syncedFolders = useRef<Set<string>>(new Set());
 
   const { listAccounts } = useMicrosoftAccounts();
   const { listFolders, listMessages, getMessage, markAsRead, deleteMessage, moveMessage, sendMessage } = useGraphApi(selectedAccountId);
   const { syncEmails } = useCRM();
+  const { workspaceId, loading: workspaceLoading } = useWorkspace();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // TODO: Replace with actual workspace context
-  const TEMP_WORKSPACE_ID = "temp-workspace";
 
   // Load accounts on mount
   useEffect(() => {
@@ -105,7 +106,10 @@ export function EmailLayout() {
     loadFolders();
   }, [selectedAccountId, listFolders, toast]);
 
-  // Load emails when folder changes
+  const currentFolder = folders.find((f) => f.id === selectedFolderId);
+  const currentAccount = accounts.find(a => a.id === selectedAccountId);
+
+  // Load emails when folder changes and sync to CRM
   useEffect(() => {
     if (!selectedFolderId || !selectedAccountId) return;
     
@@ -114,6 +118,46 @@ export function EmailLayout() {
         setEmailsLoading(true);
         const emailList = await listMessages(selectedFolderId);
         setEmails(emailList);
+
+        // Sync emails to CRM to auto-create people and companies
+        const folderKey = `${selectedAccountId}-${selectedFolderId}`;
+        if (workspaceId && emailList.length > 0 && !syncedFolders.current.has(folderKey)) {
+          syncedFolders.current.add(folderKey);
+          const userEmail = currentAccount?.microsoft_email;
+          
+          if (userEmail) {
+            setSyncing(true);
+            try {
+              // Transform emails to the format expected by sync-emails
+              const messagesToSync = emailList.map(email => ({
+                id: email.id,
+                subject: email.subject,
+                bodyPreview: email.bodyPreview,
+                from: email.from,
+                toRecipients: email.toRecipients,
+                receivedDateTime: email.receivedDateTime,
+                isRead: email.isRead,
+                hasAttachments: email.hasAttachments,
+                conversationId: undefined,
+                parentFolderId: email.parentFolderId,
+              }));
+              
+              const result = await syncEmails(workspaceId, messagesToSync, userEmail);
+              
+              if (result.peopleCreated > 0 || result.companiesCreated > 0) {
+                toast({
+                  title: "Contacts synced",
+                  description: `Created ${result.peopleCreated} people and ${result.companiesCreated} companies`,
+                });
+              }
+            } catch (syncError) {
+              console.error("Failed to sync emails to CRM:", syncError);
+              // Don't show error to user - sync is a background task
+            } finally {
+              setSyncing(false);
+            }
+          }
+        }
       } catch (error) {
         console.error("Failed to load emails:", error);
         toast({
@@ -127,10 +171,7 @@ export function EmailLayout() {
     };
     
     loadEmails();
-  }, [selectedFolderId, selectedAccountId, listMessages, toast]);
-
-  const currentFolder = folders.find((f) => f.id === selectedFolderId);
-  const currentAccount = accounts.find(a => a.id === selectedAccountId);
+  }, [selectedFolderId, selectedAccountId, listMessages, toast, workspaceId, currentAccount, syncEmails]);
 
   const handleAccountSelect = (accountId: string) => {
     setSelectedAccountId(accountId);
