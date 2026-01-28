@@ -16,11 +16,11 @@ import { TableFooter } from "@/components/crm/TableFooter";
 import { DetailPanel } from "@/components/crm/DetailPanel";
 import { AddNewRow } from "@/components/crm/AddNewRow";
 import { useCRM } from "@/hooks/use-crm";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Person } from "@/types/crm";
 import { formatDistanceToNow } from "date-fns";
-
-const TEMP_WORKSPACE_ID = "temp-workspace";
 
 const columns = [
   { key: "select", label: "", icon: null, width: "w-10" },
@@ -45,18 +45,23 @@ export default function Companies() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { listCompanies, listPeople, createCompany, updateCompany, deleteCompany } = useCRM();
+  const { workspaceId, loading: workspaceLoading } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (workspaceId) {
+      loadData();
+    }
+  }, [workspaceId]);
 
   const loadData = async () => {
+    if (!workspaceId) return;
     try {
       setLoading(true);
       const [companiesData, peopleData] = await Promise.all([
-        listCompanies(TEMP_WORKSPACE_ID),
-        listPeople(TEMP_WORKSPACE_ID),
+        listCompanies(workspaceId),
+        listPeople(workspaceId),
       ]);
       setCompanies(companiesData);
       setPeople(peopleData);
@@ -73,6 +78,7 @@ export default function Companies() {
   };
 
   const handleSave = async (formData: FormData) => {
+    if (!workspaceId || !user) return;
     try {
       const employeesValue = formData.get("employees") as string;
       const data = {
@@ -92,8 +98,8 @@ export default function Companies() {
       } else {
         await createCompany({
           ...data,
-          workspace_id: TEMP_WORKSPACE_ID,
-          created_by: "temp-user",
+          workspace_id: workspaceId,
+          created_by: user.id,
         });
         toast({ title: "Company created" });
       }
@@ -145,9 +151,13 @@ export default function Companies() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <CRMTableHeader title="Companies" count={companies.length} />
 
-        {loading ? (
+        {loading || workspaceLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Loading companies...</p>
+          </div>
+        ) : !workspaceId ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Please log in to view companies</p>
           </div>
         ) : companies.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
