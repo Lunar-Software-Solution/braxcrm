@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
 import { TableFooter } from "@/components/crm/TableFooter";
 import { DetailPanel } from "@/components/crm/DetailPanel";
@@ -158,21 +159,24 @@ export default function People() {
   ];
 
   return (
-    <div className="h-full flex bg-background">
-      {/* Main Table Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <CRMTableHeader title="People" count={people.length} />
-
-        {loading || workspaceLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Loading people...</p>
-          </div>
-        ) : !workspaceId ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Please log in to view people</p>
-          </div>
-        ) : people.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
+    <div className="h-full flex flex-col bg-background">
+      <CRMTableHeader title="People" count={people.length} />
+      
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Main Table Area */}
+          <ResizablePanel defaultSize={selectedPerson ? 65 : 100} minSize={50}>
+            <div className="h-full flex flex-col overflow-hidden">
+              {loading || workspaceLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Loading people...</p>
+                </div>
+              ) : !workspaceId ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Please log in to view people</p>
+                </div>
+              ) : people.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No people yet</h3>
             <p className="text-muted-foreground mb-4">
@@ -280,20 +284,31 @@ export default function People() {
               </TableBody>
             </Table>
           </ScrollArea>
-        )}
+              )}
 
-        {people.length > 0 && <TableFooter aggregations={aggregations} />}
+              {people.length > 0 && <TableFooter aggregations={aggregations} />}
+            </div>
+          </ResizablePanel>
+
+          {/* Detail Panel with Resizable Handle */}
+          {selectedPerson && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+                <DetailPanel
+                  isOpen={true}
+                  onClose={() => setSelectedPerson(null)}
+                  title={selectedPerson.name}
+                  subtitle={selectedPerson.title}
+                  avatarUrl={selectedPerson.avatar_url}
+                  createdAt={selectedPerson.created_at}
+                  isResizable
+                />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
-
-      {/* Detail Panel */}
-      <DetailPanel
-        isOpen={!!selectedPerson}
-        onClose={() => setSelectedPerson(null)}
-        title={selectedPerson?.name || ""}
-        subtitle={selectedPerson?.title}
-        avatarUrl={selectedPerson?.avatar_url}
-        createdAt={selectedPerson?.created_at}
-      />
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
