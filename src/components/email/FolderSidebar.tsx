@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import type { EmailFolder } from "@/types/email";
+import { UserMenu } from "./UserMenu";
 
 interface FolderSidebarProps {
   folders: EmailFolder[];
@@ -54,6 +55,12 @@ export function FolderSidebar({
 
   return (
     <div className="flex h-full flex-col bg-sidebar border-r border-sidebar-border">
+      {/* Header with user menu */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-sidebar-border">
+        <span className="font-semibold text-sm">Mail</span>
+        <UserMenu />
+      </div>
+
       {/* Compose button */}
       <div className="p-3">
         <Button
