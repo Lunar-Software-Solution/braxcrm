@@ -3,13 +3,15 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface TokenData {
+  id: string;
   access_token: string;
   refresh_token: string;
   expires_at: string;
+  microsoft_email: string | null;
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<{
@@ -48,17 +50,27 @@ async function refreshAccessToken(refreshToken: string): Promise<{
 
 async function getValidToken(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  accountId?: string | null
 ): Promise<string> {
-  // Get stored tokens
-  const { data: tokenData, error } = await supabase
+  // Build query to get tokens
+  let query = supabase
     .from("microsoft_tokens")
-    .select("access_token, refresh_token, expires_at")
-    .eq("user_id", userId)
-    .single();
+    .select("id, access_token, refresh_token, expires_at, microsoft_email")
+    .eq("user_id", userId);
+
+  if (accountId) {
+    // Get specific account
+    query = query.eq("id", accountId);
+  } else {
+    // Get primary account, or first available
+    query = query.order("is_primary", { ascending: false }).limit(1);
+  }
+
+  const { data: tokenData, error } = await query.single();
 
   if (error || !tokenData) {
-    throw new Error("No Microsoft tokens found. Please sign in with Microsoft.");
+    throw new Error("No Microsoft tokens found. Please connect a Microsoft account in Settings.");
   }
 
   const tokens = tokenData as TokenData;
@@ -80,7 +92,7 @@ async function getValidToken(
         refresh_token: newTokens.refresh_token,
         expires_at: newExpiresAt.toISOString(),
       })
-      .eq("user_id", userId);
+      .eq("id", tokens.id);
 
     return newTokens.access_token;
   }
@@ -149,9 +161,10 @@ Deno.serve(async (req) => {
     // Parse request
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+    const accountId = url.searchParams.get("accountId"); // Optional: specific account to use
 
-    // Get valid access token
-    const accessToken = await getValidToken(supabase, userId);
+    // Get valid access token (for specific account or primary)
+    const accessToken = await getValidToken(supabase, userId, accountId);
 
     let result: unknown;
 
