@@ -2,95 +2,121 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Professional Enterprise Email Client Design System
+   Dense, information-rich aesthetic with a Microsoft Outlook-inspired palette
+   All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core backgrounds - crisp whites with subtle warmth */
+    --background: 210 20% 99%;
+    --foreground: 220 25% 10%;
 
+    /* Cards - clean white with subtle depth */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 25% 10%;
 
+    /* Popovers/Dropdowns - solid white backgrounds */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 25% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Professional blue (Microsoft-inspired) */
+    --primary: 210 100% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Neutral gray for subtle UI elements */
+    --secondary: 214 15% 94%;
+    --secondary-foreground: 220 20% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Light grays for backgrounds and disabled states */
+    --muted: 214 15% 96%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Subtle hover states */
+    --accent: 210 50% 95%;
+    --accent-foreground: 210 100% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive - Professional red for errors/delete */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders and inputs */
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 210 100% 45%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar - Slightly darker for contrast */
+    --sidebar-background: 214 20% 97%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 210 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 92%;
+    --sidebar-accent-foreground: 210 80% 35%;
+    --sidebar-border: 214 20% 90%;
+    --sidebar-ring: 210 100% 45%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Email-specific tokens */
+    --email-unread: 220 25% 10%;
+    --email-read: 215 15% 50%;
+    --email-selected: 210 50% 95%;
+    --email-hover: 210 30% 97%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Status colors */
+    --success: 142 70% 40%;
+    --warning: 38 92% 50%;
+    --info: 210 100% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark mode - Dense, professional dark theme */
+    --background: 222 25% 8%;
+    --foreground: 210 30% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 25% 10%;
+    --card-foreground: 210 30% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 25% 12%;
+    --popover-foreground: 210 30% 96%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 210 100% 55%;
+    --primary-foreground: 220 25% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 210 25% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 20% 15%;
+    --muted-foreground: 215 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 25% 18%;
+    --accent-foreground: 210 100% 60%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 220 20% 18%;
+    --input: 220 20% 20%;
+    --ring: 210 100% 55%;
+
+    --sidebar-background: 222 25% 6%;
+    --sidebar-foreground: 210 25% 85%;
+    --sidebar-primary: 210 100% 55%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 210 100% 60%;
+    --sidebar-border: 220 20% 15%;
+    --sidebar-ring: 210 100% 55%;
+
+    --email-unread: 210 30% 98%;
+    --email-read: 215 15% 55%;
+    --email-selected: 220 30% 18%;
+    --email-hover: 220 25% 14%;
+
+    --success: 142 60% 45%;
+    --warning: 38 90% 55%;
+    --info: 210 100% 55%;
   }
 }
 
@@ -100,6 +126,65 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Dense email list typography */
+  .email-subject-unread {
+    @apply font-semibold text-[hsl(var(--email-unread))];
+  }
+
+  .email-subject-read {
+    @apply font-normal text-[hsl(var(--email-read))];
+  }
+
+  /* Custom scrollbar for professional look */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer utilities {
+  /* Email row states */
+  .email-row {
+    @apply border-b border-border transition-colors;
+  }
+
+  .email-row:hover {
+    background: hsl(var(--email-hover));
+  }
+
+  .email-row-selected {
+    background: hsl(var(--email-selected)) !important;
+  }
+
+  /* Dense padding utilities */
+  .p-dense {
+    padding: 0.375rem 0.5rem;
+  }
+
+  .py-dense {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
+  .px-dense {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 }
