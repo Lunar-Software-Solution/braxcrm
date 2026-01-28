@@ -2,3 +2,6 @@ project_id = "ypmkbrdymnfxxwoogpdb"
 
 [functions.graph-api]
 verify_jwt = false
+
+[functions.ms-auth]
+verify_jwt = false

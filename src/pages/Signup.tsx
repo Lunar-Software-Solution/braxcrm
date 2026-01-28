@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMicrosoftAuth } from "@/hooks/use-microsoft-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +16,8 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
-  const { signUpWithEmail, signInWithMicrosoft } = useAuth();
+  const { signUpWithEmail } = useAuth();
+  const { initiateLogin: signInWithMicrosoft, loading: microsoftLoading } = useMicrosoftAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -49,10 +50,11 @@ export default function Signup() {
         description: "You can now sign in with your credentials",
       });
       navigate("/login");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not create account";
       toast({
         title: "Signup failed",
-        description: error.message || "Could not create account",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -61,16 +63,15 @@ export default function Signup() {
   };
 
   const handleMicrosoftLogin = async () => {
-    setMicrosoftLoading(true);
     try {
       await signInWithMicrosoft();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not connect to Microsoft";
       toast({
         title: "Microsoft signup failed",
-        description: error.message || "Could not connect to Microsoft",
+        description: message,
         variant: "destructive",
       });
-      setMicrosoftLoading(false);
     }
   };
 

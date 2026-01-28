@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMicrosoftAuth } from "@/hooks/use-microsoft-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +14,8 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
-  const { signInWithEmail, signInWithMicrosoft } = useAuth();
+  const { signInWithEmail } = useAuth();
+  const { initiateLogin: signInWithMicrosoft, loading: microsoftLoading } = useMicrosoftAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,10 +25,11 @@ export default function Login() {
     try {
       await signInWithEmail(email, password);
       navigate("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Invalid email or password";
       toast({
         title: "Login failed",
-        description: error.message || "Invalid email or password",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -36,16 +38,15 @@ export default function Login() {
   };
 
   const handleMicrosoftLogin = async () => {
-    setMicrosoftLoading(true);
     try {
       await signInWithMicrosoft();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not connect to Microsoft";
       toast({
         title: "Microsoft login failed",
-        description: error.message || "Could not connect to Microsoft",
+        description: message,
         variant: "destructive",
       });
-      setMicrosoftLoading(false);
     }
   };
 
