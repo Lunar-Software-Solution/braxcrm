@@ -734,6 +734,42 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_files: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_table: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_table: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_table?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       entity_roles: {
         Row: {
           created_at: string
