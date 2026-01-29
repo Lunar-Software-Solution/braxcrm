@@ -20,6 +20,7 @@ import Resellers from "./pages/Resellers";
 import Suppliers from "./pages/Suppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
+import Subscriptions from "./pages/Subscriptions";
 import EmailReviewQueue from "./pages/EmailReviewQueue";
 import RulesLog from "./pages/RulesLog";
 import UsersRoles from "./pages/UsersRoles";
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/personal-contacts" element={<PersonalContacts />} />
+              <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/review-queue" element={<EmailReviewQueue />} />
