@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Tag, ChevronDown, ChevronUp, Eye, FileText, FolderInput, AlertTriangle, Layers, Users, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Tag, ChevronDown, ChevronUp, Eye, FileText, FolderInput, AlertTriangle, Layers, Users, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -108,7 +108,7 @@ function useObjectTypes() {
   });
 }
 
-export default function EmailAutomationSettings() {
+export default function EmailAutomation() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EmailCategory | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -134,21 +134,18 @@ export default function EmailAutomationSettings() {
   const { data: categoriesWithRules = [], isLoading } = useQuery({
     queryKey: ["email-automation-categories"],
     queryFn: async () => {
-      // Fetch categories
       const { data: categories, error: catError } = await supabase
         .from("email_categories")
         .select("*")
         .order("sort_order");
       if (catError) throw catError;
 
-      // Fetch rules with actions
       const { data: rules, error: rulesError } = await supabase
         .from("email_rules")
         .select(`*, actions:email_rule_actions(*)`)
         .order("priority", { ascending: false });
       if (rulesError) throw rulesError;
 
-      // Map rules to categories
       const rulesMap = new Map<string, EmailRule>();
       for (const rule of rules || []) {
         rulesMap.set(rule.category_id, rule as EmailRule);
@@ -164,7 +161,6 @@ export default function EmailAutomationSettings() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: { name: string; description: string | null; color: string; is_active: boolean; sort_order: number; created_by: string }) => {
-      // Create category
       const { data: category, error: catError } = await supabase
         .from("email_categories")
         .insert([data])
@@ -172,7 +168,6 @@ export default function EmailAutomationSettings() {
         .single();
       if (catError) throw catError;
 
-      // Auto-create a rule for this category
       const { error: ruleError } = await supabase
         .from("email_rules")
         .insert([{
@@ -390,7 +385,8 @@ export default function EmailAutomationSettings() {
                 <SelectContent>
                   <SelectItem value="influencer">Influencer</SelectItem>
                   <SelectItem value="reseller">Reseller</SelectItem>
-                  <SelectItem value="supplier">Supplier</SelectItem>
+                  <SelectItem value="product_supplier">Product Supplier</SelectItem>
+                  <SelectItem value="expense_supplier">Expense Supplier</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -423,29 +419,30 @@ export default function EmailAutomationSettings() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <CardTitle>Email Automation</CardTitle>
-              <CardDescription>Define categories for AI classification and configure automation actions</CardDescription>
-            </div>
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+        <div className="flex items-center gap-3">
+          <Zap className="h-5 w-5 text-amber-500" />
+          <div>
+            <h1 className="text-lg font-semibold">Email Automation</h1>
+            <p className="text-sm text-muted-foreground">Define categories for AI classification and configure automation actions</p>
           </div>
-          <Button onClick={() => setCategoryDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Category
-          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
+        <Button onClick={() => setCategoryDialogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Category
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : categoriesWithRules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <Tag className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -459,125 +456,146 @@ export default function EmailAutomationSettings() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-2">
-            {categoriesWithRules.map((category) => (
-              <Collapsible
-                key={category.id}
-                open={expandedCategories.has(category.id)}
-                onOpenChange={() => toggleCategoryExpanded(category.id)}
-              >
-                <div className="rounded-lg border border-border bg-muted/30">
-                  {/* Category header */}
-                  <div className="flex items-center justify-between p-3 group">
-                    <CollapsibleTrigger className="flex items-center gap-3 flex-1 text-left">
-                      <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.color || "#6366f1" }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-[300px]">Category</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
+                <TableHead className="w-[100px]">Status</TableHead>
+                <TableHead className="w-[100px] text-right"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categoriesWithRules.map((category) => (
+                <Collapsible
+                  key={category.id}
+                  open={expandedCategories.has(category.id)}
+                  onOpenChange={() => toggleCategoryExpanded(category.id)}
+                  asChild
+                >
+                  <>
+                    <TableRow className="group cursor-pointer hover:bg-muted/30" onClick={() => toggleCategoryExpanded(category.id)}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.color || "#6366f1" }} />
                           <span className="font-medium">{category.name}</span>
-                          {!category.is_active && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
-                          {category.rule?.actions && category.rule.actions.length > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              {category.rule.actions.length} action{category.rule.actions.length !== 1 ? "s" : ""}
-                            </Badge>
+                          {expandedCategories.has(category.id) ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
-                        {category.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">{category.description}</p>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground line-clamp-1">{category.description || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        {category.rule?.actions && category.rule.actions.length > 0 ? (
+                          <Badge variant="outline">
+                            {category.rule.actions.length} action{category.rule.actions.length !== 1 ? "s" : ""}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">None</span>
                         )}
-                      </div>
-                      {expandedCategories.has(category.id) ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </CollapsibleTrigger>
-                    <div className="flex items-center gap-2 ml-2">
-                      <Switch
-                        checked={category.is_active}
-                        onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: category.id, is_active: checked })}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); setEditingCategory(category); setCategoryDialogOpen(true); }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); setCategoryToDelete(category); setDeleteDialogOpen(true); }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Actions section */}
-                  <CollapsibleContent>
-                    <div className="border-t border-border p-4 space-y-3">
-                      <div className="text-sm font-medium text-muted-foreground mb-2">Automation Actions</div>
-                      {category.rule?.actions?.map((action) => (
-                        <div key={action.id} className="flex items-start justify-between p-3 rounded-md bg-background border border-border">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5">{ACTION_TYPE_LABELS[action.action_type]?.icon}</div>
-                            <div>
-                              <p className="font-medium text-sm">{ACTION_TYPE_LABELS[action.action_type]?.label}</p>
-                              <p className="text-xs text-muted-foreground">{ACTION_TYPE_LABELS[action.action_type]?.description}</p>
-                              {action.action_type === "assign_object_type" && action.config && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {((action.config as Record<string, unknown>).object_type_ids as string[] || []).map(typeId => {
-                                    const objType = objectTypes.find(t => t.id === typeId);
-                                    return objType ? (
-                                      <Badge key={typeId} variant="secondary" style={{ backgroundColor: objType.color }} className="text-white text-xs">{objType.name}</Badge>
-                                    ) : null;
-                                  })}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={category.is_active}
+                          onCheckedChange={(checked) => {
+                            toggleActiveMutation.mutate({ id: category.id, is_active: checked });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => { e.stopPropagation(); setEditingCategory(category); setCategoryDialogOpen(true); }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setCategoryToDelete(category); setDeleteDialogOpen(true); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <CollapsibleContent asChild>
+                      <TableRow className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={5} className="p-0">
+                          <div className="p-4 space-y-3">
+                            <div className="text-sm font-medium text-muted-foreground mb-2">Automation Actions</div>
+                            {category.rule?.actions?.map((action) => (
+                              <div key={action.id} className="flex items-start justify-between p-3 rounded-md bg-background border border-border">
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5">{ACTION_TYPE_LABELS[action.action_type]?.icon}</div>
+                                  <div>
+                                    <p className="font-medium text-sm">{ACTION_TYPE_LABELS[action.action_type]?.label}</p>
+                                    <p className="text-xs text-muted-foreground">{ACTION_TYPE_LABELS[action.action_type]?.description}</p>
+                                    {action.action_type === "assign_object_type" && action.config && (
+                                      <div className="mt-2 flex flex-wrap gap-1">
+                                        {((action.config as Record<string, unknown>).object_type_ids as string[] || []).map(typeId => {
+                                          const objType = objectTypes.find(t => t.id === typeId);
+                                          return objType ? (
+                                            <Badge key={typeId} variant="secondary" style={{ backgroundColor: objType.color }} className="text-white text-xs">{objType.name}</Badge>
+                                          ) : null;
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch checked={action.is_active} onCheckedChange={(checked) => { updateAction.mutate({ id: action.id, is_active: checked }); queryClient.invalidateQueries({ queryKey: ["email-automation-categories"] }); }} />
+                                <div className="flex items-center gap-2">
+                                  <Switch checked={action.is_active} onCheckedChange={(checked) => { updateAction.mutate({ id: action.id, is_active: checked }); queryClient.invalidateQueries({ queryKey: ["email-automation-categories"] }); }} />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => { deleteAction.mutate(action.id); queryClient.invalidateQueries({ queryKey: ["email-automation-categories"] }); }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            {(!category.rule?.actions || category.rule.actions.length === 0) && (
+                              <p className="text-sm text-muted-foreground text-center py-2">No actions configured yet</p>
+                            )}
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => { deleteAction.mutate(action.id); queryClient.invalidateQueries({ queryKey: ["email-automation-categories"] }); }}
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2"
+                              onClick={() => {
+                                if (category.rule) {
+                                  setNewActionType("tag");
+                                  setNewActionConfig(getDefaultConfig("tag"));
+                                  setShowAddAction(category.rule.id);
+                                }
+                              }}
+                              disabled={!category.rule}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Plus className="h-4 w-4" />
+                              Add Action
                             </Button>
                           </div>
-                        </div>
-                      ))}
-                      {(!category.rule?.actions || category.rule.actions.length === 0) && (
-                        <p className="text-sm text-muted-foreground text-center py-2">No actions configured yet</p>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => {
-                          if (category.rule) {
-                            setNewActionType("tag");
-                            setNewActionConfig(getDefaultConfig("tag"));
-                            setShowAddAction(category.rule.id);
-                          }
-                        }}
-                        disabled={!category.rule}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add Action
-                      </Button>
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            ))}
-          </div>
+                        </TableCell>
+                      </TableRow>
+                    </CollapsibleContent>
+                  </>
+                </Collapsible>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </CardContent>
+      </div>
 
       {/* Add/Edit Category Dialog */}
       <Dialog open={categoryDialogOpen} onOpenChange={(open) => { setCategoryDialogOpen(open); if (!open) setEditingCategory(null); }}>
@@ -669,6 +687,6 @@ export default function EmailAutomationSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

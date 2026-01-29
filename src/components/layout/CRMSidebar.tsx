@@ -18,6 +18,7 @@ import {
   Contact,
   CreditCard,
   Shield,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const workspaceItems = [
   { title: "Inbox", url: "/inbox", icon: Mail },
   { title: "Review Queue", url: "/review-queue", icon: ClipboardList },
   { title: "Rules Log", url: "/rules-log", icon: ScrollText },
+  { title: "Email Automation", url: "/email-automation", icon: Zap },
 ];
 
 const entityItems = [
