@@ -19,6 +19,7 @@ import {
   CreditCard,
   Shield,
   Zap,
+  Brain,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,12 +39,14 @@ import { NavLink } from "@/components/NavLink";
 import { UserMenu } from "@/components/email/UserMenu";
 import { Badge } from "@/components/ui/badge";
 import { usePendingEmailCount } from "@/hooks/use-rules-processing-queue";
+import { usePendingClassificationCount } from "@/hooks/use-classification-processing-queue";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Inbox", url: "/inbox", icon: Mail },
+  { title: "Email Classification Processing Queue", url: "/classification-processing-queue", icon: Brain },
   { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
   { title: "Rules Log", url: "/rules-log", icon: ScrollText },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
@@ -67,7 +70,8 @@ export function CRMSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const pendingCount = usePendingEmailCount();
+  const pendingRulesCount = usePendingEmailCount();
+  const pendingClassificationCount = usePendingClassificationCount();
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
@@ -123,9 +127,14 @@ export function CRMSidebar() {
                       {!collapsed && (
                         <span className="flex-1">{item.title}</span>
                       )}
-                      {!collapsed && item.title === "Rules Processing Queue" && pendingCount > 0 && (
+                      {!collapsed && item.title === "Email Classification Processing Queue" && pendingClassificationCount > 0 && (
                         <Badge variant="secondary" className="ml-auto text-xs">
-                          {pendingCount}
+                          {pendingClassificationCount}
+                        </Badge>
+                      )}
+                      {!collapsed && item.title === "Rules Processing Queue" && pendingRulesCount > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {pendingRulesCount}
                         </Badge>
                       )}
                     </NavLink>
