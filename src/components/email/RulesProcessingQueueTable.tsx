@@ -9,13 +9,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EntitySelector } from "./EntitySelector";
-import type { ReviewQueueEmail } from "@/hooks/use-review-queue";
+import type { RulesProcessingQueueEmail } from "@/hooks/use-rules-processing-queue";
 import { cn } from "@/lib/utils";
 import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
 import * as LucideIcons from "lucide-react";
 
-interface ReviewQueueTableProps {
-  emails: ReviewQueueEmail[];
+interface RulesProcessingQueueTableProps {
+  emails: RulesProcessingQueueEmail[];
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   onEntityTypeChange: (emailId: string, entityTable: string) => void;
@@ -62,13 +62,13 @@ function EntityTypeBadge({ entityTable }: { entityTable: string | null }) {
   );
 }
 
-export function ReviewQueueTable({
+export function RulesProcessingQueueTable({
   emails,
   selectedIds,
   onSelectionChange,
   onEntityTypeChange,
   isUpdatingEntityType,
-}: ReviewQueueTableProps) {
+}: RulesProcessingQueueTableProps) {
   const allSelected = emails.length > 0 && selectedIds.size === emails.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < emails.length;
 
@@ -93,7 +93,7 @@ export function ReviewQueueTable({
   if (emails.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        <p>No emails pending review.</p>
+        <p>No emails pending processing.</p>
         <p className="text-sm mt-1">
           Emails that have been classified but not yet processed will appear here.
         </p>

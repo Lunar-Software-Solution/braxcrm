@@ -37,14 +37,14 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { UserMenu } from "@/components/email/UserMenu";
 import { Badge } from "@/components/ui/badge";
-import { usePendingEmailCount } from "@/hooks/use-review-queue";
+import { usePendingEmailCount } from "@/hooks/use-rules-processing-queue";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Inbox", url: "/inbox", icon: Mail },
-  { title: "Review Queue", url: "/review-queue", icon: ClipboardList },
+  { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
   { title: "Rules Log", url: "/rules-log", icon: ScrollText },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
 ];
@@ -123,7 +123,7 @@ export function CRMSidebar() {
                       {!collapsed && (
                         <span className="flex-1">{item.title}</span>
                       )}
-                      {!collapsed && item.title === "Review Queue" && pendingCount > 0 && (
+                      {!collapsed && item.title === "Rules Processing Queue" && pendingCount > 0 && (
                         <Badge variant="secondary" className="ml-auto text-xs">
                           {pendingCount}
                         </Badge>
