@@ -1,309 +1,191 @@
 
-# Plan: Refactor Email Automation to Entity-Based Rules
+# Plan: Complete Entity-Based Email Automation Flow
 
 ## Overview
-Transform the email automation system from **category-based** (Invoices, Sales, Support, etc.) to **entity-based** where each CRM entity type has its own dedicated automation rule with entity-specific actions.
+Refactor the email processing pipeline to use the new entity-based system (`entity_table`, `entity_automation_rules`) instead of the old category-based system (`category_id`, `email_rules`). This includes:
+1. Skip AI classification if person is already mapped to an entity
+2. Update the Review Queue to show entity types instead of categories
+3. Create a new `process-entity-rules` edge function
+4. Wire everything together in the sync flow
 
-## Current State vs New State
-
-### Current System
-- 6 generic categories (Invoices & Billing, Sales Inquiries, Support, etc.)
-- AI classifies emails into these categories
-- Rules are attached to categories with generic actions
-
-### New System
-- 7 entity-based rules (one per entity type)
-- AI classifies emails to determine which entity type the sender belongs to
-- Each entity has tailored actions that make sense for that entity type
-
-## Entity Rules and Their Specific Actions
-
-| Entity | Recommended Actions | Not Applicable |
-|--------|---------------------|----------------|
-| **Influencers** | Auto-create entity, Apply tags, Set visibility, Mark priority | Extract Invoice |
-| **Resellers** | Auto-create entity, Apply tags, Set visibility, Mark priority | Extract Invoice |
-| **Product Suppliers** | Auto-create entity, **Extract Invoice**, Apply tags, Set visibility, Mark priority | - |
-| **Expense Suppliers** | Auto-create entity, **Extract Invoice**, Apply tags, Set visibility, Mark priority | - |
-| **Corporate Management** | Auto-create entity, **Extract Invoice**, Apply tags, Set visibility, Mark priority | - |
-| **Personal Contacts** | Auto-create entity, Apply tags, Set visibility | Extract Invoice |
-| **Subscriptions** | Auto-create entity, Apply tags, Mark priority, **Extract Invoice** | - |
-
-## Visual Design
-
-The Email Automation page will display a table matching the entity list pages:
+## Current vs New Flow
 
 ```text
-+------------------------------------------------------------------+
-| Email Automation                                                  |
-| Configure automation rules for each entity type                   |
-+------+-----------------------+--------+------------+--------------+
-| Icon | Entity Type           | Status | Actions    | Description  |
-+------+-----------------------+--------+------------+--------------+
-| (*)  | Influencers           | ON     | 3 actions  | Auto-create, |
-|      |                       |        |            | tag, priority|
-+------+-----------------------+--------+------------+--------------+
-| [S]  | Resellers             | ON     | 3 actions  | Auto-create, |
-|      |                       |        |            | tag, priority|
-+------+-----------------------+--------+------------+--------------+
-| [P]  | Product Suppliers     | ON     | 4 actions  | Auto-create, |
-|      |                       |        |            | invoice, tag |
-+------+-----------------------+--------+------------+--------------+
-| [$]  | Expense Suppliers     | ON     | 4 actions  | Auto-create, |
-|      |                       |        |            | invoice, tag |
-+------+-----------------------+--------+------------+--------------+
-| [B]  | Corporate Management  | ON     | 4 actions  | Auto-create, |
-|      |                       |        |            | invoice, tag |
-+------+-----------------------+--------+------------+--------------+
-| [C]  | Personal Contacts     | ON     | 2 actions  | Auto-create, |
-|      |                       |        |            | tag          |
-+------+-----------------------+--------+------------+--------------+
-| [#]  | Subscriptions         | ON     | 3 actions  | Auto-create, |
-|      |                       |        |            | invoice, tag |
-+------+-----------------------+--------+------------+--------------+
+CURRENT FLOW (broken - uses old category_id):
+  Sync -> classify-email (sets category_id) -> Review Queue (filters by category_id)
+       -> process-email-rules (uses email_rules table)
+
+NEW FLOW (entity-based):
+  Sync -> Check people_entities for existing mapping
+       -> If found: use cached entity_table (skip AI)
+       -> If not: classify-email (sets entity_table)
+       -> Review Queue (filters by entity_table)
+       -> process-entity-rules (uses entity_automation_rules table)
 ```
 
-Clicking a row expands to show configurable actions for that entity.
+## Implementation Steps
 
-## Database Changes
+### Phase 1: Update sync-emails to Skip AI for Known Mappings
 
-### Step 1: Create Entity Rules Table
+**File:** `supabase/functions/sync-emails/index.ts`
 
-A new table that stores automation rules per entity type (replaces category-based rules):
+Changes:
+1. Pass `personId` to the classification step
+2. Query `people_entities` for existing entity mapping before calling AI
+3. If mapping found, update `email_messages.entity_table` directly and skip AI
+4. Update `classifyAndProcessEmail` to accept `personId` and handle cached mapping
+5. Add `emailsSkippedAi` counter to track efficiency gains
 
-```sql
-CREATE TABLE public.entity_automation_rules (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_table text NOT NULL UNIQUE,
-  is_active boolean NOT NULL DEFAULT true,
-  priority integer NOT NULL DEFAULT 0,
-  description text,
-  ai_prompt text,
-  created_by uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-```
+### Phase 2: Update classify-email to Support person_id Lookup
 
-### Step 2: Create Entity Rule Actions Table
+**File:** `supabase/functions/classify-email/index.ts`
 
-```sql
-CREATE TABLE public.entity_rule_actions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_rule_id uuid NOT NULL REFERENCES entity_automation_rules(id) ON DELETE CASCADE,
-  action_type text NOT NULL,
-  config jsonb NOT NULL DEFAULT '{}',
-  is_active boolean NOT NULL DEFAULT true,
-  sort_order integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-```
+Changes:
+1. Add optional `person_id` parameter to request interface
+2. At start of function, check `people_entities` for existing mapping
+3. If mapping exists, return early with cached result (confidence: 1.0)
+4. This provides a fallback in case sync-emails doesn't catch it
 
-### Step 3: Seed Default Rules
+### Phase 3: Create process-entity-rules Edge Function
 
-Insert default rules for each entity with appropriate actions:
+**File:** `supabase/functions/process-entity-rules/index.ts` (NEW)
 
-```sql
--- Insert entity rules for each entity type
-INSERT INTO entity_automation_rules (entity_table, description, ai_prompt, created_by)
-VALUES 
-  ('influencers', 'Social media influencers, content creators, KOLs', 
-   'Identify influencers, content creators, brand ambassadors, or social media personalities', 
-   auth.uid()),
-  ('resellers', 'Distributors, retailers, resale partners', 
-   'Identify resellers, distributors, retailers, or wholesale partners', 
-   auth.uid()),
-  ('product_suppliers', 'Vendors selling products for resale', 
-   'Identify suppliers of physical products, inventory vendors, or trade suppliers',
-   auth.uid()),
-  ('expense_suppliers', 'Service providers and expense vendors', 
-   'Identify service providers, SaaS vendors, marketing agencies, or expense-related suppliers',
-   auth.uid()),
-  ('corporate_management', 'Legal, accounting, and corporate entities', 
-   'Identify lawyers, accountants, banks, government agencies, or corporate management contacts',
-   auth.uid()),
-  ('personal_contacts', 'Friends, family, personal acquaintances', 
-   'Identify personal contacts, friends, family members, or non-business acquaintances',
-   auth.uid()),
-  ('subscriptions', 'Recurring subscriptions and SaaS services', 
-   'Identify subscription services, recurring billing, or SaaS notifications',
-   auth.uid());
-```
+This function replaces `process-email-rules` for the new entity-based system:
 
-### Step 4: Update email_messages Table
+1. Accept `email_id` and `entity_table` (instead of `category_id`)
+2. Fetch actions from `entity_automation_rules` + `entity_rule_actions` for the given `entity_table`
+3. Execute each action type:
+   - `visibility`: Set `visibility_group_id` on email
+   - `tag`: Add tags via `email_message_tags`
+   - `extract_invoice`: Call `extract-invoice` edge function
+   - `mark_priority`: Update email priority in Outlook
+   - `link_entity`: Create entry in `email_influencers` / `email_resellers` / etc.
+4. Log results to `email_rule_logs`
+5. Mark email as `is_processed = true`
 
-Add entity_table column to store classification result:
+### Phase 4: Update Review Queue to Use entity_table
 
-```sql
-ALTER TABLE public.email_messages 
-ADD COLUMN entity_table text;
-```
+**File:** `src/hooks/use-review-queue.ts`
 
-## Frontend Changes
+Changes:
+1. Update `ReviewQueueEmail` interface:
+   - Change `category_id` to `entity_table`
+   - Remove `category` relation, add entity name display
+2. Update query filter: `.not("entity_table", "is", null)` instead of `.not("category_id", "is", null)`
+3. Update `updateCategory` mutation to become `updateEntityType` mutation (updates `entity_table`)
+4. Update `processEmails` to call `process-entity-rules` with `entity_table`
 
-### Files to Create/Update
+**File:** `src/components/email/ReviewQueueTable.tsx`
 
-| File | Change |
+Changes:
+1. Replace `CategorySelector` with `EntitySelector` dropdown
+2. Display entity type name (e.g., "Influencers", "Resellers") with icon
+3. Update column header from "Category" to "Entity Type"
+
+**File:** `src/pages/EmailReviewQueue.tsx`
+
+Changes:
+1. Update header text to reference "entity types"
+2. Update entity selector integration
+
+### Phase 5: Update usePendingEmailCount Hook
+
+**File:** `src/hooks/use-review-queue.ts`
+
+Changes:
+1. Update filter from `.not("category_id", "is", null)` to `.not("entity_table", "is", null)`
+
+## Database Schema Used
+
+No new tables needed. Uses existing:
+- `email_messages.entity_table` - stores classified entity type
+- `email_messages.ai_confidence` - stores classification confidence
+- `email_messages.is_processed` - tracks if rules have been applied
+- `people_entities` - junction table for person-to-entity mappings
+- `entity_automation_rules` - rules per entity type
+- `entity_rule_actions` - actions for each rule
+
+## Entity Types
+
+The 7 entity types:
+1. `influencers` - Social media influencers, content creators
+2. `resellers` - Distributors, retailers, resale partners
+3. `product_suppliers` - Vendors selling products for resale
+4. `expense_suppliers` - Service providers and expense vendors
+5. `corporate_management` - Legal, accounting, corporate entities
+6. `personal_contacts` - Friends, family, personal acquaintances
+7. `subscriptions` - Recurring subscriptions and SaaS services
+
+## Files to Create/Modify
+
+| File | Action |
 |------|--------|
-| `src/pages/EmailAutomation.tsx` | Complete rewrite to show entity-based table |
-| `src/hooks/use-entity-automation.ts` | New hook for entity automation CRUD |
-| `src/types/entity-automation.ts` | New types for entity automation |
-| `supabase/functions/classify-email/index.ts` | Update to classify by entity type |
-| `supabase/functions/process-entity-rules/index.ts` | New function for entity-based processing |
+| `supabase/functions/sync-emails/index.ts` | Modify - Add people_entities check |
+| `supabase/functions/classify-email/index.ts` | Modify - Add person_id param |
+| `supabase/functions/process-entity-rules/index.ts` | Create - New entity-based processor |
+| `src/hooks/use-review-queue.ts` | Modify - Use entity_table |
+| `src/components/email/ReviewQueueTable.tsx` | Modify - Show entity types |
+| `src/components/email/EntitySelector.tsx` | Create - Entity type dropdown |
+| `src/pages/EmailReviewQueue.tsx` | Modify - Update labels |
 
-### UI Components
+## Edge Cases Handled
 
-The new EmailAutomation page will:
-
-1. **Table View**: Display all 7 entity types in a spreadsheet-style table
-2. **Entity Icons & Colors**: Use the same icons/colors from the sidebar
-3. **Expandable Rows**: Click to expand and configure actions
-4. **Available Actions**: Show which actions are available/applicable per entity type
-5. **Toggle Switches**: Enable/disable rules per entity and per action
-
-### Action Availability Matrix
-
-```typescript
-const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
-  influencers: ['visibility', 'tag', 'mark_priority', 'assign_role'],
-  resellers: ['visibility', 'tag', 'mark_priority', 'assign_role'],
-  product_suppliers: ['visibility', 'tag', 'mark_priority', 'extract_invoice', 'assign_role'],
-  expense_suppliers: ['visibility', 'tag', 'mark_priority', 'extract_invoice', 'assign_role'],
-  corporate_management: ['visibility', 'tag', 'mark_priority', 'extract_invoice', 'assign_role'],
-  personal_contacts: ['visibility', 'tag'],
-  subscriptions: ['visibility', 'tag', 'mark_priority', 'extract_invoice'],
-};
-```
-
-## Edge Function Updates
-
-### classify-email Update
-
-The AI classification will now identify entity types instead of categories:
-
-```typescript
-const prompt = `Analyze this email and determine which CRM entity type the sender belongs to.
-
-Available Entity Types:
-1. Influencers - Social media influencers, content creators, KOLs
-2. Resellers - Distributors, retailers, resale partners
-3. Product Suppliers - Vendors selling products for resale
-4. Expense Suppliers - Service providers, SaaS, marketing agencies
-5. Corporate Management - Legal, accounting, banks, government
-6. Personal Contacts - Friends, family, non-business
-7. Subscriptions - Recurring service notifications
-
-Email Details:
-- From: ${sender_name} <${sender_email}>
-- Subject: ${subject}
-- Preview: ${body_preview}
-
-Respond with JSON:
-{
-  "entity_table": "the_entity_type",
-  "confidence": 0.0-1.0,
-  "reasoning": "brief explanation"
-}`;
-```
-
-### process-entity-rules Function
-
-New edge function that:
-1. Takes email_id and entity_table
-2. Fetches the automation rule for that entity
-3. Executes applicable actions (auto-create entity, extract invoice, apply tags, etc.)
-4. Logs results to email_rule_logs
-
-## Migration Strategy
-
-1. Keep existing email_categories and email_rules tables (don't delete)
-2. Create new entity_automation_rules and entity_rule_actions tables
-3. Update the classify-email function to classify by entity type
-4. Update process-email-rules to use entity rules
-5. Update the Email Automation UI to show entity-based configuration
-6. Migrate existing email_messages.category_id to entity_table where possible
-
-## Implementation Order
-
-1. **Database Migration**
-   - Create entity_automation_rules table
-   - Create entity_rule_actions table
-   - Add entity_table column to email_messages
-   - Seed default rules with appropriate actions
-
-2. **Types & Hooks**
-   - Create src/types/entity-automation.ts
-   - Create src/hooks/use-entity-automation.ts
-
-3. **UI Update**
-   - Rewrite EmailAutomation.tsx with entity-based table
-   - Use entity icons/colors from CRMSidebar
-
-4. **Edge Functions**
-   - Update classify-email to classify by entity type
-   - Update process-email-rules to use entity rules
-
-5. **Cleanup** (future)
-   - Remove unused category-based tables after migration complete
+1. **New person (no mapping)**: Falls through to AI classification
+2. **Person has multiple entity mappings**: Uses first/oldest mapping
+3. **No entity rules defined**: Returns null classification gracefully
+4. **Email already processed**: Skipped during sync
+5. **AI classification fails**: Error logged, email stays in queue for retry
 
 ## Technical Details
 
-### New Types
+### Entity-to-Link-Table Mapping
 
 ```typescript
-// src/types/entity-automation.ts
-export interface EntityAutomationRule {
-  id: string;
-  entity_table: string;
-  is_active: boolean;
-  priority: number;
-  description: string | null;
-  ai_prompt: string | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  actions?: EntityRuleAction[];
-}
-
-export interface EntityRuleAction {
-  id: string;
-  entity_rule_id: string;
-  action_type: RuleActionType;
-  config: Record<string, unknown>;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-}
-
-// Actions that require specific entity types
-export const INVOICE_CAPABLE_ENTITIES = [
-  'product_suppliers',
-  'expense_suppliers',
-  'corporate_management',
-  'subscriptions',
-];
-
-// Entity display config with icons
-export const ENTITY_AUTOMATION_CONFIG = {
-  influencers: { icon: 'Sparkles', color: '#ec4899', label: 'Influencers' },
-  resellers: { icon: 'Store', color: '#22c55e', label: 'Resellers' },
-  product_suppliers: { icon: 'Package', color: '#3b82f6', label: 'Product Suppliers' },
-  expense_suppliers: { icon: 'Receipt', color: '#f97316', label: 'Expense Suppliers' },
-  corporate_management: { icon: 'Building2', color: '#0891b2', label: 'Corporate Management' },
-  personal_contacts: { icon: 'Contact', color: '#8b5cf6', label: 'Personal Contacts' },
-  subscriptions: { icon: 'CreditCard', color: '#f59e0b', label: 'Subscriptions' },
+const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
+  influencers: { table: "email_influencers", idField: "influencer_id" },
+  resellers: { table: "email_resellers", idField: "reseller_id" },
+  product_suppliers: { table: "email_product_suppliers", idField: "product_supplier_id" },
+  expense_suppliers: { table: "email_expense_suppliers", idField: "expense_supplier_id" },
+  corporate_management: { table: "email_corporate_management", idField: "corporate_management_id" },
+  personal_contacts: { table: "email_personal_contacts", idField: "personal_contact_id" },
+  subscriptions: { table: "email_subscriptions", idField: "subscription_id" },
 };
 ```
 
-### Default Actions per Entity
+### Skip AI Logic in sync-emails
 
-When seeding the database, each entity gets these default actions:
+```typescript
+async function getExistingEntityMapping(supabase: any, personId: string): Promise<string | null> {
+  const { data: mapping } = await supabase
+    .from("people_entities")
+    .select("entity_table")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  
+  return mapping?.entity_table || null;
+}
 
-| Entity | Default Actions |
-|--------|-----------------|
-| Influencers | auto_create_entity (on), tag (off), visibility (off) |
-| Resellers | auto_create_entity (on), tag (off), visibility (off) |
-| Product Suppliers | auto_create_entity (on), extract_invoice (on), tag (off) |
-| Expense Suppliers | auto_create_entity (on), extract_invoice (on), tag (off) |
-| Corporate Management | auto_create_entity (on), extract_invoice (on), tag (off) |
-| Personal Contacts | auto_create_entity (on), tag (off) |
-| Subscriptions | auto_create_entity (off), extract_invoice (on), tag (off) |
+// In classifyAndProcessEmail:
+if (personId) {
+  const existingEntity = await getExistingEntityMapping(supabase, personId);
+  if (existingEntity) {
+    await supabase
+      .from("email_messages")
+      .update({ entity_table: existingEntity, ai_confidence: 1.0 })
+      .eq("id", emailId);
+    return { classified: true, skippedAi: true };
+  }
+}
+// Else call AI...
+```
+
+## Summary
+
+This refactor completes the transition from category-based to entity-based email automation:
+- Emails are classified by entity type (not category)
+- Known senders skip AI (using `people_entities` cache)
+- Review Queue shows entity types with ability to override
+- Processing uses `entity_automation_rules` for configurable actions
+- Full audit trail in `email_rule_logs`
