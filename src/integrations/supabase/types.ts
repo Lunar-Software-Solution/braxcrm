@@ -265,6 +265,7 @@ export type Database = {
           conversation_id: string | null
           created_at: string
           direction: string
+          entity_table: string | null
           folder_id: string | null
           has_attachments: boolean
           id: string
@@ -284,6 +285,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string
           direction: string
+          entity_table?: string | null
           folder_id?: string | null
           has_attachments?: boolean
           id?: string
@@ -303,6 +305,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string
           direction?: string
+          entity_table?: string | null
           folder_id?: string | null
           has_attachments?: boolean
           id?: string
@@ -654,6 +657,42 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_automation_rules: {
+        Row: {
+          ai_prompt: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          entity_table: string
+          id: string
+          is_active: boolean
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          entity_table: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          entity_table?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entity_field_values: {
         Row: {
           created_at: string
@@ -817,6 +856,44 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      entity_rule_actions: {
+        Row: {
+          action_type: string
+          config: Json
+          created_at: string
+          entity_rule_id: string
+          id: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          action_type: string
+          config?: Json
+          created_at?: string
+          entity_rule_id: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          action_type?: string
+          config?: Json
+          created_at?: string
+          entity_rule_id?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_rule_actions_entity_rule_id_fkey"
+            columns: ["entity_rule_id"]
+            isOneToOne: false
+            referencedRelation: "entity_automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expense_suppliers: {
         Row: {

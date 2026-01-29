@@ -15,18 +15,29 @@ interface ClassifyEmailRequest {
   sender_name: string;
 }
 
-interface Category {
+interface EntityRule {
   id: string;
-  name: string;
+  entity_table: string;
   description: string | null;
+  ai_prompt: string | null;
+  is_active: boolean;
 }
 
 interface ClassificationResult {
-  category_id: string | null;
-  category_name: string | null;
+  entity_table: string | null;
   confidence: number;
   reasoning: string;
 }
+
+const ENTITY_TABLES = [
+  "influencers",
+  "resellers",
+  "product_suppliers",
+  "expense_suppliers",
+  "corporate_management",
+  "personal_contacts",
+  "subscriptions",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,9 +57,8 @@ serve(async (req) => {
     );
 
     // Validate user
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       throw new Error("Unauthorized");
     }
 
@@ -58,50 +68,51 @@ serve(async (req) => {
       throw new Error("Missing required field: email_id");
     }
 
-    // Fetch all active categories
-    const { data: categories, error: catError } = await supabase
-      .from("email_categories")
-      .select("id, name, description")
+    // Fetch entity automation rules
+    const { data: rules, error: rulesError } = await supabase
+      .from("entity_automation_rules")
+      .select("id, entity_table, description, ai_prompt, is_active")
       .eq("is_active", true)
-      .order("sort_order");
+      .order("priority", { ascending: false });
 
-    if (catError) {
-      console.error("Error fetching categories:", catError);
-      throw new Error("Failed to fetch categories");
+    if (rulesError) {
+      console.error("Error fetching entity rules:", rulesError);
+      throw new Error("Failed to fetch entity rules");
     }
 
-    // If no categories defined, return null classification
-    if (!categories || categories.length === 0) {
+    // If no rules defined, return null classification
+    if (!rules || rules.length === 0) {
       const result: ClassificationResult = {
-        category_id: null,
-        category_name: null,
+        entity_table: null,
         confidence: 0,
-        reasoning: "No categories defined",
+        reasoning: "No entity rules defined",
       };
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build the prompt for AI classification
-    const categoryList = (categories as Category[])
-      .map((c, i) => `${i + 1}. "${c.name}"${c.description ? `: ${c.description}` : ""}`)
+    // Build entity types list from rules
+    const entityList = (rules as EntityRule[])
+      .map((r, i) => `${i + 1}. ${r.entity_table.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} - ${r.ai_prompt || r.description || ""}`)
       .join("\n");
 
-    const prompt = `You are an email classification assistant. Analyze the following email and classify it into ONE of the available categories.
+    const prompt = `You are an email classification assistant. Analyze this email and determine which CRM entity type the sender belongs to.
 
-Available Categories:
-${categoryList}
+Available Entity Types:
+${entityList}
 
 Email Details:
 - From: ${sender_name} <${sender_email}>
 - Subject: ${subject || "(no subject)"}
 - Preview: ${body_preview || "(no content)"}
 
+Classify the sender into ONE of the entity types above based on the email content and sender information.
+
 Respond with a JSON object containing:
-- "category_name": The exact name of the matching category (or null if none match well)
+- "entity_table": The exact entity table name in snake_case (e.g., "influencers", "product_suppliers", "personal_contacts") or null if no good match
 - "confidence": A number between 0 and 1 indicating your confidence
-- "reasoning": A brief explanation of why you chose this category
+- "reasoning": A brief explanation of why you chose this entity type
 
 Only respond with the JSON object, no other text.`;
 
@@ -155,7 +166,7 @@ Only respond with the JSON object, no other text.`;
     }
 
     // Parse AI response
-    let parsedResponse: { category_name: string | null; confidence: number; reasoning: string };
+    let parsedResponse: { entity_table: string | null; confidence: number; reasoning: string };
     try {
       // Clean up the response (remove markdown code blocks if present)
       const cleanContent = aiContent.replace(/```json\n?|\n?```/g, "").trim();
@@ -165,37 +176,24 @@ Only respond with the JSON object, no other text.`;
       throw new Error("Failed to parse AI classification response");
     }
 
-    // Find the category ID from the name
-    let matchedCategory: Category | null = null;
-    if (parsedResponse.category_name) {
-      matchedCategory = (categories as Category[]).find(
-        (c) => c.name.toLowerCase() === parsedResponse.category_name?.toLowerCase()
-      ) || null;
+    // Validate entity_table is a valid one
+    let validEntityTable: string | null = null;
+    if (parsedResponse.entity_table && ENTITY_TABLES.includes(parsedResponse.entity_table)) {
+      validEntityTable = parsedResponse.entity_table;
     }
 
     const result: ClassificationResult = {
-      category_id: matchedCategory?.id || null,
-      category_name: matchedCategory?.name || null,
+      entity_table: validEntityTable,
       confidence: Math.min(1, Math.max(0, parsedResponse.confidence || 0)),
       reasoning: parsedResponse.reasoning || "",
     };
 
-    // Store the classification result
-    if (result.category_id) {
-      await supabase
-        .from("email_message_categories")
-        .upsert({
-          email_id,
-          category_id: result.category_id,
-          confidence: result.confidence,
-          processed_at: new Date().toISOString(),
-        }, { onConflict: "email_id,category_id" });
-
-      // Update the email_messages table with the primary category
+    // Update the email_messages table with the entity classification
+    if (result.entity_table) {
       await supabase
         .from("email_messages")
         .update({
-          category_id: result.category_id,
+          entity_table: result.entity_table,
           ai_confidence: result.confidence,
         })
         .eq("id", email_id);
