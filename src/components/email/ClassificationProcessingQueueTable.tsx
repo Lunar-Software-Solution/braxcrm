@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -9,14 +10,42 @@ import {
 } from "@/components/ui/table";
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ClassificationProcessingQueueTableProps {
   emails: ClassificationQueueEmail[];
+  selectedIds: Set<string>;
+  onSelectionChange: (ids: Set<string>) => void;
+  isClassifying: boolean;
 }
 
 export function ClassificationProcessingQueueTable({
   emails,
+  selectedIds,
+  onSelectionChange,
+  isClassifying,
 }: ClassificationProcessingQueueTableProps) {
+  const allSelected = emails.length > 0 && selectedIds.size === emails.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < emails.length;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(new Set(emails.map((e) => e.id)));
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleSelectOne = (emailId: string, checked: boolean) => {
+    const newSelection = new Set(selectedIds);
+    if (checked) {
+      newSelection.add(emailId);
+    } else {
+      newSelection.delete(emailId);
+    }
+    onSelectionChange(newSelection);
+  };
+
   if (emails.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -33,6 +62,19 @@ export function ClassificationProcessingQueueTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">
+              <Checkbox
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) {
+                    (el as HTMLButtonElement & { indeterminate: boolean }).indeterminate = someSelected;
+                  }
+                }}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all"
+                disabled={isClassifying}
+              />
+            </TableHead>
             <TableHead>Sender</TableHead>
             <TableHead className="min-w-[200px]">Subject</TableHead>
             <TableHead>Status</TableHead>
@@ -41,7 +83,22 @@ export function ClassificationProcessingQueueTable({
         </TableHeader>
         <TableBody>
           {emails.map((email) => (
-            <TableRow key={email.id}>
+            <TableRow
+              key={email.id}
+              className={cn(
+                selectedIds.has(email.id) && "bg-muted/50"
+              )}
+            >
+              <TableCell>
+                <Checkbox
+                  checked={selectedIds.has(email.id)}
+                  onCheckedChange={(checked) =>
+                    handleSelectOne(email.id, checked as boolean)
+                  }
+                  aria-label={`Select email: ${email.subject}`}
+                  disabled={isClassifying}
+                />
+              </TableCell>
               <TableCell>
                 <div className="flex flex-col">
                   <span className="font-medium truncate max-w-[150px]">

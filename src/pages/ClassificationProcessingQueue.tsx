@@ -1,18 +1,32 @@
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Brain, Play } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ClassificationProcessingQueueTable } from "@/components/email/ClassificationProcessingQueueTable";
 import { useClassificationProcessingQueue } from "@/hooks/use-classification-processing-queue";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClassificationProcessingQueue() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const {
     pendingEmails,
     isLoadingEmails,
     refetchEmails,
+    classifyEmails,
+    isClassifying,
   } = useClassificationProcessingQueue();
 
   // Filter emails by search query
@@ -27,6 +41,18 @@ export default function ClassificationProcessingQueue() {
     );
   });
 
+  const handleClassifySelected = () => {
+    if (selectedIds.size === 0) return;
+    classifyEmails(Array.from(selectedIds));
+    setSelectedIds(new Set());
+  };
+
+  const handleClassifyAll = () => {
+    const allIds = filteredEmails.map((e) => e.id);
+    classifyEmails(allIds);
+    setSelectedIds(new Set());
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -35,7 +61,7 @@ export default function ClassificationProcessingQueue() {
           <div>
             <h1 className="text-2xl font-semibold">Email Classification Processing Queue</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Emails awaiting AI classification to determine entity type
+              Select emails to classify with AI to determine entity type
             </p>
           </div>
         </div>
@@ -61,6 +87,41 @@ export default function ClassificationProcessingQueue() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingEmails ? "animate-spin" : ""}`} />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClassifySelected}
+              disabled={selectedIds.size === 0 || isClassifying}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Classify Selected ({selectedIds.size})
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  disabled={filteredEmails.length === 0 || isClassifying}
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Classify All ({filteredEmails.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Classify All Emails</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will run AI classification on all {filteredEmails.length} emails
+                    to determine their entity type. This may take some time.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClassifyAll}>
+                    Classify All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
@@ -74,13 +135,19 @@ export default function ClassificationProcessingQueue() {
             ))}
           </div>
         ) : (
-          <ClassificationProcessingQueueTable emails={filteredEmails} />
+          <ClassificationProcessingQueueTable
+            emails={filteredEmails}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            isClassifying={isClassifying}
+          />
         )}
       </div>
 
       {/* Footer */}
       <div className="border-t px-6 py-3 text-sm text-muted-foreground">
         Showing {filteredEmails.length} email{filteredEmails.length !== 1 ? "s" : ""} awaiting classification
+        {isClassifying && " • Classifying..."}
       </div>
     </div>
   );
