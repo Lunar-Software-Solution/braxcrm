@@ -23,6 +23,7 @@ import {
   RotateCcw,
   CheckCircle2,
   Clock,
+  CircleDashed,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -218,11 +219,12 @@ export function EmailPreview({
                   ) : metadata.category_id ? (
                     <Badge variant="secondary" className="gap-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                       <Clock className="h-3 w-3" />
-                      Pending Review
+                      Rules Pending
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="gap-1">
-                      Not Classified
+                    <Badge variant="outline" className="gap-1 text-muted-foreground">
+                      <CircleDashed className="h-3 w-3" />
+                      Not Categorized
                     </Badge>
                   )}
                   <Tooltip>

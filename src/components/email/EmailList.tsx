@@ -16,7 +16,8 @@ import {
   Users,
   Tag,
   CheckCircle2,
-  Circle,
+  Clock,
+  CircleDashed,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -270,26 +271,28 @@ export function EmailList({
                     </span>
                     <div className="flex items-center gap-2">
                       {/* Processing status indicator */}
-                      {metadata && (
+                      {metadata ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span>
                               {metadata.is_processed ? (
                                 <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                               ) : metadata.category_id ? (
-                                <Circle className="h-3.5 w-3.5 text-yellow-500" />
-                              ) : null}
+                                <Clock className="h-3.5 w-3.5 text-yellow-500" />
+                              ) : (
+                                <CircleDashed className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             {metadata.is_processed 
-                              ? "Rules processed" 
+                              ? "Processed" 
                               : metadata.category_id 
-                                ? "Pending review" 
-                                : "Not classified"}
+                                ? "Rules pending" 
+                                : "Not categorized"}
                           </TooltipContent>
                         </Tooltip>
-                      )}
+                      ) : null}
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatEmailDate(email.receivedDateTime)}
                       </span>
