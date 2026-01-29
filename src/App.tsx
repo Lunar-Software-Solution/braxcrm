@@ -19,6 +19,7 @@ import Influencers from "./pages/Influencers";
 import Resellers from "./pages/Resellers";
 import Suppliers from "./pages/Suppliers";
 import CorporateManagement from "./pages/CorporateManagement";
+import PersonalContacts from "./pages/PersonalContacts";
 import EmailReviewQueue from "./pages/EmailReviewQueue";
 import RulesLog from "./pages/RulesLog";
 import UsersRoles from "./pages/UsersRoles";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/resellers" element={<Resellers />} />
               <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
+              <Route path="/personal-contacts" element={<PersonalContacts />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/review-queue" element={<EmailReviewQueue />} />
