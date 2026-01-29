@@ -1,181 +1,158 @@
 
-# Custom Fields System for Entities
-
-This plan implements a dynamic fields management system allowing admins to define custom fields for each entity type (Influencers, Resellers, Suppliers, Corporate Management, Personal Contacts). Custom fields support multiple data types and can be configured per entity type.
+# Plan: Add Subscriptions Entity Type
 
 ## Overview
+Adding a new "Subscriptions" entity type to track subscription-based services (like Lovable, SaaS tools, etc.). This will follow the same pattern as the existing entities (Influencers, Resellers, Suppliers, etc.).
 
-Based on the reference screenshot, we will build:
-1. A fields configuration interface where admins can add/edit/delete custom fields for entities
-2. Support for various data types (Text, Number, Date/Time, Links, True/False, Currency, Address)
-3. Integration of custom fields into entity forms and detail views
-4. A fields management page accessible from settings or as a dedicated page
+## What Will Be Created
 
-## Database Design
+### 1. Database Table
+A new `subscriptions` table with the same core fields as other entities:
+- `id` - UUID primary key
+- `name` - Subscription/service name (e.g., "Lovable", "GitHub", "Figma")
+- `email` - Contact email for the subscription
+- `phone` - Contact phone
+- `notes` - Additional notes
+- `avatar_url` - Logo/avatar for the service
+- `created_by` - User who created the record
+- `created_at` / `updated_at` - Timestamps
 
-### 1. Entity Fields Definition Table
-Stores the field definitions for each entity type.
+### 2. Security (RLS Policies)
+Following the existing RBAC pattern:
+- Admins can do everything
+- Users with "Subscription Manager" role can manage all subscription records
+- Users can view records assigned to them via `record_role_assignments`
+
+### 3. Entity Role
+A new entry in `entity_roles` table:
+- Name: "Subscription Manager"
+- Slug: `subscription_manager`
+- Entity table: `subscriptions`
+
+### 4. Frontend Changes
+
+| File | Change |
+|------|--------|
+| `src/types/entities.ts` | Add `Subscription` interface and update `EntityType` union |
+| `src/types/activities.ts` | Add `subscriptions` to `EntityTable` type |
+| `src/types/roles.ts` | Add subscriptions to `ENTITY_TABLE_CONFIG` |
+| `src/pages/Subscriptions.tsx` | New page using `EntityList` component |
+| `src/components/layout/CRMSidebar.tsx` | Add navigation link with `CreditCard` icon |
+| `src/App.tsx` | Add route for `/subscriptions` |
+
+## Visual Preview
+
+The Subscriptions page will appear in the sidebar under "ORGANISATIONS" with an orange/amber color theme and a credit card icon:
 
 ```text
-+------------------------+
-|     entity_fields      |
-+------------------------+
-| id                     |
-| entity_table           | -> which entity type (influencers, resellers, etc.)
-| name                   | -> display name (e.g., "LinkedIn", "ARR")
-| slug                   | -> internal identifier (e.g., "linkedin_url", "arr")
-| data_type              | -> enum: text, number, date, datetime, boolean, currency, link, address
-| icon                   | -> optional icon name
-| description            | -> optional field description
-| is_required            | -> whether the field is required
-| is_active              | -> soft delete flag
-| sort_order             | -> display order
-| config                 | -> JSONB for type-specific settings (e.g., currency code, link label)
-| created_by             |
-| created_at             |
-| updated_at             |
-+------------------------+
+ORGANISATIONS
+├── Influencers (pink)
+├── Resellers (green)
+├── Suppliers (blue)
+├── Corporate Management (cyan)
+├── Personal Contacts (purple)
+└── Subscriptions (amber) ← NEW
 ```
 
-### 2. Entity Field Values Table
-Stores the actual field values for each entity record.
+## Technical Details
 
-```text
-+---------------------------+
-|   entity_field_values     |
-+---------------------------+
-| id                        |
-| field_id                  | -> FK to entity_fields
-| entity_table              | -> which entity type
-| entity_id                 | -> the record ID
-| value_text                | -> for text, link values
-| value_number              | -> for number, currency values
-| value_boolean             | -> for true/false values
-| value_date                | -> for date/datetime values
-| value_json                | -> for complex values like address
-| created_at                |
-| updated_at                |
-+---------------------------+
+### Database Migration SQL
+```sql
+-- Create subscriptions table
+CREATE TABLE public.subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text,
+  phone text,
+  notes text,
+  avatar_url text,
+  created_by uuid NOT NULL REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies (same pattern as other entities)
+CREATE POLICY "Role-based select for subscriptions"
+  ON public.subscriptions FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'subscriptions')
+    OR can_view_record(auth.uid(), id, 'subscriptions')
+  );
+
+CREATE POLICY "Role-based insert for subscriptions"
+  ON public.subscriptions FOR INSERT
+  WITH CHECK (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'subscriptions')
+  );
+
+CREATE POLICY "Role-based update for subscriptions"
+  ON public.subscriptions FOR UPDATE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'subscriptions')
+  );
+
+CREATE POLICY "Role-based delete for subscriptions"
+  ON public.subscriptions FOR DELETE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'subscriptions')
+  );
+
+-- Add updated_at trigger
+CREATE TRIGGER update_subscriptions_updated_at
+  BEFORE UPDATE ON public.subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert entity role
+INSERT INTO public.entity_roles (name, slug, entity_table, description)
+VALUES (
+  'Subscription Manager',
+  'subscription_manager',
+  'subscriptions',
+  'Full access to Subscriptions and linked People'
+);
 ```
 
-### Data Type Enum
-```text
-entity_field_type: 'text' | 'number' | 'date' | 'datetime' | 'boolean' | 'currency' | 'link' | 'address' | 'actor'
+### Type Updates
+```typescript
+// src/types/entities.ts
+export interface Subscription {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EntityType = "influencers" | "resellers" | "suppliers" 
+  | "corporate_management" | "personal_contacts" | "subscriptions";
+
+export type Entity = Influencer | Reseller | Supplier 
+  | CorporateManagement | PersonalContact | Subscription;
 ```
 
-The `actor` type will reference a user in the system (like "Created by", "Updated by").
+## Implementation Order
+1. Run database migration to create table, RLS policies, and entity role
+2. Update TypeScript types (`entities.ts`, `activities.ts`, `roles.ts`)
+3. Create `Subscriptions.tsx` page component
+4. Add route in `App.tsx`
+5. Add sidebar navigation in `CRMSidebar.tsx`
 
-## Security (RLS Policies)
-
-- **entity_fields**: Admins can create/update/delete; all authenticated users can read
-- **entity_field_values**: Users inherit access based on their entity role permissions
-
-## Implementation Steps
-
-### Phase 1: Database Setup
-1. Create `entity_field_type` enum
-2. Create `entity_fields` table with RLS policies
-3. Create `entity_field_values` table with RLS policies
-4. Add updated_at triggers
-
-### Phase 2: Type Definitions
-1. Add EntityField, EntityFieldValue interfaces
-2. Add FieldDataType enum
-3. Add helper functions for field type icons and labels
-
-### Phase 3: Hooks
-1. Create `use-entity-fields.ts` hook for field definitions CRUD
-2. Create `use-entity-field-values.ts` hook for field values CRUD
-
-### Phase 4: UI Components
-
-**Field Management Components:**
-- `FieldsManager` - Main fields list view with search and filtering (like the screenshot)
-- `FieldDialog` - Create/edit field form with name, data type selection
-- `FieldCard` / `FieldRow` - Display a single field with icon, name, and data type
-
-**Field Rendering Components:**
-- `DynamicField` - Renders appropriate input based on field type
-- `DynamicFieldView` - Displays field value in read mode
-
-### Phase 5: Integration with Entity Forms
-- Update entity create/edit dialogs to include custom fields
-- Update entity detail views to display custom field values
-
-### Phase 6: Navigation
-- Add "Fields" link to settings or as a dedicated page per entity type
-
-## Data Types and Their Rendering
-
-| Type | Input Component | Display Format | Value Column |
-|------|-----------------|----------------|--------------|
-| text | Input | Plain text | value_text |
-| number | Input type=number | Formatted number | value_number |
-| date | DatePicker | Formatted date | value_date |
-| datetime | DateTimePicker | Formatted datetime | value_date |
-| boolean | Switch | Yes/No badge | value_boolean |
-| currency | Input + currency selector | $1,234.00 | value_number + config |
-| link | Input type=url | Clickable link | value_text |
-| address | Address form | Formatted address | value_json |
-| actor | User selector | User avatar + name | value_text (user_id) |
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/types/entity-fields.ts` | Type definitions for custom fields |
-| `src/hooks/use-entity-fields.ts` | CRUD for field definitions |
-| `src/hooks/use-entity-field-values.ts` | CRUD for field values |
-| `src/components/fields/FieldsManager.tsx` | Main fields management UI |
-| `src/components/fields/FieldDialog.tsx` | Create/edit field dialog |
-| `src/components/fields/FieldRow.tsx` | Single field row in list |
-| `src/components/fields/DynamicField.tsx` | Render input based on type |
-| `src/components/fields/DynamicFieldView.tsx` | Display value based on type |
-| `src/pages/EntityFields.tsx` | Dedicated page for field management |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/EntityList.tsx` | Add custom fields to entity forms |
-| `src/components/layout/CRMSidebar.tsx` | Add Fields navigation link |
-| `src/App.tsx` | Add route for EntityFields page |
-
-## UI Design (Based on Screenshot)
-
-The Fields management page will include:
-
-1. **Header Section**
-   - Title "Fields" with description
-   - "+ Add Field" button
-   - Optional "+ Add relation" for linking fields
-
-2. **Search and Filter**
-   - Search input to filter fields by name
-   - Filter button for advanced filtering
-
-3. **Fields Table**
-   - Columns: Name (with icon), App ("Managed" badge), Data type (with icon)
-   - Each row is clickable for editing
-   - Hover actions for quick edit/delete
-
-4. **Field Creation Dialog**
-   - Field name input
-   - Data type selector with icons
-   - Optional description
-   - Configuration options based on type
-
-## Technical Considerations
-
-1. **Performance**: Index on (entity_table, entity_id) for field values
-2. **Validation**: Client and server-side validation based on field type
-3. **Migration**: Existing hardcoded fields (email, phone, notes) remain as-is; custom fields extend them
-4. **Filtering**: Custom fields can be used in search/filter operations
-
-## Summary
-
-This implementation creates a flexible custom fields system where:
-- Admins define fields per entity type with various data types
-- Field values are stored in a normalized values table
-- The UI matches the professional design shown in the reference
-- Existing entity functionality remains intact while gaining extensibility
+## Features Included
+Once implemented, Subscriptions will automatically support:
+- List view with spreadsheet-style table
+- Detail panel with Home, Tasks, Notes, and Files tabs
+- CRUD operations (Create, Read, Update, Delete)
+- Role-based access control
+- File attachments
+- Linked tasks and notes
