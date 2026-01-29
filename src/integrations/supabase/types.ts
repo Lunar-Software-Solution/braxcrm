@@ -89,6 +89,53 @@ export type Database = {
         }
         Relationships: []
       }
+      email_classification_logs: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          email_id: string
+          entity_table: string | null
+          error_message: string | null
+          id: string
+          processing_time_ms: number | null
+          source: string
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          email_id: string
+          entity_table?: string | null
+          error_message?: string | null
+          id?: string
+          processing_time_ms?: number | null
+          source?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          email_id?: string
+          entity_table?: string | null
+          error_message?: string | null
+          id?: string
+          processing_time_ms?: number | null
+          source?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_classification_logs_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_corporate_management: {
         Row: {
           assigned_at: string
