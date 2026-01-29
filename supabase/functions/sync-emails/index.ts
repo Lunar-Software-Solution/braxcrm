@@ -181,19 +181,18 @@ serve(async (req) => {
     }
 
     const results = {
-      peopleCreated: 0,
       emailsSynced: 0,
       emailsClassified: 0,
-      emailsSkippedAi: 0, // Track emails that used cached entity mapping
+      emailsSkippedAi: 0,
       rulesApplied: 0,
       errors: [] as string[],
     };
 
-    // Cache for people to avoid duplicate lookups
-    const personCache: Record<string, string | undefined> = {}; // email -> person_id
-
     // Track emails that need AI processing
     const emailsToProcess: Array<{ emailId: string; msg: GraphMessage; personId: string | null }> = [];
+
+    // Cache for existing people lookups (don't create, just check)
+    const personCache: Record<string, string | undefined> = {};
 
     for (const msg of messages as GraphMessage[]) {
       try {
@@ -203,62 +202,25 @@ serve(async (req) => {
         
         const isInbound = Boolean(fromEmail && fromEmail !== userEmail?.toLowerCase());
         const contactEmail = isInbound ? fromEmail : msg.toRecipients?.[0]?.emailAddress?.address?.toLowerCase();
-        const contactName = isInbound 
-          ? fromName 
-          : msg.toRecipients?.[0]?.emailAddress?.name || contactEmail || "Unknown";
 
         if (!contactEmail) {
           continue; // Skip if no contact email
         }
 
-        // Type assertion after null check
         const safeContactEmail = contactEmail;
-        const safeContactName = contactName;
 
+        // Only check if person exists - don't create (people are created by rules)
         let personId: string | undefined = personCache[safeContactEmail];
 
-        if (!personId) {
-          // Check if person exists (RLS will handle access control)
+        if (personId === undefined) {
           const { data: existingPerson } = await supabase
             .from("people")
             .select("id")
             .ilike("email", safeContactEmail)
             .maybeSingle();
 
-          if (existingPerson) {
-            personId = existingPerson.id;
-            personCache[safeContactEmail] = personId;
-          } else {
-            // Create new person
-            const { data: newPerson, error: personError } = await supabase
-              .from("people")
-              .insert({
-                name: safeContactName,
-                email: safeContactEmail,
-                is_auto_created: true,
-                created_by: userId,
-              })
-              .select("id")
-              .single();
-
-            if (personError) {
-              // Might be a race condition - try to fetch again
-              const { data: retryPerson } = await supabase
-                .from("people")
-                .select("id")
-                .ilike("email", safeContactEmail)
-                .maybeSingle();
-              
-              if (retryPerson) {
-                personId = retryPerson.id;
-                personCache[safeContactEmail] = personId;
-              }
-            } else if (newPerson) {
-              personId = newPerson.id;
-              personCache[safeContactEmail] = personId;
-              results.peopleCreated++;
-            }
-          }
+          personId = existingPerson?.id;
+          personCache[safeContactEmail] = personId;
         }
 
         // Upsert email message - check if it already exists and is processed
@@ -282,6 +244,7 @@ serve(async (req) => {
             has_attachments: msg.hasAttachments,
             conversation_id: msg.conversationId || null,
             folder_id: msg.parentFolderId || null,
+            // Store sender info for later person creation by rules
             // Only set is_processed to false for new emails
             ...(existingEmail ? {} : { is_processed: false }),
           }, {
