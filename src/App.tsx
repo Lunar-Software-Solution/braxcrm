@@ -24,6 +24,7 @@ import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
 import EmailReviewQueue from "./pages/EmailReviewQueue";
 import RulesLog from "./pages/RulesLog";
+import EmailAutomation from "./pages/EmailAutomation";
 import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/review-queue" element={<EmailReviewQueue />} />
               <Route path="/rules-log" element={<RulesLog />} />
+              <Route path="/email-automation" element={<EmailAutomation />} />
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/opportunities" element={<Opportunities />} />

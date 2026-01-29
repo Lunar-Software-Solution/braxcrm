@@ -34,7 +34,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import EmailAutomationSettings from "@/components/settings/EmailAutomationSettings";
+
 
 
 interface MicrosoftAccount {
@@ -330,8 +330,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Email Automation Section */}
-          <EmailAutomationSettings />
+          {/* Security Section */}
 
           {/* Security Section */}
           <Card>
