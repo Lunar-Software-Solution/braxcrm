@@ -16,6 +16,7 @@ import {
   ScrollText,
   Contact,
   Shield,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Sidebar,
@@ -103,6 +104,18 @@ export function CRMSidebar() {
                   >
                     <Shield className="h-4 w-4" />
                     {!collapsed && <span>Users & Roles</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/fields"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-md"
+                    activeClassName="bg-muted text-primary font-medium"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {!collapsed && <span>Fields</span>}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

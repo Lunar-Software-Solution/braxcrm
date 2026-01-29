@@ -633,6 +633,107 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_field_values: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_table: string
+          field_id: string
+          id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_table: string
+          field_id: string
+          id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_table?: string
+          field_id?: string
+          id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "entity_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_fields: {
+        Row: {
+          config: Json | null
+          created_at: string
+          created_by: string
+          data_type: Database["public"]["Enums"]["entity_field_type"]
+          description: string | null
+          entity_table: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          created_by: string
+          data_type?: Database["public"]["Enums"]["entity_field_type"]
+          description?: string | null
+          entity_table: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          created_by?: string
+          data_type?: Database["public"]["Enums"]["entity_field_type"]
+          description?: string | null
+          entity_table?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entity_roles: {
         Row: {
           created_at: string
@@ -1371,6 +1472,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member"
+      entity_field_type:
+        | "text"
+        | "number"
+        | "date"
+        | "datetime"
+        | "boolean"
+        | "currency"
+        | "link"
+        | "address"
+        | "actor"
       invoice_status: "pending" | "reviewed" | "approved" | "rejected"
       opportunity_stage:
         | "lead"
@@ -1519,6 +1630,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      entity_field_type: [
+        "text",
+        "number",
+        "date",
+        "datetime",
+        "boolean",
+        "currency",
+        "link",
+        "address",
+        "actor",
+      ],
       invoice_status: ["pending", "reviewed", "approved", "rejected"],
       opportunity_stage: [
         "lead",

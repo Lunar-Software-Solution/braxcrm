@@ -25,6 +25,7 @@ import RulesLog from "./pages/RulesLog";
 import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
+import EntityFields from "./pages/EntityFields";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/opportunities" element={<Opportunities />} />
+              <Route path="/fields" element={<EntityFields />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
