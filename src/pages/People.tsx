@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
 import { TableFooter } from "@/components/crm/TableFooter";
-import { DetailPanel } from "@/components/crm/DetailPanel";
+import { EntityDetailPanel } from "@/components/crm/EntityDetailPanel";
 import { AddNewRow } from "@/components/crm/AddNewRow";
 import { useCRM } from "@/hooks/use-crm";
 import { useAuth } from "@/contexts/AuthContext";
@@ -224,7 +224,24 @@ export default function People() {
             <>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
-                <DetailPanel isOpen={true} onClose={() => setSelectedPerson(null)} title={selectedPerson.name} subtitle={selectedPerson.title} avatarUrl={selectedPerson.avatar_url} createdAt={selectedPerson.created_at} isResizable />
+                <EntityDetailPanel
+                  entity={{
+                    id: selectedPerson.id,
+                    name: selectedPerson.name,
+                    email: selectedPerson.email,
+                    phone: selectedPerson.phone || null,
+                    notes: selectedPerson.notes || null,
+                    avatar_url: selectedPerson.avatar_url || null,
+                    created_at: selectedPerson.created_at,
+                    updated_at: selectedPerson.updated_at,
+                    created_by: selectedPerson.created_by,
+                  }}
+                  entityType="people"
+                  entityColor="#6366f1"
+                  onClose={() => setSelectedPerson(null)}
+                  onEdit={() => { setEditingPerson(selectedPerson); setDialogOpen(true); }}
+                  onDelete={() => {}}
+                />
               </ResizablePanel>
             </>
           )}

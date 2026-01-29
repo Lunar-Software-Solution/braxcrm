@@ -18,12 +18,12 @@ import { NoteDialog } from "@/components/crm/NoteDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/use-tasks";
 import { useNotes } from "@/hooks/use-notes";
-import type { Entity, EntityType } from "@/types/entities";
-import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate } from "@/types/activities";
+import type { Entity } from "@/types/entities";
+import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate, EntityTable } from "@/types/activities";
 
 interface EntityDetailPanelProps {
   entity: Entity;
-  entityType: EntityType;
+  entityType: EntityTable;
   entityColor: string;
   onClose: () => void;
   onEdit: () => void;
