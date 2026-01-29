@@ -179,6 +179,34 @@ export function useUsersRoles() {
     },
   });
 
+  // Delete user (admin only via edge function)
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("admin-update-password", {
+        body: { userId, action: "delete" },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.data?.error || response.error?.message || "Failed to delete user");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
+      toast({ title: "User deleted", description: "The user has been removed from the system." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     users,
     isLoadingUsers,
@@ -190,5 +218,7 @@ export function useUsersRoles() {
     isAssigningEntityRole: assignEntityRoleMutation.isPending,
     removeEntityRole: removeEntityRoleMutation.mutate,
     isRemovingEntityRole: removeEntityRoleMutation.isPending,
+    deleteUser: deleteUserMutation.mutate,
+    isDeletingUser: deleteUserMutation.isPending,
   };
 }

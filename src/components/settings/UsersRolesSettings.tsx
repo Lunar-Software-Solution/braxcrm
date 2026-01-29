@@ -23,6 +23,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -30,7 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Shield, Plus, X, MoreVertical, Building2, Mail, Loader2, UserPlus, SendHorizonal } from "lucide-react";
+import { Users, Shield, Plus, X, MoreVertical, Building2, Mail, Loader2, UserPlus, SendHorizonal, Trash2, CheckCircle2 } from "lucide-react";
 import { useUsersRoles, type UserWithRoles, type EntityRole } from "@/hooks/use-users-roles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/use-user-roles";
@@ -73,6 +84,8 @@ function UserRow({
   onUpdateAppRole,
   onAssignEntityRole,
   onRemoveEntityRole,
+  onDeleteUser,
+  isDeletingUser,
 }: {
   userItem: UserWithRoles;
   entityRoles: EntityRole[];
@@ -80,6 +93,8 @@ function UserRow({
   onUpdateAppRole: (args: { userId: string; role: "admin" | "member" }) => void;
   onAssignEntityRole: (args: { userId: string; entityRoleId: string }) => void;
   onRemoveEntityRole: (args: { userId: string; entityRoleId: string }) => void;
+  onDeleteUser: (userId: string) => void;
+  isDeletingUser: boolean;
 }) {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedEntityRole, setSelectedEntityRole] = useState<string>("");
@@ -116,6 +131,10 @@ function UserRow({
             {isCurrentUser && (
               <Badge variant="outline" className="text-xs">You</Badge>
             )}
+            <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
+              <CheckCircle2 className="h-3 w-3" />
+              Active
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground">{userItem.email}</p>
           
@@ -163,7 +182,7 @@ function UserRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover">
-            <DropdownMenuLabel>Manage Roles</DropdownMenuLabel>
+            <DropdownMenuLabel>Manage User</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
               <DialogTrigger asChild>
@@ -215,6 +234,46 @@ function UserRow({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            
+            {!isCurrentUser && (
+              <>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem 
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete User
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete {userItem.display_name || userItem.email} and remove all their data. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDeleteUser(userItem.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={isDeletingUser}
+                      >
+                        {isDeletingUser ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -234,6 +293,8 @@ export default function UsersRolesSettings() {
     updateAppRole,
     assignEntityRole,
     removeEntityRole,
+    deleteUser,
+    isDeletingUser,
   } = useUsersRoles();
 
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -396,6 +457,8 @@ export default function UsersRolesSettings() {
                 onUpdateAppRole={updateAppRole}
                 onAssignEntityRole={assignEntityRole}
                 onRemoveEntityRole={removeEntityRole}
+                onDeleteUser={deleteUser}
+                isDeletingUser={isDeletingUser}
               />
             ))}
           </div>
