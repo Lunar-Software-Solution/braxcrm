@@ -58,6 +58,18 @@ export interface PersonalContact {
   updated_at: string;
 }
 
-export type EntityType = "influencers" | "resellers" | "suppliers" | "corporate_management" | "personal_contacts";
+export interface Subscription {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export type Entity = Influencer | Reseller | Supplier | CorporateManagement | PersonalContact;
+export type EntityType = "influencers" | "resellers" | "suppliers" | "corporate_management" | "personal_contacts" | "subscriptions";
+
+export type Entity = Influencer | Reseller | Supplier | CorporateManagement | PersonalContact | Subscription;

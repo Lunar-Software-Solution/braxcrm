@@ -15,6 +15,7 @@ import {
   ClipboardList,
   ScrollText,
   Contact,
+  CreditCard,
   Shield,
 } from "lucide-react";
 import {
@@ -51,6 +52,7 @@ const entityItems = [
   { title: "Suppliers", url: "/suppliers", icon: Truck, color: "#3b82f6" },
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
   { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
+  { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },
 ];
 
 const futureItems = [
