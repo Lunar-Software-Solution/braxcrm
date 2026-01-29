@@ -637,6 +637,33 @@ export type Database = {
           },
         ]
       }
+      entity_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          entity_table: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entity_table: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entity_table?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       extracted_invoices: {
         Row: {
           amount: number | null
@@ -892,6 +919,38 @@ export type Database = {
           },
         ]
       }
+      people_entities: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_table: string
+          id: string
+          person_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_table: string
+          id?: string
+          person_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_table?: string
+          id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_entities_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person_object_types: {
         Row: {
           assigned_at: string
@@ -963,6 +1022,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      record_role_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by_rule_id: string | null
+          entity_role_id: string
+          id: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_rule_id?: string | null
+          entity_role_id: string
+          id?: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_rule_id?: string | null
+          entity_role_id?: string
+          id?: string
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_role_assignments_assigned_by_rule_id_fkey"
+            columns: ["assigned_by_rule_id"]
+            isOneToOne: false
+            referencedRelation: "email_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "record_role_assignments_entity_role_id_fkey"
+            columns: ["entity_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resellers: {
         Row: {
@@ -1090,6 +1191,38 @@ export type Database = {
           },
         ]
       }
+      user_entity_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          entity_role_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          entity_role_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          entity_role_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_entity_roles_entity_role_id_fkey"
+            columns: ["entity_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1166,6 +1299,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_person_via_entity: {
+        Args: { _person_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_record: {
+        Args: { _record_id: string; _table_name: string; _user_id: string }
+        Returns: boolean
+      }
+      has_entity_role: {
+        Args: { _entity_table: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
