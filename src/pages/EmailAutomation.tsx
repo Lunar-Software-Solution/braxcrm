@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { 
   Zap, Plus, Tag, ChevronDown, ChevronRight, Eye, FileText, AlertTriangle, 
-  Users, Loader2, Sparkles, Store, Package, Receipt, Building2, Contact, CreditCard, Trash2 
+  Users, Loader2, Sparkles, Store, Package, Receipt, Building2, Contact, CreditCard, Trash2,
+  Brain, Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
@@ -57,7 +59,8 @@ export default function EmailAutomation() {
   const [showAddAction, setShowAddAction] = useState<string | null>(null);
   const [newActionType, setNewActionType] = useState<RuleActionType>("tag");
   const [newActionConfig, setNewActionConfig] = useState<Record<string, unknown>>({});
-
+  const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
+  const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
   const { user } = useAuth();
 
   const { data: rules = [], isLoading } = useEntityAutomationRules();
@@ -282,6 +285,66 @@ export default function EmailAutomation() {
                 
                 <CollapsibleContent>
                   <div className="bg-muted/30 px-6 py-4 ml-11 border-l-2 border-muted">
+                    {/* AI Prompt Section */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-medium">AI Classification Prompt</h4>
+                        </div>
+                        {rule && editingPrompt !== rule.id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => {
+                              setEditingPrompt(rule.id);
+                              setPromptDrafts({ ...promptDrafts, [rule.id]: rule.ai_prompt || "" });
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                      {rule && editingPrompt === rule.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={promptDrafts[rule.id] || ""}
+                            onChange={(e) => setPromptDrafts({ ...promptDrafts, [rule.id]: e.target.value })}
+                            placeholder="Describe what characteristics identify this entity type..."
+                            className="min-h-[80px] text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                updateRule.mutate({ id: rule.id, data: { ai_prompt: promptDrafts[rule.id] } });
+                                setEditingPrompt(null);
+                              }}
+                              disabled={updateRule.isPending}
+                            >
+                              {updateRule.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => setEditingPrompt(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground bg-background/50 p-2 rounded border">
+                          {rule?.ai_prompt || <span className="italic">No prompt configured. Click Edit to add one.</span>}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions Section */}
                     <div className="mb-3 flex items-center justify-between">
                       <h4 className="text-sm font-medium">Available Actions</h4>
                       {rule && showAddAction !== rule.id && (
