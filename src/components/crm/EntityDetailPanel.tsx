@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,11 +13,14 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
+import { FilesList } from "@/components/crm/FilesList";
 import { TaskDialog } from "@/components/crm/TaskDialog";
 import { NoteDialog } from "@/components/crm/NoteDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/use-tasks";
 import { useNotes } from "@/hooks/use-notes";
+import { useEntityFiles } from "@/hooks/use-entity-files";
+import { useToast } from "@/hooks/use-toast";
 import type { Entity } from "@/types/entities";
 import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate, EntityTable } from "@/types/activities";
 
@@ -41,8 +44,33 @@ export function EntityDetailPanel({
   const { user } = useAuth();
   const { createTask } = useTasks();
   const { createNote } = useNotes();
+  const { uploadFile } = useEntityFiles();
+  const { toast } = useToast();
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0 || !user) return;
+
+    try {
+      for (const file of Array.from(selectedFiles)) {
+        await uploadFile(entityType, entity.id, file, user.id);
+      }
+      toast({ title: 'File(s) uploaded successfully' });
+    } catch (error) {
+      toast({
+        title: 'Failed to upload file',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSaveTask = async (data: TaskInsert | TaskUpdate, isEdit: boolean) => {
     if (!isEdit) {
@@ -65,6 +93,15 @@ export function EntityDetailPanel({
 
   return (
     <div className="w-full bg-background flex flex-col h-full">
+      {/* Hidden file input for Add File button */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+      />
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
@@ -178,7 +215,7 @@ export function EntityDetailPanel({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    disabled
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <Paperclip className="h-4 w-4 mr-2" />
                     Add File
@@ -193,17 +230,8 @@ export function EntityDetailPanel({
           <TabsContent value="notes" className="m-0">
             <NotesList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
-          <TabsContent value="files" className="m-0 p-4">
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">No files yet</p>
-              <Button size="sm" variant="outline" disabled>
-                <Paperclip className="h-4 w-4 mr-1" />
-                Add file
-              </Button>
-            </div>
+          <TabsContent value="files" className="m-0">
+            <FilesList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
         </ScrollArea>
       </Tabs>
