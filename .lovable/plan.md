@@ -1,267 +1,216 @@
 
-# Senders Table: Decoupling Non-Person Senders from People
+# AI Classification: Determine Person vs Sender
 
 ## Overview
 
-This plan introduces a new `senders` table to represent email senders that are not individual people (e.g., `noreply@apify.com`, `newsletter@service.com`). Senders will link directly to entities (like Subscriptions, Marketing Sources) without creating misleading "Person" records.
+Enhance the AI classification step to determine not just the entity type, but also whether the email sender is a **person** (real human) or a **sender** (automated/non-person address). This ensures all classification decisions are made upfront before rules processing.
 
 ---
 
-## Current Problem
+## Current Flow
 
-- Automated/system email addresses (e.g., `noreply@`, `notifications@`) are being stored as "People" records
-- This is semantically incorrect - "noreply@apify.com" is not a person
-- It pollutes the People table with non-human entries
-- Makes the CRM data model confusing
+```text
+1. Email synced (sync-emails)
+   ├─ Pattern match detects "noreply@" → creates sender record
+   └─ No pattern match → leaves person_id null (will be created by rules)
 
-## Solution: Senders Table
+2. Classification Queue (classify-email)
+   └─ AI determines: entity_table only
 
-A new `senders` table that:
-1. Represents non-person email addresses (automated systems, newsletters, shared inboxes)
-2. Links directly to entity records (e.g., Apify subscription)
-3. Can be used instead of `person_id` on `email_messages`
+3. Rules Processing Queue
+   └─ Rules applied, person/sender linked to entity
+```
+
+**Problem**: Pattern matching during sync misses many non-person senders (e.g., `invoice@stripe.com`, `orders@amazon.com`) that don't match simple patterns like "noreply".
+
+---
+
+## Proposed Flow
+
+```text
+1. Email synced (sync-emails)
+   └─ Basic storage, minimal pattern detection
+
+2. Classification Queue (classify-email) ← ENHANCED
+   └─ AI determines BOTH:
+       a. entity_table (subscriptions, influencers, etc.)
+       b. is_person (true/false) - is this a real person or automated sender?
+
+3. Rules Processing Queue
+   └─ Uses already-determined person/sender designation
+```
 
 ---
 
 ## Database Changes
 
-### 1. New `senders` Table
-
-```text
-+--------------------+
-|      senders       |
-+--------------------+
-| id (uuid, PK)      |
-| email (text, unique)|
-| display_name (text)|
-| sender_type (enum) |  -- automated, shared_inbox, newsletter, system
-| entity_table (text)|  -- e.g., "subscriptions", "marketing_sources"
-| entity_id (uuid)   |  -- links to specific entity record
-| domain (text)      |  -- extracted domain for grouping
-| is_auto_created    |
-| created_by (uuid)  |
-| created_at         |
-| updated_at         |
-+--------------------+
-```
-
-### 2. Update `email_messages` Table
-
-Add new column:
-- `sender_id` (uuid, nullable, FK to senders.id)
-
-This allows an email to be linked to either:
-- A `person_id` (for real people)
-- A `sender_id` (for automated/non-person senders)
-
-### 3. Create `sender_type` Enum
+### Add `is_person` column to `email_messages`
 
 ```sql
-CREATE TYPE sender_type AS ENUM (
-  'automated',     -- noreply@, no-reply@, notifications@
-  'newsletter',    -- newsletter@, news@, updates@
-  'shared_inbox',  -- support@, info@, sales@
-  'system'         -- Other automated systems
-);
+ALTER TABLE public.email_messages 
+  ADD COLUMN is_person boolean DEFAULT NULL;
 ```
 
-### 4. RLS Policies
-
-- **SELECT**: Authenticated users can view senders
-- **INSERT**: Users with admin role OR linked to the entity
-- **UPDATE**: Admins OR entity role holders
-- **DELETE**: Admins only
+This column will be:
+- `true` - sender is a real person
+- `false` - sender is a non-person (automated, newsletter, system)
+- `null` - not yet classified
 
 ---
 
-## Application Flow Changes
+## Edge Function Changes
 
-### Email Sync Flow (Updated)
+### 1. Update `classify-email` Function
 
+**Current Response:**
+```json
+{
+  "entity_table": "subscriptions",
+  "confidence": 0.95,
+  "reasoning": "..."
+}
+```
+
+**New Response:**
+```json
+{
+  "entity_table": "subscriptions",
+  "is_person": false,
+  "confidence": 0.95,
+  "reasoning": "..."
+}
+```
+
+**Updated AI Prompt:**
 ```text
-1. Email arrives from "noreply@apify.com"
+You are an email classification assistant. Analyze this email and determine:
+1. Which CRM entity type the sender belongs to
+2. Whether the sender is a real PERSON or an automated/non-person sender
 
-2. Check if sender_email matches known person -> NO
+SENDER TYPE CRITERIA:
+- PERSON (is_person: true): Individual humans, personal correspondence
+- NON-PERSON (is_person: false): 
+  * Automated systems (noreply, notifications, alerts)
+  * Shared inboxes (support@, info@, billing@)
+  * Newsletters and marketing
+  * Transaction emails (orders@, invoice@, receipts@)
 
-3. Check if sender_email matches known sender -> YES/NO
-   - If YES: link email to existing sender
-   - If NO: create new sender record
+Available Entity Types:
+{entity_list}
 
-4. AI Classification determines entity_table = "subscriptions"
+Email Details:
+- From: {sender_name} <{sender_email}>
+- Subject: {subject}
+- Preview: {body_preview}
 
-5. Link sender to entity (if entity exists or create_if_not_exists)
-
-6. Future emails from this address automatically link to same entity
+Respond with JSON:
+{
+  "entity_table": "...",
+  "is_person": true/false,
+  "confidence": 0.0-1.0,
+  "reasoning": "..."
+}
 ```
 
-### Detection Logic
+### 2. Update Classification Result Handling
 
-Emails are treated as non-person senders when:
-- Local part matches patterns: `noreply`, `no-reply`, `donotreply`, `notifications`, `newsletter`, `news`, `updates`, `mailer`, `system`, `automated`, `auto`, `support`, `info`, `hello`, `contact`
-- OR when AI classification suggests it (configurable)
-- OR when manually marked by user
+After AI classification:
+1. Set `email_messages.entity_table`
+2. Set `email_messages.is_person` (new)
+3. If `is_person = false` AND no `sender_id` exists:
+   - Create a `senders` record
+   - Link email via `sender_id`
+
+### 3. Update `process-entity-rules`
+
+When processing rules:
+- Check `is_person` to determine whether to:
+  - Create/link a `person` record (if `is_person = true`)
+  - Create/link a `sender` record (if `is_person = false`)
 
 ---
 
-## Code Changes
+## UI Updates
 
-### 1. New Type Definitions
+### Classification Queue Table
+- Show sender type prediction after classification
+- Optional: Show if AI thinks it's person vs sender
 
-**File: `src/types/senders.ts`**
+### Rules Processing Queue Table  
+- Add visual indicator for person vs sender
+- Display building icon for senders, person icon for people
 
-```typescript
-export type SenderType = 'automated' | 'newsletter' | 'shared_inbox' | 'system';
-
-export interface Sender {
-  id: string;
-  email: string;
-  display_name: string | null;
-  sender_type: SenderType;
-  entity_table: string | null;
-  entity_id: string | null;
-  domain: string | null;
-  is_auto_created: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export function detectSenderType(email: string): SenderType | null {
-  const localPart = email.split('@')[0].toLowerCase();
-  const patterns = {
-    automated: /^(noreply|no-reply|donotreply|do-not-reply|mailer|auto)$/,
-    newsletter: /^(newsletter|news|updates|digest)$/,
-    system: /^(system|automated|notifications|alerts)$/,
-    shared_inbox: /^(support|info|hello|contact|sales|team)$/,
-  };
-  for (const [type, pattern] of Object.entries(patterns)) {
-    if (pattern.test(localPart)) return type as SenderType;
-  }
-  return null;
+```tsx
+// Example badge component
+function SenderTypeBadge({ isPerson }: { isPerson: boolean | null }) {
+  if (isPerson === null) return null;
+  
+  return isPerson ? (
+    <Badge variant="outline" className="gap-1">
+      <User className="h-3 w-3" /> Person
+    </Badge>
+  ) : (
+    <Badge variant="secondary" className="gap-1">
+      <Bot className="h-3 w-3" /> Automated
+    </Badge>
+  );
 }
 ```
 
-### 2. Update Edge Functions
+---
 
-**File: `supabase/functions/sync-emails/index.ts`**
+## Hook Updates
 
-Add logic to:
-1. Detect non-person senders using pattern matching
-2. Create/lookup sender records instead of people
-3. Link emails to senders via `sender_id`
+### `use-classification-processing-queue.ts`
+- Add `is_person` to the query select
 
-**File: `supabase/functions/process-entity-rules/index.ts`**
-
-Update `link_entity` action to:
-1. Check if email has `sender_id` (non-person)
-2. Link sender to entity instead of creating person
-3. Update sender's `entity_table` and `entity_id`
-
-### 3. New Hook
-
-**File: `src/hooks/use-senders.ts`**
-
-```typescript
-// Hook for managing senders
-export function useSenders() { ... }
-export function useSendersByEntity(entityTable: string, entityId: string) { ... }
-```
-
-### 4. UI Updates
-
-**EmailPreview Component**
-- Show building/robot icon instead of avatar for senders
-- Display "Automated Sender" badge
-- Show linked entity if present
-
-**Senders Management Page (optional)**
-- List all senders
-- Filter by type (automated, newsletter, etc.)
-- View linked entities
-- Ability to manually link/unlink from entities
+### `use-rules-processing-queue.ts`
+- Add `is_person` to the query select
+- Update type definitions
 
 ---
 
 ## Technical Details
 
-### Migration SQL
+### Updated Types
 
-```sql
--- 1. Create sender_type enum
-CREATE TYPE public.sender_type AS ENUM (
-  'automated', 'newsletter', 'shared_inbox', 'system'
-);
+```typescript
+// Classification result from edge function
+interface ClassificationResult {
+  entity_table: string | null;
+  is_person: boolean;
+  confidence: number;
+  reasoning: string;
+}
 
--- 2. Create senders table
-CREATE TABLE public.senders (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email text NOT NULL UNIQUE,
-  display_name text,
-  sender_type public.sender_type NOT NULL DEFAULT 'automated',
-  entity_table text,
-  entity_id uuid,
-  domain text,
-  is_auto_created boolean NOT NULL DEFAULT true,
-  created_by uuid NOT NULL REFERENCES auth.users(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
--- 3. Add indexes
-CREATE INDEX idx_senders_email ON public.senders(email);
-CREATE INDEX idx_senders_domain ON public.senders(domain);
-CREATE INDEX idx_senders_entity ON public.senders(entity_table, entity_id);
-
--- 4. Add sender_id to email_messages
-ALTER TABLE public.email_messages 
-  ADD COLUMN sender_id uuid REFERENCES public.senders(id);
-
--- 5. Enable RLS
-ALTER TABLE public.senders ENABLE ROW LEVEL SECURITY;
-
--- 6. RLS Policies
-CREATE POLICY "Authenticated can view senders"
-  ON public.senders FOR SELECT
-  USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Users can insert senders"
-  ON public.senders FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
-
-CREATE POLICY "Admins can update senders"
-  ON public.senders FOR UPDATE
-  USING (has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins can delete senders"
-  ON public.senders FOR DELETE
-  USING (has_role(auth.uid(), 'admin'));
-
--- 7. Update trigger for updated_at
-CREATE TRIGGER update_senders_updated_at
-  BEFORE UPDATE ON public.senders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+// Updated queue email type
+interface RulesProcessingQueueEmail {
+  // ...existing fields
+  is_person: boolean | null;
+}
 ```
+
+### Edge Cases Handled
+
+1. **Cached mappings**: If person/sender already has entity mapping, use that
+2. **Override**: Users can still manually change entity type AND person/sender designation in queue
+3. **Existing emails**: `is_person = null` for emails classified before this update
 
 ---
 
 ## Implementation Order
 
-1. **Database Migration** - Create senders table and update email_messages
-2. **Type Definitions** - Add TypeScript types for senders
-3. **Sync Emails Update** - Detect and create senders during email sync
-4. **Process Entity Rules Update** - Link senders to entities
-5. **UI Components** - Update EmailPreview to show sender info
-6. **Hook Creation** - Create useSenders hook for data access
-7. **Optional: Senders Page** - Admin page to manage senders
+1. **Database Migration** - Add `is_person` column to email_messages
+2. **classify-email Update** - Add is_person to AI prompt and response handling
+3. **process-entity-rules Update** - Use is_person to determine record creation
+4. **Hooks Update** - Add is_person to queries and types
+5. **UI Update** - Show person/sender indicator in queue tables
 
 ---
 
 ## Benefits
 
-- **Clean Data Model**: People table only contains actual people
-- **Semantic Accuracy**: "noreply@apify.com" is correctly represented as a sender, not a person
-- **Entity Linking**: Senders can be directly linked to entities (Subscriptions, Marketing Sources)
-- **Pattern Recognition**: Automatic detection of common non-person email patterns
-- **Scalability**: Easy to extend with new sender types
-- **Audit Trail**: Track which senders are linked to which entities
+- **Single Classification Step**: All decisions made by AI at once
+- **Better Accuracy**: AI can identify non-person senders that pattern matching misses
+- **Cleaner Data**: No more "invoice@stripe.com" as Person records
+- **Transparent**: Users see the person/sender determination before processing
