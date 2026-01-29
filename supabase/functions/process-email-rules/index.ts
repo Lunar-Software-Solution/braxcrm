@@ -56,6 +56,7 @@ serve(async (req) => {
     if (claimsError || !claimsData?.claims) {
       throw new Error("Unauthorized");
     }
+    const userId = claimsData.claims.sub as string;
 
     const { email_id, category_id, microsoft_message_id }: ProcessRulesRequest = await req.json();
 
@@ -103,23 +104,36 @@ serve(async (req) => {
       const activeActions = rule.email_rule_actions.filter((a) => a.is_active);
 
       for (const action of activeActions) {
+        let result: ActionResult;
         try {
-          const result = await processAction(
+          result = await processAction(
             supabase,
             action,
             email_id,
             microsoft_message_id,
             authHeader
           );
-          actionsApplied.push(result);
         } catch (actionError) {
           console.error(`Action ${action.action_type} failed:`, actionError);
-          actionsApplied.push({
+          result = {
             action_type: action.action_type,
             success: false,
             error: actionError instanceof Error ? actionError.message : "Unknown error",
-          });
+          };
         }
+        
+        actionsApplied.push(result);
+
+        // Log the action to the database
+        await supabase.from("email_rule_logs").insert({
+          email_id: email_id,
+          rule_id: rule.id,
+          action_type: action.action_type,
+          action_config: action.config,
+          success: result.success,
+          error_message: result.error || null,
+          user_id: userId,
+        });
       }
     }
 

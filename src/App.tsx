@@ -20,6 +20,7 @@ import Resellers from "./pages/Resellers";
 import Suppliers from "./pages/Suppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import EmailReviewQueue from "./pages/EmailReviewQueue";
+import RulesLog from "./pages/RulesLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/review-queue" element={<EmailReviewQueue />} />
+              <Route path="/rules-log" element={<RulesLog />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

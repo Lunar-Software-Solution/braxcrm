@@ -17,6 +17,7 @@ import {
   Truck,
   Building2,
   ClipboardList,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
   { title: "Inbox", url: "/inbox", icon: Mail },
   { title: "Review Queue", url: "/review-queue", icon: ClipboardList },
+  { title: "Rules Log", url: "/rules-log", icon: ScrollText },
 ];
 
 const entityItems = [
