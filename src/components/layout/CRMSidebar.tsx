@@ -1,16 +1,12 @@
 import { useLocation } from "react-router-dom";
 import {
   Users,
-  Layers,
   Target,
   CheckSquare,
   FileText,
   LayoutDashboard,
   Settings,
   Search,
-  Plus,
-  FolderPlus,
-  ChevronDown,
   Mail,
   Sparkles,
   Store,
@@ -33,15 +29,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
 import { UserMenu } from "@/components/email/UserMenu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { usePendingEmailCount } from "@/hooks/use-review-queue";
 
@@ -74,42 +63,7 @@ export function CRMSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
-      <SidebarHeader className="p-2">
-        <div className="flex items-center justify-between gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={`justify-start gap-2 ${collapsed ? "w-8 px-0" : "flex-1"}`}
-              >
-                <div className="h-6 w-6 rounded bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
-                  T
-                </div>
-                {!collapsed && (
-                  <>
-                    <span className="font-medium">test</span>
-                    <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-popover z-50">
-              <DropdownMenuItem>test workspace</DropdownMenuItem>
-              <DropdownMenuItem>Create new workspace</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {!collapsed && (
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <FolderPlus className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </SidebarHeader>
+      <SidebarHeader className="p-2" />
 
       <SidebarContent>
         {/* Quick Actions */}
