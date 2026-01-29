@@ -10,7 +10,6 @@ const corsHeaders = {
 interface ProcessRulesRequest {
   email_id: string;
   category_id: string;
-  workspace_id: string;
   microsoft_message_id?: string;
 }
 
@@ -58,10 +57,10 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { email_id, category_id, workspace_id, microsoft_message_id }: ProcessRulesRequest = await req.json();
+    const { email_id, category_id, microsoft_message_id }: ProcessRulesRequest = await req.json();
 
-    if (!email_id || !category_id || !workspace_id) {
-      throw new Error("Missing required fields");
+    if (!email_id || !category_id) {
+      throw new Error("Missing required fields: email_id and category_id");
     }
 
     // Fetch all active rules for this category, ordered by priority (highest first)
@@ -79,7 +78,6 @@ serve(async (req) => {
         )
       `)
       .eq("category_id", category_id)
-      .eq("workspace_id", workspace_id)
       .eq("is_active", true)
       .order("priority", { ascending: false });
 
@@ -110,7 +108,6 @@ serve(async (req) => {
             supabase,
             action,
             email_id,
-            workspace_id,
             microsoft_message_id,
             authHeader
           );
@@ -153,7 +150,6 @@ async function processAction(
   supabase: any,
   action: RuleAction,
   emailId: string,
-  workspaceId: string,
   microsoftMessageId: string | undefined,
   authHeader: string
 ): Promise<ActionResult> {
@@ -220,7 +216,6 @@ async function processAction(
               body: JSON.stringify({
                 microsoft_message_id: microsoftMessageId,
                 tag_names: tagNames,
-                workspace_id: workspaceId,
               }),
             });
           }
@@ -300,7 +295,6 @@ async function processAction(
           },
           body: JSON.stringify({
             email_id: emailId,
-            workspace_id: workspaceId,
           }),
         });
 
@@ -349,7 +343,7 @@ async function processAction(
       // Get email details including the person
       const { data: email } = await supabase
         .from("email_messages")
-        .select("person_id, workspace_id")
+        .select("person_id, user_id")
         .eq("id", emailId)
         .single();
 
@@ -381,7 +375,6 @@ async function processAction(
       const { data: existingEntity } = await supabase
         .from(tableName)
         .select("id")
-        .eq("workspace_id", workspaceId)
         .eq("email", person.email)
         .maybeSingle();
 
@@ -390,16 +383,18 @@ async function processAction(
       if (existingEntity) {
         entityId = existingEntity.id;
       } else if (createIfNotExists) {
-        // Create new entity
+        // Create new entity - get user id for created_by
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        
         const { data: newEntity, error: createError } = await supabase
           .from(tableName)
           .insert({
-            workspace_id: workspaceId,
             name: person.name,
             email: person.email,
             phone: person.phone,
             notes: person.notes,
-            created_by: (await supabase.auth.getUser()).data.user?.id,
+            created_by: userId,
           })
           .select("id")
           .single();
