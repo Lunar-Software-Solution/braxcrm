@@ -529,7 +529,7 @@ export default function UsersRoles() {
               <SelectTrigger>
                 <SelectValue placeholder="Select an entity role..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 {assigningUserId && getAvailableEntityRoles(users.find(u => u.id === assigningUserId)!).length === 0 ? (
                   <SelectItem value="none" disabled>
                     All roles already assigned

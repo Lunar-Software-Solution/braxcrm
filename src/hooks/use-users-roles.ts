@@ -103,7 +103,7 @@ export function useUsersRoles() {
       const { data, error } = await supabase
         .from("entity_roles")
         .select("id, name, slug, entity_table, description")
-        .order("entity_table, name");
+        .order("name");
 
       if (error) throw error;
       return data as EntityRole[];
