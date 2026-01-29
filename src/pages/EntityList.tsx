@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, User } from "lucide-react";
+import { Plus, Edit, Trash2, User, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
+import { TableFooter } from "@/components/crm/TableFooter";
+import { AddNewRow } from "@/components/crm/AddNewRow";
+import { EntityDetailPanel } from "@/components/crm/EntityDetailPanel";
 import { useEntities } from "@/hooks/use-entities";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -30,15 +36,27 @@ interface EntityListProps {
   color: string;
 }
 
+const getColumns = () => [
+  { key: "select", label: "", icon: null, width: "w-10" },
+  { key: "name", label: "Name", icon: User, width: "min-w-[200px]" },
+  { key: "email", label: "Emails", icon: Mail, width: "min-w-[220px]" },
+  { key: "phone", label: "Phones", icon: Phone, width: "min-w-[150px]" },
+  { key: "add", label: "+", icon: null, width: "w-10" },
+];
+
 export default function EntityList({ entityType, title, singularTitle, color }: EntityListProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null);
 
   const { user } = useAuth();
   const { toast } = useToast();
   const { list, isLoading, create, update, delete: deleteEntity } = useEntities(entityType);
+
+  const columns = getColumns();
 
   const handleSave = async (formData: FormData) => {
     if (!user) return;
@@ -79,6 +97,9 @@ export default function EntityList({ entityType, title, singularTitle, color }: 
       toast({ title: `${singularTitle} deleted` });
       setDeleteDialogOpen(false);
       setEntityToDelete(null);
+      if (selectedEntity?.id === entityToDelete.id) {
+        setSelectedEntity(null);
+      }
     } catch (error) {
       toast({
         title: `Failed to delete ${singularTitle.toLowerCase()}`,
@@ -98,91 +119,142 @@ export default function EntityList({ entityType, title, singularTitle, color }: 
     setDeleteDialogOpen(true);
   };
 
+  const getInitials = (name: string) => 
+    name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === list.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(list.map(e => e.id)));
+  };
+
+  const aggregations = [
+    { label: "Count all", value: list.length },
+    { label: "With email", value: list.filter(e => e.email).length },
+    { label: "With phone", value: list.filter(e => e.phone).length },
+  ];
+
   return (
     <div className="h-full flex flex-col bg-background">
       <CRMTableHeader title={title} count={list.length} />
 
-      <div className="flex-1 overflow-hidden p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Loading {title.toLowerCase()}...</p>
-          </div>
-        ) : !user ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Please log in to view {title.toLowerCase()}</p>
-          </div>
-        ) : list.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <User className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No {title.toLowerCase()} yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Add your first {singularTitle.toLowerCase()} to get started
-            </p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add {singularTitle}
-            </Button>
-          </div>
-        ) : (
-          <ScrollArea className="h-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {list.map((entity) => (
-                <Card key={entity.id} className="group">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: color }}
-                        />
-                        <CardTitle className="text-base">{entity.name}</CardTitle>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEdit(entity)}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={selectedEntity ? 65 : 100} minSize={50}>
+            <div className="h-full flex flex-col overflow-hidden">
+              {isLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Loading {title.toLowerCase()}...</p>
+                </div>
+              ) : !user ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-muted-foreground">Please log in to view {title.toLowerCase()}</p>
+                </div>
+              ) : list.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <User className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No {title.toLowerCase()} yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Add your first {singularTitle.toLowerCase()} to get started
+                  </p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add {singularTitle}
+                  </Button>
+                </div>
+              ) : (
+                <ScrollArea className="flex-1">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        {columns.map((col) => (
+                          <TableHead key={col.key} className={`${col.width} bg-muted/50`}>
+                            {col.key === "select" ? (
+                              <Checkbox 
+                                checked={selectedIds.size === list.length && list.length > 0} 
+                                onCheckedChange={toggleSelectAll} 
+                              />
+                            ) : col.key === "add" ? (
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                {col.icon && <col.icon className="h-3.5 w-3.5" />}
+                                {col.label}
+                              </div>
+                            )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {list.map((entity) => (
+                        <TableRow 
+                          key={entity.id} 
+                          className={`cursor-pointer group ${selectedEntity?.id === entity.id ? "bg-muted" : ""}`}
+                          onClick={() => setSelectedEntity(entity)}
                         >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => openDelete(entity)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    {entity.email && (
-                      <CardDescription className="line-clamp-1">
-                        {entity.email}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {entity.phone && (
-                      <p className="text-sm text-muted-foreground">{entity.phone}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {/* Add New Card */}
-              <Card
-                className="border-dashed cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => setDialogOpen(true)}
-              >
-                <CardContent className="flex flex-col items-center justify-center h-full min-h-[120px] text-muted-foreground">
-                  <Plus className="h-8 w-8 mb-2" />
-                  <span className="text-sm">Add {singularTitle}</span>
-                </CardContent>
-              </Card>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox 
+                              checked={selectedIds.has(entity.id)} 
+                              onCheckedChange={() => toggleSelect(entity.id)} 
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={entity.avatar_url || undefined} />
+                                <AvatarFallback 
+                                  className="text-xs text-white" 
+                                  style={{ backgroundColor: color }}
+                                >
+                                  {getInitials(entity.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium truncate">{entity.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground truncate">
+                            {entity.email || "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {entity.phone || "—"}
+                          </TableCell>
+                          <TableCell />
+                        </TableRow>
+                      ))}
+                      <AddNewRow colSpan={columns.length} onClick={() => setDialogOpen(true)} label="Add New" />
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+              {list.length > 0 && <TableFooter aggregations={aggregations} />}
             </div>
-          </ScrollArea>
-        )}
+          </ResizablePanel>
+
+          {selectedEntity && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+                <EntityDetailPanel
+                  entity={selectedEntity}
+                  entityType={entityType}
+                  entityColor={color}
+                  onClose={() => setSelectedEntity(null)}
+                  onEdit={() => openEdit(selectedEntity)}
+                  onDelete={() => openDelete(selectedEntity)}
+                />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
 
       {/* Add/Edit Dialog */}
