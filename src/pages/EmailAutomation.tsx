@@ -270,16 +270,38 @@ export default function EmailAutomation() {
                     />
 
                     {/* Active Count */}
-                    <div className="flex flex-col items-center text-sm text-muted-foreground min-w-[40px]">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground min-w-[50px]">
                       <span className="font-medium text-foreground">{activeCount}</span>
-                      <span className="text-xs">/</span>
+                      <span>/</span>
                       <span>{availableActions.length}</span>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground flex-1">
-                      {rule?.description || config.label}
-                    </p>
+                    {/* AI Prompt Preview */}
+                    <div className="flex-1 flex items-center gap-2 min-w-0">
+                      <Brain className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <p className="text-sm text-muted-foreground truncate">
+                        {rule?.ai_prompt || <span className="italic">No AI prompt configured</span>}
+                      </p>
+                    </div>
+
+                    {/* Edit button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (rule) {
+                          setEditingPrompt(rule.id);
+                          setPromptDrafts({ ...promptDrafts, [rule.id]: rule.ai_prompt || "" });
+                          if (!isExpanded) {
+                            toggleEntityExpanded(entityTable);
+                          }
+                        }
+                      }}
+                    >
+                      Edit
+                    </Button>
                   </div>
                 </CollapsibleTrigger>
                 
