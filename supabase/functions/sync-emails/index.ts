@@ -26,6 +26,31 @@ interface ClassificationResult {
   reasoning?: string;
 }
 
+type SenderType = 'automated' | 'newsletter' | 'shared_inbox' | 'system';
+
+// Patterns for detecting non-person sender types
+const SENDER_TYPE_PATTERNS: Record<SenderType, RegExp> = {
+  automated: /^(noreply|no-reply|donotreply|do-not-reply|mailer|auto|bounce|daemon)$/i,
+  newsletter: /^(newsletter|news|updates|digest|weekly|daily|monthly|bulletin)$/i,
+  system: /^(system|automated|notifications|alerts|notify|alert|admin|root|postmaster|webmaster)$/i,
+  shared_inbox: /^(support|info|hello|contact|sales|team|help|service|billing|feedback|inquiries)$/i,
+};
+
+function detectSenderType(email: string): SenderType | null {
+  const localPart = email.split('@')[0].toLowerCase();
+  for (const [type, pattern] of Object.entries(SENDER_TYPE_PATTERNS)) {
+    if (pattern.test(localPart)) {
+      return type as SenderType;
+    }
+  }
+  return null;
+}
+
+function extractDomain(email: string): string | null {
+  const match = email.match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/);
+  return match ? match[1].toLowerCase() : null;
+}
+
 // Check if person already has an entity mapping in people_entities
 async function getExistingEntityMapping(
   // deno-lint-ignore no-explicit-any
@@ -43,6 +68,21 @@ async function getExistingEntityMapping(
   return mapping?.entity_table || null;
 }
 
+// Check if sender already has an entity mapping
+async function getSenderEntityMapping(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  senderId: string
+): Promise<string | null> {
+  const { data: sender } = await supabase
+    .from("senders")
+    .select("entity_table")
+    .eq("id", senderId)
+    .maybeSingle();
+
+  return sender?.entity_table || null;
+}
+
 async function classifyAndProcessEmail(
   // deno-lint-ignore no-explicit-any
   supabase: any,
@@ -51,6 +91,7 @@ async function classifyAndProcessEmail(
   emailId: string,
   msg: GraphMessage,
   personId: string | null,
+  senderId: string | null,
   autoProcessRules: boolean = true
 ): Promise<{ classified: boolean; rulesApplied: boolean; skippedAi?: boolean; error?: string }> {
   try {
@@ -58,16 +99,31 @@ async function classifyAndProcessEmail(
     let confidence = 0;
     let skippedAi = false;
 
-    // Step 1: Check if person already has an entity mapping
-    if (personId) {
-      const existingEntity = await getExistingEntityMapping(supabase, personId);
+    // Step 1: Check if sender already has an entity mapping (for non-person senders)
+    if (senderId) {
+      const existingEntity = await getSenderEntityMapping(supabase, senderId);
       if (existingEntity) {
-        // Use cached entity mapping - skip AI call
         entityTable = existingEntity;
         confidence = 1.0;
         skippedAi = true;
 
-        // Update email with known entity type
+        await supabase
+          .from("email_messages")
+          .update({ entity_table: existingEntity, ai_confidence: 1.0 })
+          .eq("id", emailId);
+
+        console.log(`Skipped AI - sender ${senderId} already mapped to ${existingEntity}`);
+      }
+    }
+
+    // Step 2: Check if person already has an entity mapping
+    if (!entityTable && personId) {
+      const existingEntity = await getExistingEntityMapping(supabase, personId);
+      if (existingEntity) {
+        entityTable = existingEntity;
+        confidence = 1.0;
+        skippedAi = true;
+
         await supabase
           .from("email_messages")
           .update({ entity_table: existingEntity, ai_confidence: 1.0 })
@@ -77,7 +133,7 @@ async function classifyAndProcessEmail(
       }
     }
 
-    // Step 2: If no cached mapping, call AI classification
+    // Step 3: If no cached mapping, call AI classification
     if (!entityTable) {
       const classifyResponse = await fetch(`${supabaseUrl}/functions/v1/classify-email`, {
         method: "POST",
@@ -92,6 +148,7 @@ async function classifyAndProcessEmail(
           sender_email: msg.from?.emailAddress?.address || "",
           sender_name: msg.from?.emailAddress?.name || "",
           person_id: personId,
+          sender_id: senderId,
         }),
       });
 
@@ -116,7 +173,7 @@ async function classifyAndProcessEmail(
       return { classified: true, rulesApplied: false, skippedAi };
     }
 
-    // Step 3: Process entity-based rules for this entity type
+    // Step 4: Process entity-based rules for this entity type
     const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-entity-rules`, {
       method: "POST",
       headers: {
@@ -184,15 +241,17 @@ serve(async (req) => {
       emailsSynced: 0,
       emailsClassified: 0,
       emailsSkippedAi: 0,
+      sendersCreated: 0,
       rulesApplied: 0,
       errors: [] as string[],
     };
 
     // Track emails that need AI processing
-    const emailsToProcess: Array<{ emailId: string; msg: GraphMessage; personId: string | null }> = [];
+    const emailsToProcess: Array<{ emailId: string; msg: GraphMessage; personId: string | null; senderId: string | null }> = [];
 
-    // Cache for existing people lookups (don't create, just check)
+    // Cache for existing people/senders lookups
     const personCache: Record<string, string | undefined> = {};
+    const senderCache: Record<string, string | undefined> = {};
 
     for (const msg of messages as GraphMessage[]) {
       try {
@@ -213,18 +272,71 @@ serve(async (req) => {
         const safeContactEmail = contactEmail;
         const safeContactName = contactName;
 
-        // Only check if person exists - don't create (people are created by rules)
-        let personId: string | undefined = personCache[safeContactEmail];
+        // Check if this is a non-person sender
+        const senderType = detectSenderType(safeContactEmail);
+        let personId: string | undefined;
+        let senderId: string | undefined;
 
-        if (personId === undefined) {
-          const { data: existingPerson } = await supabase
-            .from("people")
-            .select("id")
-            .ilike("email", safeContactEmail)
-            .maybeSingle();
+        if (senderType) {
+          // This is a non-person sender - check/create sender record
+          senderId = senderCache[safeContactEmail];
 
-          personId = existingPerson?.id;
-          personCache[safeContactEmail] = personId;
+          if (senderId === undefined) {
+            // Check if sender exists
+            const { data: existingSender } = await supabase
+              .from("senders")
+              .select("id")
+              .ilike("email", safeContactEmail)
+              .maybeSingle();
+
+            if (existingSender) {
+              senderId = existingSender.id;
+            } else {
+              // Create new sender
+              const domain = extractDomain(safeContactEmail);
+              const { data: newSender, error: senderError } = await supabase
+                .from("senders")
+                .insert({
+                  email: safeContactEmail,
+                  display_name: safeContactName !== safeContactEmail ? safeContactName : null,
+                  sender_type: senderType,
+                  domain: domain,
+                  is_auto_created: true,
+                  created_by: userId,
+                })
+                .select("id")
+                .single();
+
+              if (senderError) {
+                // Race condition - try to fetch again
+                const { data: retrySender } = await supabase
+                  .from("senders")
+                  .select("id")
+                  .ilike("email", safeContactEmail)
+                  .maybeSingle();
+                
+                senderId = retrySender?.id;
+              } else if (newSender) {
+                senderId = newSender.id;
+                results.sendersCreated++;
+              }
+            }
+            senderCache[safeContactEmail] = senderId;
+          }
+        } else {
+          // This is a person - only check if person exists (don't create, people are created by rules)
+          personId = personCache[safeContactEmail];
+
+          if (personId === undefined) {
+            const { data: existingPerson } = await supabase
+              .from("people")
+              .select("id")
+              .ilike("email", safeContactEmail)
+              .maybeSingle();
+
+            personId = existingPerson?.id;
+            personCache[safeContactEmail] = personId;
+          }
         }
 
         // Upsert email message - check if it already exists and is processed
@@ -239,6 +351,7 @@ serve(async (req) => {
           .upsert({
             microsoft_message_id: msg.id,
             person_id: personId || null,
+            sender_id: senderId || null,
             user_id: userId,
             direction: isInbound ? "inbound" : "outbound",
             subject: msg.subject || null,
@@ -266,7 +379,12 @@ serve(async (req) => {
 
           // Queue for AI processing if not already processed
           if (enableAiProcessing && upsertedEmail && !upsertedEmail.is_processed) {
-            emailsToProcess.push({ emailId: upsertedEmail.id, msg, personId: personId || null });
+            emailsToProcess.push({ 
+              emailId: upsertedEmail.id, 
+              msg, 
+              personId: personId || null,
+              senderId: senderId || null 
+            });
           }
         }
       } catch (msgError) {
@@ -281,7 +399,7 @@ serve(async (req) => {
     const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
     const emailsToClassify = emailsToProcess.slice(0, maxAiProcessing);
 
-    for (const { emailId, msg, personId } of emailsToClassify) {
+    for (const { emailId, msg, personId, senderId } of emailsToClassify) {
       const aiResult = await classifyAndProcessEmail(
         supabase,
         supabaseUrl,
@@ -289,6 +407,7 @@ serve(async (req) => {
         emailId,
         msg,
         personId,
+        senderId,
         autoProcessRules
       );
 

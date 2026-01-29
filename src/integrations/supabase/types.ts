@@ -358,6 +358,7 @@ export type Database = {
           person_id: string | null
           received_at: string
           sender_email: string | null
+          sender_id: string | null
           sender_name: string | null
           subject: string | null
           user_id: string | null
@@ -380,6 +381,7 @@ export type Database = {
           person_id?: string | null
           received_at: string
           sender_email?: string | null
+          sender_id?: string | null
           sender_name?: string | null
           subject?: string | null
           user_id?: string | null
@@ -402,6 +404,7 @@ export type Database = {
           person_id?: string | null
           received_at?: string
           sender_email?: string | null
+          sender_id?: string | null
           sender_name?: string | null
           subject?: string | null
           user_id?: string | null
@@ -420,6 +423,13 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "senders"
             referencedColumns: ["id"]
           },
           {
@@ -1651,6 +1661,48 @@ export type Database = {
         }
         Relationships: []
       }
+      senders: {
+        Row: {
+          created_at: string
+          created_by: string
+          display_name: string | null
+          domain: string | null
+          email: string
+          entity_id: string | null
+          entity_table: string | null
+          id: string
+          is_auto_created: boolean
+          sender_type: Database["public"]["Enums"]["sender_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          display_name?: string | null
+          domain?: string | null
+          email: string
+          entity_id?: string | null
+          entity_table?: string | null
+          id?: string
+          is_auto_created?: boolean
+          sender_type?: Database["public"]["Enums"]["sender_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          display_name?: string | null
+          domain?: string | null
+          email?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          id?: string
+          is_auto_created?: boolean
+          sender_type?: Database["public"]["Enums"]["sender_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           avatar_url: string | null
@@ -1840,6 +1892,7 @@ export type Database = {
         | "assign_object_type"
         | "assign_entity"
         | "assign_role"
+      sender_type: "automated" | "newsletter" | "shared_inbox" | "system"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "completed" | "cancelled"
     }
@@ -2001,6 +2054,7 @@ export const Constants = {
         "assign_entity",
         "assign_role",
       ],
+      sender_type: ["automated", "newsletter", "shared_inbox", "system"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "completed", "cancelled"],
     },
