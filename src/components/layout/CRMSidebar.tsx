@@ -38,6 +38,8 @@ import { usePendingEmailCount } from "@/hooks/use-review-queue";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Inbox", url: "/inbox", icon: Mail },
   { title: "Review Queue", url: "/review-queue", icon: ClipboardList },
   { title: "Rules Log", url: "/rules-log", icon: ScrollText },
@@ -52,9 +54,6 @@ const entityItems = [
 ];
 
 const futureItems = [
-  { title: "Opportunities", url: "/opportunities", icon: Target, disabled: true },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare, disabled: true },
-  { title: "Notes", url: "/notes", icon: FileText, disabled: true },
   { title: "Dashboards", url: "/dashboards", icon: LayoutDashboard, disabled: true },
 ];
 

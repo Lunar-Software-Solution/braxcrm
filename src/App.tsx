@@ -23,6 +23,8 @@ import PersonalContacts from "./pages/PersonalContacts";
 import EmailReviewQueue from "./pages/EmailReviewQueue";
 import RulesLog from "./pages/RulesLog";
 import UsersRoles from "./pages/UsersRoles";
+import Tasks from "./pages/Tasks";
+import Opportunities from "./pages/Opportunities";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +63,8 @@ const App = () => (
               <Route path="/review-queue" element={<EmailReviewQueue />} />
               <Route path="/rules-log" element={<RulesLog />} />
               <Route path="/users-roles" element={<UsersRoles />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/opportunities" element={<Opportunities />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

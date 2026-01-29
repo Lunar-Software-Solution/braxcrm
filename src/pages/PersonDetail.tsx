@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Person, EmailMessage, ObjectType } from "@/types/crm";
 import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
+import { NotesList } from "@/components/crm/NotesList";
+import { TasksList } from "@/components/crm/TasksList";
 
 export default function PersonDetail() {
   const { personId } = useParams<{ personId: string }>();
@@ -294,16 +296,20 @@ export default function PersonDetail() {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="tasks" className="flex-1 m-0 p-6">
-            <p className="text-sm text-muted-foreground">No tasks yet</p>
+          <TabsContent value="tasks" className="flex-1 m-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              {personId && (
+                <TasksList entityTable="people" entityId={personId} />
+              )}
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="notes" className="flex-1 m-0 p-6">
-            {person.notes ? (
-              <p className="text-sm whitespace-pre-wrap">{person.notes}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">No notes yet</p>
-            )}
+          <TabsContent value="notes" className="flex-1 m-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              {personId && (
+                <NotesList entityTable="people" entityId={personId} />
+              )}
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="files" className="flex-1 m-0 p-6">
