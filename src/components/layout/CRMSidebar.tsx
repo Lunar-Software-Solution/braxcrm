@@ -27,6 +27,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
@@ -63,7 +64,9 @@ export function CRMSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
-      <SidebarHeader className="p-2" />
+      <SidebarHeader className="p-2 flex items-center justify-end">
+        <SidebarTrigger />
+      </SidebarHeader>
 
       <SidebarContent>
         {/* Quick Actions */}
