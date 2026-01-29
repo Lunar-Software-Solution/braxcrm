@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      corporate_management: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corporate_management_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_categories: {
         Row: {
           color: string | null
@@ -60,6 +107,42 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_corporate_management: {
+        Row: {
+          assigned_at: string
+          corporate_management_id: string
+          email_id: string
+          id: string
+        }
+        Insert: {
+          assigned_at?: string
+          corporate_management_id: string
+          email_id: string
+          id?: string
+        }
+        Update: {
+          assigned_at?: string
+          corporate_management_id?: string
+          email_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_corporate_management_corporate_management_id_fkey"
+            columns: ["corporate_management_id"]
+            isOneToOne: false
+            referencedRelation: "corporate_management"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_corporate_management_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
             referencedColumns: ["id"]
           },
         ]

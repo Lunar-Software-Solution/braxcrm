@@ -15,6 +15,7 @@ import {
   Sparkles,
   Store,
   Truck,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -49,6 +50,7 @@ const entityItems = [
   { title: "Influencers", url: "/influencers", icon: Sparkles, color: "#ec4899" },
   { title: "Resellers", url: "/resellers", icon: Store, color: "#22c55e" },
   { title: "Suppliers", url: "/suppliers", icon: Truck, color: "#3b82f6" },
+  { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
 ];
 
 const futureItems = [
