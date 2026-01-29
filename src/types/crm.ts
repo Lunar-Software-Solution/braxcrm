@@ -2,7 +2,6 @@
 
 export interface ObjectType {
   id: string;
-  workspace_id: string;
   name: string;
   description: string | null;
   color: string;
@@ -34,7 +33,6 @@ export interface EmailObjectType {
 
 export interface Person {
   id: string;
-  workspace_id: string;
   name: string;
   email: string;
   title?: string;
@@ -54,8 +52,8 @@ export interface Person {
 
 export interface EmailMessage {
   id: string;
-  workspace_id: string;
   microsoft_message_id: string;
+  user_id?: string;
   person_id?: string;
   person?: Person;
   direction: 'inbound' | 'outbound';

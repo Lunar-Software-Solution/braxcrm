@@ -1,6 +1,5 @@
 export interface Influencer {
   id: string;
-  workspace_id: string;
   name: string;
   email: string | null;
   phone: string | null;
@@ -13,7 +12,6 @@ export interface Influencer {
 
 export interface Reseller {
   id: string;
-  workspace_id: string;
   name: string;
   email: string | null;
   phone: string | null;
@@ -26,7 +24,6 @@ export interface Reseller {
 
 export interface Supplier {
   id: string;
-  workspace_id: string;
   name: string;
   email: string | null;
   phone: string | null;
@@ -39,7 +36,6 @@ export interface Supplier {
 
 export interface CorporateManagement {
   id: string;
-  workspace_id: string;
   name: string;
   email: string | null;
   phone: string | null;

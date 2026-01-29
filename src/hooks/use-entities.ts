@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Entity, EntityType } from "@/types/entities";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateEntityData {
-  workspace_id: string;
   name: string;
   email?: string | null;
   phone?: string | null;
@@ -20,22 +20,21 @@ interface UpdateEntityData {
   avatar_url?: string | null;
 }
 
-export function useEntities(entityType: EntityType, workspaceId: string | null) {
+export function useEntities(entityType: EntityType) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const listQuery = useQuery({
-    queryKey: [entityType, workspaceId],
+    queryKey: [entityType],
     queryFn: async () => {
-      if (!workspaceId) return [];
       const { data, error } = await supabase
         .from(entityType)
         .select("*")
-        .eq("workspace_id", workspaceId)
         .order("name");
       if (error) throw error;
-      return data as Entity[];
+      return data as unknown as Entity[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 
   const getQuery = (id: string) =>
@@ -48,7 +47,7 @@ export function useEntities(entityType: EntityType, workspaceId: string | null) 
           .eq("id", id)
           .single();
         if (error) throw error;
-        return data as Entity;
+        return data as unknown as Entity;
       },
       enabled: !!id,
     });
@@ -61,10 +60,10 @@ export function useEntities(entityType: EntityType, workspaceId: string | null) 
         .select()
         .single();
       if (error) throw error;
-      return result as Entity;
+      return result as unknown as Entity;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [entityType, workspaceId] });
+      queryClient.invalidateQueries({ queryKey: [entityType] });
     },
   });
 
@@ -77,10 +76,10 @@ export function useEntities(entityType: EntityType, workspaceId: string | null) 
         .select()
         .single();
       if (error) throw error;
-      return result as Entity;
+      return result as unknown as Entity;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [entityType, workspaceId] });
+      queryClient.invalidateQueries({ queryKey: [entityType] });
       queryClient.invalidateQueries({ queryKey: [entityType, variables.id] });
     },
   });
@@ -91,7 +90,7 @@ export function useEntities(entityType: EntityType, workspaceId: string | null) 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [entityType, workspaceId] });
+      queryClient.invalidateQueries({ queryKey: [entityType] });
     },
   });
 

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  Users, Plus, Mail, Phone, Calendar, Briefcase, 
-  MapPin, Linkedin, Twitter, User, Tag
-} from "lucide-react";
+import { Users, Plus, Mail, Phone, Calendar, Briefcase, MapPin, Linkedin, Twitter, User, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +16,6 @@ import { TableFooter } from "@/components/crm/TableFooter";
 import { DetailPanel } from "@/components/crm/DetailPanel";
 import { AddNewRow } from "@/components/crm/AddNewRow";
 import { useCRM } from "@/hooks/use-crm";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Person, ObjectType } from "@/types/crm";
@@ -50,25 +46,23 @@ export default function People() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { listPeople, listObjectTypes, createPerson, updatePerson } = useCRM();
-  const { workspaceId, loading: workspaceLoading } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const objectTypeFilter = searchParams.get("objectType");
 
   useEffect(() => {
-    if (workspaceId) {
+    if (user) {
       loadData();
     }
-  }, [workspaceId, objectTypeFilter]);
+  }, [user, objectTypeFilter]);
 
   const loadData = async () => {
-    if (!workspaceId) return;
     try {
       setLoading(true);
       const [peopleData, objectTypesData] = await Promise.all([
-        listPeople(workspaceId, objectTypeFilter ? { objectTypeId: objectTypeFilter } : undefined),
-        listObjectTypes(workspaceId),
+        listPeople(objectTypeFilter ? { objectTypeId: objectTypeFilter } : undefined),
+        listObjectTypes(),
       ]);
       setPeople(peopleData);
       setObjectTypes(objectTypesData);
@@ -85,7 +79,7 @@ export default function People() {
   };
 
   const handleSave = async (formData: FormData) => {
-    if (!workspaceId || !user) return;
+    if (!user) return;
     try {
       const data = {
         name: formData.get("name") as string,
@@ -104,7 +98,6 @@ export default function People() {
       } else {
         await createPerson({
           ...data,
-          workspace_id: workspaceId,
           is_auto_created: false,
           created_by: user.id,
         });
@@ -123,38 +116,20 @@ export default function People() {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map(n => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
+  const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   const toggleSelect = (id: string) => {
     const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
     setSelectedIds(newSet);
   };
-
   const toggleSelectAll = () => {
-    if (selectedIds.size === people.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(people.map(p => p.id)));
-    }
+    if (selectedIds.size === people.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(people.map(p => p.id)));
   };
-
   const getUniqueObjectTypeCount = () => {
     const allTypeIds = new Set<string>();
-    people.forEach(p => {
-      p.object_types?.forEach(ot => allTypeIds.add(ot.object_type_id));
-    });
+    people.forEach(p => p.object_types?.forEach(ot => allTypeIds.add(ot.object_type_id)));
     return allTypeIds.size;
   };
 
@@ -170,14 +145,13 @@ export default function People() {
       
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Main Table Area */}
           <ResizablePanel defaultSize={selectedPerson ? 65 : 100} minSize={50}>
             <div className="h-full flex flex-col overflow-hidden">
-              {loading || workspaceLoading ? (
+              {loading ? (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-muted-foreground">Loading people...</p>
                 </div>
-              ) : !workspaceId ? (
+              ) : !user ? (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-muted-foreground">Please log in to view people</p>
                 </div>
@@ -185,13 +159,8 @@ export default function People() {
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                   <Users className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">No people yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    People will be auto-created when you receive emails
-                  </p>
-                  <Button onClick={() => setDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Person
-                  </Button>
+                  <p className="text-muted-foreground mb-4">People will be auto-created when you receive emails</p>
+                  <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Add Person</Button>
                 </div>
               ) : (
                 <ScrollArea className="flex-1">
@@ -201,18 +170,12 @@ export default function People() {
                         {columns.map((col) => (
                           <TableHead key={col.key} className={`${col.width} bg-muted/50`}>
                             {col.key === "select" ? (
-                              <Checkbox
-                                checked={selectedIds.size === people.length && people.length > 0}
-                                onCheckedChange={toggleSelectAll}
-                              />
+                              <Checkbox checked={selectedIds.size === people.length && people.length > 0} onCheckedChange={toggleSelectAll} />
                             ) : col.key === "add" ? (
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6"><Plus className="h-4 w-4" /></Button>
                             ) : (
                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                {col.icon && <col.icon className="h-3.5 w-3.5" />}
-                                {col.label}
+                                {col.icon && <col.icon className="h-3.5 w-3.5" />}{col.label}
                               </div>
                             )}
                           </TableHead>
@@ -221,23 +184,11 @@ export default function People() {
                     </TableHeader>
                     <TableBody>
                       {people.map((person) => (
-                        <TableRow
-                          key={person.id}
-                          className={`cursor-pointer ${selectedPerson?.id === person.id ? "bg-muted" : ""}`}
-                          onClick={() => setSelectedPerson(person)}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedIds.has(person.id)}
-                              onCheckedChange={() => toggleSelect(person.id)}
-                            />
-                          </TableCell>
+                        <TableRow key={person.id} className={`cursor-pointer ${selectedPerson?.id === person.id ? "bg-muted" : ""}`} onClick={() => setSelectedPerson(person)}>
+                          <TableCell onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(person.id)} onCheckedChange={() => toggleSelect(person.id)} /></TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={person.avatar_url} />
-                                <AvatarFallback className="text-xs">{getInitials(person.name)}</AvatarFallback>
-                              </Avatar>
+                              <Avatar className="h-6 w-6"><AvatarImage src={person.avatar_url} /><AvatarFallback className="text-xs">{getInitials(person.name)}</AvatarFallback></Avatar>
                               <span className="font-medium truncate">{person.name}</span>
                             </div>
                           </TableCell>
@@ -245,64 +196,18 @@ export default function People() {
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {person.object_types?.slice(0, 3).map((pot) => (
-                                <Badge
-                                  key={pot.id}
-                                  variant="outline"
-                                  className="text-xs"
-                                  style={{
-                                    borderColor: pot.object_type?.color,
-                                    color: pot.object_type?.color,
-                                  }}
-                                >
-                                  {pot.object_type?.name}
-                                </Badge>
+                                <Badge key={pot.id} variant="outline" className="text-xs" style={{ borderColor: pot.object_type?.color, color: pot.object_type?.color }}>{pot.object_type?.name}</Badge>
                               ))}
-                              {person.object_types && person.object_types.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{person.object_types.length - 3}
-                                </Badge>
-                              )}
-                              {(!person.object_types || person.object_types.length === 0) && (
-                                <span className="text-muted-foreground">—</span>
-                              )}
+                              {person.object_types && person.object_types.length > 3 && <Badge variant="outline" className="text-xs">+{person.object_types.length - 3}</Badge>}
+                              {(!person.object_types || person.object_types.length === 0) && <span className="text-muted-foreground">—</span>}
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{person.phone || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{person.title || "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{person.city || "—"}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {formatDistanceToNow(new Date(person.created_at), { addSuffix: true })}
-                          </TableCell>
-                          <TableCell>
-                            {person.linkedin_url ? (
-                              <a
-                                href={person.linkedin_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Linkedin className="h-4 w-4" />
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {person.twitter_handle ? (
-                              <a
-                                href={`https://x.com/${person.twitter_handle}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                @{person.twitter_handle}
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{formatDistanceToNow(new Date(person.created_at), { addSuffix: true })}</TableCell>
+                          <TableCell>{person.linkedin_url ? <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}><Linkedin className="h-4 w-4" /></a> : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell>{person.twitter_handle ? <a href={`https://x.com/${person.twitter_handle}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>@{person.twitter_handle}</a> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell />
                         </TableRow>
                       ))}
@@ -311,86 +216,42 @@ export default function People() {
                   </Table>
                 </ScrollArea>
               )}
-
               {people.length > 0 && <TableFooter aggregations={aggregations} />}
             </div>
           </ResizablePanel>
 
-          {/* Detail Panel with Resizable Handle */}
           {selectedPerson && (
             <>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
-                <DetailPanel
-                  isOpen={true}
-                  onClose={() => setSelectedPerson(null)}
-                  title={selectedPerson.name}
-                  subtitle={selectedPerson.title}
-                  avatarUrl={selectedPerson.avatar_url}
-                  createdAt={selectedPerson.created_at}
-                  isResizable
-                />
+                <DetailPanel isOpen={true} onClose={() => setSelectedPerson(null)} title={selectedPerson.name} subtitle={selectedPerson.title} avatarUrl={selectedPerson.avatar_url} createdAt={selectedPerson.created_at} isResizable />
               </ResizablePanel>
             </>
           )}
         </ResizablePanelGroup>
       </div>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingPerson ? "Edit Person" : "New Person"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            handleSave(new FormData(e.currentTarget));
-          }} className="space-y-4">
+          <DialogHeader><DialogTitle>{editingPerson ? "Edit Person" : "New Person"}</DialogTitle></DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(new FormData(e.currentTarget)); }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input id="name" name="name" defaultValue={editingPerson?.name} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" name="email" type="email" defaultValue={editingPerson?.email} required />
-              </div>
+              <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" name="name" defaultValue={editingPerson?.name} required /></div>
+              <div className="space-y-2"><Label htmlFor="email">Email *</Label><Input id="email" name="email" type="email" defaultValue={editingPerson?.email} required /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" name="title" placeholder="CEO" defaultValue={editingPerson?.title} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" placeholder="+1 555-1234" defaultValue={editingPerson?.phone} />
-              </div>
+              <div className="space-y-2"><Label htmlFor="title">Title</Label><Input id="title" name="title" placeholder="CEO" defaultValue={editingPerson?.title} /></div>
+              <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" placeholder="+1 555-1234" defaultValue={editingPerson?.phone} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" placeholder="San Francisco" defaultValue={editingPerson?.city} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-                <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/..." defaultValue={editingPerson?.linkedin_url} />
-              </div>
+              <div className="space-y-2"><Label htmlFor="city">City</Label><Input id="city" name="city" placeholder="San Francisco" defaultValue={editingPerson?.city} /></div>
+              <div className="space-y-2"><Label htmlFor="linkedin_url">LinkedIn URL</Label><Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/..." defaultValue={editingPerson?.linkedin_url} /></div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="twitter_handle">X Handle</Label>
-              <Input id="twitter_handle" name="twitter_handle" placeholder="username" defaultValue={editingPerson?.twitter_handle} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" defaultValue={editingPerson?.notes} />
-            </div>
+            <div className="space-y-2"><Label htmlFor="twitter_handle">X Handle</Label><Input id="twitter_handle" name="twitter_handle" placeholder="username" defaultValue={editingPerson?.twitter_handle} /></div>
+            <div className="space-y-2"><Label htmlFor="notes">Notes</Label><Textarea id="notes" name="notes" defaultValue={editingPerson?.notes} /></div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingPerson ? "Update" : "Create"}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">{editingPerson ? "Update" : "Create"}</Button>
             </div>
           </form>
         </DialogContent>

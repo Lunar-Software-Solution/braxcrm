@@ -8,7 +8,8 @@ export type RuleActionType =
   | 'move_folder'
   | 'mark_priority'
   | 'assign_object_type'
-  | 'assign_entity';
+  | 'assign_entity'
+  | 'assign_role';
 
 export type EntityType = 'influencer' | 'reseller' | 'supplier' | 'corporate_management';
 
@@ -16,7 +17,6 @@ export type InvoiceStatus = 'pending' | 'reviewed' | 'approved' | 'rejected';
 
 export interface EmailCategory {
   id: string;
-  workspace_id: string;
   name: string;
   description: string | null;
   color: string;
@@ -30,7 +30,6 @@ export interface EmailCategory {
 
 export interface EmailRule {
   id: string;
-  workspace_id: string;
   category_id: string;
   name: string;
   is_active: boolean;
@@ -90,6 +89,12 @@ export interface AssignEntityConfig {
   create_if_not_exists: boolean;
 }
 
+export interface AssignRoleConfig {
+  entity_role_id: string;
+  assign_to_person: boolean;
+  assign_to_email: boolean;
+}
+
 export type RuleActionConfig = 
   | VisibilityActionConfig
   | TagActionConfig
@@ -99,14 +104,15 @@ export type RuleActionConfig =
   | MarkPriorityConfig
   | AssignObjectTypeConfig
   | AssignEntityConfig
+  | AssignRoleConfig
   | Record<string, unknown>;
 
 export interface EmailTag {
   id: string;
-  workspace_id: string;
   name: string;
   color: string;
   outlook_category: string | null;
+  created_by: string;
   created_at: string;
 }
 
@@ -131,9 +137,9 @@ export interface EmailMessageCategory {
 
 export interface EmailVisibilityGroup {
   id: string;
-  workspace_id: string;
   name: string;
   description: string | null;
+  created_by: string;
   created_at: string;
   // Joined data
   members?: EmailVisibilityGroupMember[];
@@ -149,7 +155,7 @@ export interface EmailVisibilityGroupMember {
 
 export interface ExtractedInvoice {
   id: string;
-  workspace_id: string;
+  user_id: string;
   email_id: string;
   vendor_name: string | null;
   invoice_number: string | null;
