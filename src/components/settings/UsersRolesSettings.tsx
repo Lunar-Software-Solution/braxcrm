@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,9 +30,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Shield, Plus, X, MoreVertical, Building2 } from "lucide-react";
+import { Users, Shield, Plus, X, MoreVertical, Building2, Mail, Loader2, UserPlus } from "lucide-react";
 import { useUsersRoles, type UserWithRoles, type EntityRole } from "@/hooks/use-users-roles";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/use-user-roles";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 function EntityRoleBadge({ role, onRemove }: { role: { id: string; role_name: string; entity_table: string }; onRemove?: () => void }) {
   const entityLabels: Record<string, string> = {
@@ -217,6 +222,8 @@ function UserRow({
 
 export default function UsersRolesSettings() {
   const { user } = useAuth();
+  const { isAdmin } = useUserRoles();
+  const { toast } = useToast();
   const {
     users,
     isLoadingUsers,
@@ -226,15 +233,115 @@ export default function UsersRolesSettings() {
     removeEntityRole,
   } = useUsersRoles();
 
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail) return;
+
+    setIsSendingInvite(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("send-invite", {
+        body: { email: inviteEmail, name: inviteName || undefined },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to send invite");
+      }
+
+      toast({
+        title: "Invitation sent",
+        description: `An invitation has been sent to ${inviteEmail}`,
+      });
+
+      setInviteEmail("");
+      setInviteName("");
+      setInviteDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to send invite:", error);
+      toast({
+        title: "Failed to send invitation",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <CardTitle>Users & Roles</CardTitle>
-            <CardDescription>Manage user access and permissions</CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <CardTitle>Users & Roles</CardTitle>
+              <CardDescription>Manage user access and permissions</CardDescription>
+            </div>
           </div>
+          {isAdmin && (
+            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Invite User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite New User</DialogTitle>
+                  <DialogDescription>
+                    Send an invitation email to add a new team member.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email address *</Label>
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      placeholder="colleague@company.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-name">Name (optional)</Label>
+                    <Input
+                      id="invite-name"
+                      placeholder="John Doe"
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSendInvite} 
+                    disabled={!inviteEmail || isSendingInvite}
+                    className="gap-2"
+                  >
+                    {isSendingInvite ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
+                    Send Invitation
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </CardHeader>
       <CardContent>
