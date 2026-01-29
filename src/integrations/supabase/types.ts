@@ -1108,6 +1108,35 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_settings: {
+        Row: {
+          auto_process_emails: boolean
+          created_at: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_process_emails?: boolean
+          created_at?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_process_emails?: boolean
+          created_at?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string

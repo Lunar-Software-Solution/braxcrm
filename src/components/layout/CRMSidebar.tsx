@@ -16,6 +16,7 @@ import {
   Store,
   Truck,
   Building2,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,11 +40,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { usePendingEmailCount } from "@/hooks/use-review-queue";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
   { title: "Inbox", url: "/inbox", icon: Mail },
+  { title: "Review Queue", url: "/review-queue", icon: ClipboardList },
 ];
 
 const entityItems = [
@@ -65,6 +69,7 @@ export function CRMSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { workspaceId } = useWorkspace();
+  const pendingCount = usePendingEmailCount();
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
@@ -150,7 +155,14 @@ export function CRMSidebar() {
                       activeClassName="bg-muted text-primary font-medium"
                     >
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && (
+                        <span className="flex-1">{item.title}</span>
+                      )}
+                      {!collapsed && item.title === "Review Queue" && pendingCount > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {pendingCount}
+                        </Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
