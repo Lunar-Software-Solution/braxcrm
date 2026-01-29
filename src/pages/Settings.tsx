@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMicrosoftAuth } from "@/hooks/use-microsoft-auth";
+import { useUserRoles } from "@/hooks/use-user-roles";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import {
   User,
   Shield,
   Bell,
+  Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EmailAutomationSettings from "@/components/settings/EmailAutomationSettings";
@@ -46,6 +48,7 @@ interface MicrosoftAccount {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { initiateLogin } = useMicrosoftAuth();
+  const { isAdmin, entityRoles, isLoading: isRolesLoading } = useUserRoles();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -160,15 +163,40 @@ export default function Settings() {
               </div>
               <CardDescription>Your account information</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
-                  {user?.email?.slice(0, 2).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{user?.user_metadata?.full_name || "User"}</p>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
+                    {user?.email?.slice(0, 2).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{user?.user_metadata?.full_name || "User"}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
+              
+              {/* Role Badges */}
+              <div className="pt-2 border-t">
+                <p className="text-sm text-muted-foreground mb-2">Your Roles</p>
+                <div className="flex flex-wrap gap-2">
+                  {isRolesLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Badge variant={isAdmin ? "default" : "secondary"} className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        {isAdmin ? "Admin" : "Member"}
+                      </Badge>
+                      {entityRoles.map((role) => (
+                        <Badge key={role.id} variant="outline" className="gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {role.entity_role?.name}
+                        </Badge>
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
