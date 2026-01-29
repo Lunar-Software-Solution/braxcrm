@@ -1,4 +1,5 @@
-import { X, MoreHorizontal, Edit, Trash2, Mail } from "lucide-react";
+import { useState } from "react";
+import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +13,13 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
+import { TaskDialog } from "@/components/crm/TaskDialog";
+import { NoteDialog } from "@/components/crm/NoteDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTasks } from "@/hooks/use-tasks";
+import { useNotes } from "@/hooks/use-notes";
 import type { Entity, EntityType } from "@/types/entities";
+import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate } from "@/types/activities";
 
 interface EntityDetailPanelProps {
   entity: Entity;
@@ -31,6 +38,24 @@ export function EntityDetailPanel({
   onEdit,
   onDelete,
 }: EntityDetailPanelProps) {
+  const { user } = useAuth();
+  const { createTask } = useTasks();
+  const { createNote } = useNotes();
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [showNoteDialog, setShowNoteDialog] = useState(false);
+
+  const handleSaveTask = async (data: TaskInsert | TaskUpdate, isEdit: boolean) => {
+    if (!isEdit) {
+      await createTask(data as TaskInsert);
+    }
+  };
+
+  const handleSaveNote = async (data: NoteInsert | NoteUpdate, isEdit: boolean) => {
+    if (!isEdit) {
+      await createNote(data as NoteInsert);
+    }
+  };
+
   const initials = entity.name
     .split(" ")
     .map((n) => n[0])
@@ -129,17 +154,37 @@ export function EntityDetailPanel({
                   <p className="text-sm whitespace-pre-wrap">{entity.notes}</p>
                 </div>
               )}
-              {!entity.phone && !entity.notes && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Mail className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h4 className="font-medium mb-1">Empty Inbox</h4>
-                  <p className="text-sm text-muted-foreground">
-                    No activity to show yet
-                  </p>
+              
+              {/* Quick action buttons */}
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-sm text-muted-foreground mb-4">Quick actions</p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowTaskDialog(true)}
+                  >
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowNoteDialog(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Add File
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="tasks" className="m-0 p-4">
@@ -153,6 +198,24 @@ export function EntityDetailPanel({
           </TabsContent>
         </ScrollArea>
       </Tabs>
+
+      {/* Dialogs */}
+      <TaskDialog
+        open={showTaskDialog}
+        onOpenChange={setShowTaskDialog}
+        entityTable={entityType}
+        entityId={entity.id}
+        userId={user?.id || ''}
+        onSave={handleSaveTask}
+      />
+      <NoteDialog
+        open={showNoteDialog}
+        onOpenChange={setShowNoteDialog}
+        entityTable={entityType}
+        entityId={entity.id}
+        userId={user?.id || ''}
+        onSave={handleSaveNote}
+      />
     </div>
   );
 }
