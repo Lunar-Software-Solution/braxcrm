@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  Zap, Plus, Tag, ChevronDown, ChevronUp, Eye, FileText, AlertTriangle, 
+  Zap, Plus, Tag, ChevronDown, ChevronRight, Eye, FileText, AlertTriangle, 
   Users, Loader2, Sparkles, Store, Package, Receipt, Building2, Contact, CreditCard, Trash2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -219,225 +218,219 @@ export default function EmailAutomation() {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-        <div className="flex items-center gap-3">
-          <Zap className="h-5 w-5 text-amber-500" />
-          <div>
-            <h1 className="text-lg font-semibold">Email Automation</h1>
-            <p className="text-sm text-muted-foreground">Configure automation rules per entity type</p>
-          </div>
+      <div className="flex items-center gap-3 px-6 py-4 border-b">
+        <Zap className="h-5 w-5 text-amber-500" />
+        <div>
+          <h1 className="text-lg font-semibold">Email Automation</h1>
+          <p className="text-sm text-muted-foreground">Configure automation rules per entity type</p>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Entity List */}
       <div className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-12"></TableHead>
-              <TableHead>Entity Type</TableHead>
-              <TableHead className="w-24 text-center">Status</TableHead>
-              <TableHead className="w-32 text-center">Active Actions</TableHead>
-              <TableHead>Description</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ENTITY_TABLES.map((entityTable) => {
-              const config = ENTITY_AUTOMATION_CONFIG[entityTable];
-              const rule = rulesMap.get(entityTable);
-              const isExpanded = expandedEntities.has(entityTable);
-              const availableActions = ENTITY_ACTION_AVAILABILITY[entityTable] || [];
-              const activeCount = getActiveActionsCount(rule);
+        <div className="divide-y">
+          {ENTITY_TABLES.map((entityTable) => {
+            const config = ENTITY_AUTOMATION_CONFIG[entityTable];
+            const rule = rulesMap.get(entityTable);
+            const isExpanded = expandedEntities.has(entityTable);
+            const availableActions = ENTITY_ACTION_AVAILABILITY[entityTable] || [];
+            const activeCount = getActiveActionsCount(rule);
 
-              return (
-                <Collapsible key={entityTable} open={isExpanded} onOpenChange={() => toggleEntityExpanded(entityTable)}>
-                  <CollapsibleTrigger asChild>
-                    <TableRow className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="w-12">
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {renderEntityIcon(config.icon, config.color)}
-                          <span className="font-medium">{config.label}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={rule?.is_active ?? true}
-                          onCheckedChange={(checked) => {
-                            if (rule) {
-                              updateRule.mutate({ id: rule.id, data: { is_active: checked } });
-                            }
+            return (
+              <Collapsible key={entityTable} open={isExpanded} onOpenChange={() => toggleEntityExpanded(entityTable)}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                    {/* Chevron */}
+                    <div className="w-5 flex-shrink-0">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+
+                    {/* Icon + Name */}
+                    <div className="flex items-center gap-3 min-w-[180px]">
+                      {renderEntityIcon(config.icon, config.color)}
+                      <span className="font-medium">{config.label}</span>
+                    </div>
+
+                    {/* Toggle */}
+                    <Switch
+                      checked={rule?.is_active ?? true}
+                      onCheckedChange={(checked) => {
+                        if (rule) {
+                          updateRule.mutate({ id: rule.id, data: { is_active: checked } });
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+
+                    {/* Active Count */}
+                    <div className="flex flex-col items-center text-sm text-muted-foreground min-w-[40px]">
+                      <span className="font-medium text-foreground">{activeCount}</span>
+                      <span className="text-xs">/</span>
+                      <span>{availableActions.length}</span>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground flex-1">
+                      {rule?.description || config.label}
+                    </p>
+                  </div>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <div className="bg-muted/30 px-6 py-4 ml-11 border-l-2 border-muted">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Available Actions</h4>
+                      {rule && showAddAction !== rule.id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            setShowAddAction(rule.id);
+                            setNewActionType(availableActions[0] || "tag");
+                            setNewActionConfig({});
                           }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">{activeCount} / {availableActions.length}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {rule?.description || config.label}
-                      </TableCell>
-                    </TableRow>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent asChild>
-                    <tr>
-                      <td colSpan={5} className="p-0 border-b">
-                        <div className="bg-muted/20 px-6 py-4">
-                          <div className="mb-3 flex items-center justify-between">
-                            <h4 className="text-sm font-medium">Available Actions</h4>
-                            {rule && showAddAction !== rule.id && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                onClick={() => {
-                                  setShowAddAction(rule.id);
-                                  setNewActionType(availableActions[0] || "tag");
-                                  setNewActionConfig({});
-                                }}
-                              >
-                                <Plus className="h-3 w-3 mr-1" /> Add Action
-                              </Button>
-                            )}
-                          </div>
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Action
+                        </Button>
+                      )}
+                    </div>
 
-                          {/* Add Action Form */}
-                          {rule && showAddAction === rule.id && (
-                            <div className="mb-4 p-3 border rounded-lg bg-background">
-                              <div className="flex items-center gap-3 mb-3">
-                                <Select 
-                                  value={newActionType} 
-                                  onValueChange={(v) => {
-                                    setNewActionType(v as RuleActionType);
-                                    setNewActionConfig(getDefaultConfig(v as RuleActionType));
+                    {/* Add Action Form */}
+                    {rule && showAddAction === rule.id && (
+                      <div className="mb-4 p-3 border rounded-lg bg-background">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Select 
+                            value={newActionType} 
+                            onValueChange={(v) => {
+                              setNewActionType(v as RuleActionType);
+                              setNewActionConfig(getDefaultConfig(v as RuleActionType));
+                            }}
+                          >
+                            <SelectTrigger className="w-48 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableActions.map((action) => (
+                                <SelectItem key={action} value={action}>
+                                  {ACTION_TYPE_LABELS[action]?.label || action}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            size="sm" 
+                            className="h-7 text-xs"
+                            onClick={() => handleAddAction(rule.id)}
+                            disabled={createAction.isPending}
+                          >
+                            {createAction.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-xs"
+                            onClick={() => setShowAddAction(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                        {renderActionConfig(newActionType, newActionConfig, setNewActionConfig)}
+                      </div>
+                    )}
+
+                    {/* Existing Actions */}
+                    <div className="space-y-2">
+                      {availableActions.map((actionType) => {
+                        const existingAction = rule?.actions?.find((a) => a.action_type === actionType);
+                        const actionInfo = ACTION_TYPE_LABELS[actionType];
+
+                        return (
+                          <div 
+                            key={actionType} 
+                            className={`flex items-start gap-3 p-3 rounded-lg border ${
+                              existingAction?.is_active ? "bg-background" : "bg-muted/30 opacity-60"
+                            }`}
+                          >
+                            <div className="pt-0.5">
+                              {actionInfo?.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{actionInfo?.label}</span>
+                                {existingAction && (
+                                  <Badge 
+                                    variant={existingAction.is_active ? "default" : "secondary"} 
+                                    className="text-xs"
+                                  >
+                                    {existingAction.is_active ? "Active" : "Inactive"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{actionInfo?.description}</p>
+                              
+                              {existingAction && (
+                                <div className="mt-2">
+                                  {renderActionConfig(
+                                    actionType, 
+                                    existingAction.config, 
+                                    (newConfig) => updateAction.mutate({ id: existingAction.id, data: { config: newConfig } })
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {existingAction ? (
+                                <>
+                                  <Switch
+                                    checked={existingAction.is_active}
+                                    onCheckedChange={(checked) => 
+                                      updateAction.mutate({ id: existingAction.id, data: { is_active: checked } })
+                                    }
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                    onClick={() => deleteAction.mutate(existingAction.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => {
+                                    if (rule) {
+                                      createAction.mutate({
+                                        entity_rule_id: rule.id,
+                                        action_type: actionType,
+                                        config: getDefaultConfig(actionType),
+                                      });
+                                    }
                                   }}
                                 >
-                                  <SelectTrigger className="w-48 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availableActions.map((action) => (
-                                      <SelectItem key={action} value={action}>
-                                        {ACTION_TYPE_LABELS[action]?.label || action}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button 
-                                  size="sm" 
-                                  className="h-7 text-xs"
-                                  onClick={() => handleAddAction(rule.id)}
-                                  disabled={createAction.isPending}
-                                >
-                                  {createAction.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                                  Enable
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  className="h-7 text-xs"
-                                  onClick={() => setShowAddAction(null)}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                              {renderActionConfig(newActionType, newActionConfig, setNewActionConfig)}
+                              )}
                             </div>
-                          )}
-
-                          {/* Existing Actions */}
-                          <div className="space-y-2">
-                            {availableActions.map((actionType) => {
-                              const existingAction = rule?.actions?.find((a) => a.action_type === actionType);
-                              const actionInfo = ACTION_TYPE_LABELS[actionType];
-
-                              return (
-                                <div 
-                                  key={actionType} 
-                                  className={`flex items-start gap-3 p-3 rounded-lg border ${
-                                    existingAction?.is_active ? "bg-background" : "bg-muted/30 opacity-60"
-                                  }`}
-                                >
-                                  <div className="pt-0.5">
-                                    {actionInfo?.icon}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-medium">{actionInfo?.label}</span>
-                                      {existingAction && (
-                                        <Badge 
-                                          variant={existingAction.is_active ? "default" : "secondary"} 
-                                          className="text-xs"
-                                        >
-                                          {existingAction.is_active ? "Active" : "Inactive"}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{actionInfo?.description}</p>
-                                    
-                                    {existingAction && (
-                                      <div className="mt-2">
-                                        {renderActionConfig(
-                                          actionType, 
-                                          existingAction.config, 
-                                          (newConfig) => updateAction.mutate({ id: existingAction.id, data: { config: newConfig } })
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2">
-                                    {existingAction ? (
-                                      <>
-                                        <Switch
-                                          checked={existingAction.is_active}
-                                          onCheckedChange={(checked) => 
-                                            updateAction.mutate({ id: existingAction.id, data: { is_active: checked } })
-                                          }
-                                        />
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                          onClick={() => deleteAction.mutate(existingAction.id)}
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-xs"
-                                        onClick={() => {
-                                          if (rule) {
-                                            createAction.mutate({
-                                              entity_rule_id: rule.id,
-                                              action_type: actionType,
-                                              config: getDefaultConfig(actionType),
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        Enable
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </CollapsibleContent>
-                </Collapsible>
-              );
-            })}
-          </TableBody>
-        </Table>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
