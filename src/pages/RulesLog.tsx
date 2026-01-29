@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface RuleLog {
@@ -59,6 +59,7 @@ interface PendingProcessingEmail {
   received_at: string;
   entity_table: string | null;
   ai_confidence: number | null;
+  classification_source?: string | null;
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
@@ -142,7 +143,8 @@ export default function RulesLog() {
   const { data: pendingEmails, isLoading: pendingLoading } = useQuery({
     queryKey: ["pending-processing-log"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get pending emails
+      const { data: emails, error } = await supabase
         .from("email_messages")
         .select(`
           id,
@@ -159,7 +161,31 @@ export default function RulesLog() {
         .limit(100);
 
       if (error) throw error;
-      return data as PendingProcessingEmail[];
+
+      // Get classification sources for these emails
+      const emailIds = emails?.map(e => e.id) || [];
+      if (emailIds.length === 0) return [];
+
+      const { data: classLogs } = await supabase
+        .from("email_classification_logs")
+        .select("email_id, source")
+        .in("email_id", emailIds)
+        .eq("success", true)
+        .order("created_at", { ascending: false });
+
+      // Create a map of email_id to source (get the most recent)
+      const sourceMap = new Map<string, string>();
+      classLogs?.forEach(log => {
+        if (!sourceMap.has(log.email_id)) {
+          sourceMap.set(log.email_id, log.source);
+        }
+      });
+
+      // Merge source into emails
+      return emails?.map(email => ({
+        ...email,
+        classification_source: sourceMap.get(email.id) || null
+      })) as PendingProcessingEmail[];
     },
   });
 
@@ -308,6 +334,7 @@ export default function RulesLog() {
                   <TableHead>Email Subject</TableHead>
                   <TableHead>Sender</TableHead>
                   <TableHead>Entity Type</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Confidence</TableHead>
                   <TableHead className="w-[150px]">Received At</TableHead>
                 </TableRow>
@@ -319,13 +346,14 @@ export default function RulesLog() {
                       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     </TableRow>
                   ))
                 ) : pendingEmails?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No emails pending rules processing. All classified emails have been processed.
                     </TableCell>
                   </TableRow>
@@ -342,6 +370,24 @@ export default function RulesLog() {
                         <Badge variant="outline">
                           {entityLabels[email.entity_table || ""] || email.entity_table}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {email.classification_source === "cache" ? (
+                          <div className="flex items-center gap-1.5">
+                            <Database className="h-4 w-4 text-yellow-500" />
+                            <span className="text-sm text-muted-foreground">Known Entity</span>
+                          </div>
+                        ) : email.classification_source === "manual" ? (
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm text-muted-foreground">Manual</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Brain className="h-4 w-4 text-purple-500" />
+                            <span className="text-sm text-muted-foreground">AI</span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         {email.ai_confidence !== null ? (
