@@ -338,12 +338,37 @@ async function processAction(
       // Get the email to find related entity for role assignment
       const { data: email } = await supabase
         .from("email_messages")
-        .select("person_id")
+        .select("person_id, sender_id")
         .eq("id", emailId)
         .single();
 
+      // For sender-based emails, we need to get entity from senders table
+      if (email?.sender_id) {
+        const { data: sender } = await supabase
+          .from("senders")
+          .select("entity_id, entity_table")
+          .eq("id", email.sender_id)
+          .maybeSingle();
+
+        if (sender?.entity_id && sender?.entity_table === entityTable) {
+          // Create record role assignment for the sender's entity
+          const { error } = await supabase
+            .from("record_role_assignments")
+            .upsert({
+              record_id: sender.entity_id,
+              table_name: entityTable,
+              entity_role_id: roleId,
+            }, { onConflict: "record_id,table_name,entity_role_id" });
+
+          if (error) {
+            return { action_type: "assign_role", success: false, error: error.message };
+          }
+          return { action_type: "assign_role", success: true };
+        }
+      }
+
       if (!email?.person_id) {
-        return { action_type: "assign_role", success: false, error: "No person linked to email" };
+        return { action_type: "assign_role", success: false, error: "No person or sender linked to email" };
       }
 
       // Get entity record ID from people_entities
@@ -375,175 +400,288 @@ async function processAction(
     }
 
     case "link_entity": {
-      // Link email to entity based on entity_table
-      const linkConfig = ENTITY_LINK_TABLES[entityTable];
-      if (!linkConfig) {
-        return { action_type: "link_entity", success: true }; // No link table for this entity type
-      }
-
-      // Get email with person and sender info
-      const { data: email } = await supabase
-        .from("email_messages")
-        .select("person_id, sender_email, sender_name, user_id")
-        .eq("id", emailId)
-        .single();
-
-      if (!email) {
-        return { action_type: "link_entity", success: false, error: "Email not found" };
-      }
-
-      let personId = email.person_id;
-
-      // Create person if they don't exist and we have sender info
-      if (!personId && email.sender_email) {
-        // Check if person already exists by email
-        const { data: existingPerson } = await supabase
-          .from("people")
-          .select("id")
-          .ilike("email", email.sender_email)
-          .maybeSingle();
-
-        if (existingPerson) {
-          personId = existingPerson.id;
-        } else {
-          // Create new person
-          const { data: newPerson, error: personError } = await supabase
-            .from("people")
-            .insert({
-              name: email.sender_name || email.sender_email,
-              email: email.sender_email,
-              is_auto_created: true,
-              created_by: email.user_id || userId,
-            })
-            .select("id")
-            .single();
-
-          if (personError) {
-            // Race condition - try to fetch again
-            const { data: retryPerson } = await supabase
-              .from("people")
-              .select("id")
-              .ilike("email", email.sender_email)
-              .maybeSingle();
-            
-            if (retryPerson) {
-              personId = retryPerson.id;
-            }
-          } else if (newPerson) {
-            personId = newPerson.id;
-          }
-        }
-
-        // Update email with person_id
-        if (personId) {
-          await supabase
-            .from("email_messages")
-            .update({ person_id: personId })
-            .eq("id", emailId);
-        }
-      }
-
-      if (!personId) {
-        return { action_type: "link_entity", success: false, error: "No person linked to email and no sender info available" };
-      }
-
-      // Get entity record from people_entities
-      const { data: peopleEntity } = await supabase
-        .from("people_entities")
-        .select("entity_id")
-        .eq("person_id", personId)
-        .eq("entity_table", entityTable)
-        .maybeSingle();
-
-      if (!peopleEntity?.entity_id) {
-        // Try to find or create entity from person data
-        const { data: person } = await supabase
-          .from("people")
-          .select("name, email, phone, notes")
-          .eq("id", personId)
-          .single();
-
-        if (!person) {
-          return { action_type: "link_entity", success: false, error: "Person not found" };
-        }
-
-        // Check if entity exists by email
-        const { data: existingEntity } = await supabase
-          .from(entityTable)
-          .select("id")
-          .eq("email", person.email)
-          .maybeSingle();
-
-        let entityId: string;
-
-        if (existingEntity) {
-          entityId = existingEntity.id;
-        } else if (config.create_if_not_exists !== false) {
-          // Create new entity
-          const { data: newEntity, error: createError } = await supabase
-            .from(entityTable)
-            .insert({
-              name: person.name,
-              email: person.email,
-              phone: person.phone,
-              notes: person.notes,
-              created_by: userId,
-            })
-            .select("id")
-            .single();
-
-          if (createError || !newEntity) {
-            return { action_type: "link_entity", success: false, error: createError?.message || "Failed to create entity" };
-          }
-          entityId = newEntity.id;
-        } else {
-          return { action_type: "link_entity", success: true };
-        }
-
-        // Link person to entity
-        await supabase
-          .from("people_entities")
-          .upsert({
-            person_id: personId,
-            entity_id: entityId,
-            entity_table: entityTable,
-          }, { onConflict: "person_id,entity_id,entity_table" });
-
-        // Link email to entity
-        const linkData: Record<string, string> = {
-          email_id: emailId,
-          [linkConfig.idField]: entityId,
-        };
-
-        const { error: linkError } = await supabase
-          .from(linkConfig.table)
-          .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
-
-        if (linkError) {
-          console.warn(`Failed to link email to ${entityTable}:`, linkError);
-        }
-
-        return { action_type: "link_entity", success: true };
-      }
-
-      // Link email to existing entity
-      const linkData: Record<string, string> = {
-        email_id: emailId,
-        [linkConfig.idField]: peopleEntity.entity_id,
-      };
-
-      const { error: linkError } = await supabase
-        .from(linkConfig.table)
-        .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
-
-      if (linkError) {
-        console.warn(`Failed to link email to ${entityTable}:`, linkError);
-      }
-
-      return { action_type: "link_entity", success: true };
+      return await handleLinkEntity(supabase, emailId, entityTable, config, userId);
     }
 
     default:
       return { action_type: action.action_type, success: false, error: "Unknown action type" };
   }
+}
+
+async function handleLinkEntity(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  emailId: string,
+  entityTable: string,
+  config: Record<string, unknown>,
+  userId: string
+): Promise<ActionResult> {
+  const linkConfig = ENTITY_LINK_TABLES[entityTable];
+  if (!linkConfig) {
+    return { action_type: "link_entity", success: true }; // No link table for this entity type
+  }
+
+  // Get email with person and sender info
+  const { data: email } = await supabase
+    .from("email_messages")
+    .select("person_id, sender_id, sender_email, sender_name, user_id")
+    .eq("id", emailId)
+    .single();
+
+  if (!email) {
+    return { action_type: "link_entity", success: false, error: "Email not found" };
+  }
+
+  // If email has a sender_id (non-person sender), link sender to entity
+  if (email.sender_id) {
+    return await handleSenderLinkEntity(supabase, emailId, email.sender_id, entityTable, linkConfig, config, userId);
+  }
+
+  // Otherwise, handle as person-based linking
+  let personId = email.person_id;
+
+  // Create person if they don't exist and we have sender info
+  if (!personId && email.sender_email) {
+    // Check if person already exists by email
+    const { data: existingPerson } = await supabase
+      .from("people")
+      .select("id")
+      .ilike("email", email.sender_email)
+      .maybeSingle();
+
+    if (existingPerson) {
+      personId = existingPerson.id;
+    } else {
+      // Create new person
+      const { data: newPerson, error: personError } = await supabase
+        .from("people")
+        .insert({
+          name: email.sender_name || email.sender_email,
+          email: email.sender_email,
+          is_auto_created: true,
+          created_by: email.user_id || userId,
+        })
+        .select("id")
+        .single();
+
+      if (personError) {
+        // Race condition - try to fetch again
+        const { data: retryPerson } = await supabase
+          .from("people")
+          .select("id")
+          .ilike("email", email.sender_email)
+          .maybeSingle();
+        
+        if (retryPerson) {
+          personId = retryPerson.id;
+        }
+      } else if (newPerson) {
+        personId = newPerson.id;
+      }
+    }
+
+    // Update email with person_id
+    if (personId) {
+      await supabase
+        .from("email_messages")
+        .update({ person_id: personId })
+        .eq("id", emailId);
+    }
+  }
+
+  if (!personId) {
+    return { action_type: "link_entity", success: false, error: "No person linked to email and no sender info available" };
+  }
+
+  // Get entity record from people_entities
+  const { data: peopleEntity } = await supabase
+    .from("people_entities")
+    .select("entity_id")
+    .eq("person_id", personId)
+    .eq("entity_table", entityTable)
+    .maybeSingle();
+
+  if (!peopleEntity?.entity_id) {
+    // Try to find or create entity from person data
+    const { data: person } = await supabase
+      .from("people")
+      .select("name, email, phone, notes")
+      .eq("id", personId)
+      .single();
+
+    if (!person) {
+      return { action_type: "link_entity", success: false, error: "Person not found" };
+    }
+
+    // Check if entity exists by email
+    const { data: existingEntity } = await supabase
+      .from(entityTable)
+      .select("id")
+      .eq("email", person.email)
+      .maybeSingle();
+
+    let entityId: string;
+
+    if (existingEntity) {
+      entityId = existingEntity.id;
+    } else if (config.create_if_not_exists !== false) {
+      // Create new entity
+      const { data: newEntity, error: createError } = await supabase
+        .from(entityTable)
+        .insert({
+          name: person.name,
+          email: person.email,
+          phone: person.phone,
+          notes: person.notes,
+          created_by: userId,
+        })
+        .select("id")
+        .single();
+
+      if (createError || !newEntity) {
+        return { action_type: "link_entity", success: false, error: createError?.message || "Failed to create entity" };
+      }
+      entityId = newEntity.id;
+    } else {
+      return { action_type: "link_entity", success: true };
+    }
+
+    // Link person to entity
+    await supabase
+      .from("people_entities")
+      .upsert({
+        person_id: personId,
+        entity_id: entityId,
+        entity_table: entityTable,
+      }, { onConflict: "person_id,entity_id,entity_table" });
+
+    // Link email to entity
+    const linkData: Record<string, string> = {
+      email_id: emailId,
+      [linkConfig.idField]: entityId,
+    };
+
+    const { error: linkError } = await supabase
+      .from(linkConfig.table)
+      .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
+
+    if (linkError) {
+      console.warn(`Failed to link email to ${entityTable}:`, linkError);
+    }
+
+    return { action_type: "link_entity", success: true };
+  }
+
+  // Link email to existing entity
+  const linkData: Record<string, string> = {
+    email_id: emailId,
+    [linkConfig.idField]: peopleEntity.entity_id,
+  };
+
+  const { error: linkError } = await supabase
+    .from(linkConfig.table)
+    .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
+
+  if (linkError) {
+    console.warn(`Failed to link email to ${entityTable}:`, linkError);
+  }
+
+  return { action_type: "link_entity", success: true };
+}
+
+async function handleSenderLinkEntity(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  emailId: string,
+  senderId: string,
+  entityTable: string,
+  linkConfig: { table: string; idField: string },
+  config: Record<string, unknown>,
+  userId: string
+): Promise<ActionResult> {
+  // Get sender info
+  const { data: sender } = await supabase
+    .from("senders")
+    .select("email, display_name, entity_id, entity_table")
+    .eq("id", senderId)
+    .single();
+
+  if (!sender) {
+    return { action_type: "link_entity", success: false, error: "Sender not found" };
+  }
+
+  let entityId = sender.entity_id;
+
+  // If sender already linked to an entity of the same type, use it
+  if (entityId && sender.entity_table === entityTable) {
+    // Link email to entity
+    const linkData: Record<string, string> = {
+      email_id: emailId,
+      [linkConfig.idField]: entityId,
+    };
+
+    const { error: linkError } = await supabase
+      .from(linkConfig.table)
+      .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
+
+    if (linkError) {
+      console.warn(`Failed to link email to ${entityTable}:`, linkError);
+    }
+
+    return { action_type: "link_entity", success: true };
+  }
+
+  // Find or create entity based on sender's email/domain
+  const { data: existingEntity } = await supabase
+    .from(entityTable)
+    .select("id")
+    .eq("email", sender.email)
+    .maybeSingle();
+
+  if (existingEntity) {
+    entityId = existingEntity.id;
+  } else if (config.create_if_not_exists !== false) {
+    // Create new entity from sender info
+    const { data: newEntity, error: createError } = await supabase
+      .from(entityTable)
+      .insert({
+        name: sender.display_name || sender.email.split('@')[0],
+        email: sender.email,
+        created_by: userId,
+      })
+      .select("id")
+      .single();
+
+    if (createError || !newEntity) {
+      return { action_type: "link_entity", success: false, error: createError?.message || "Failed to create entity" };
+    }
+    entityId = newEntity.id;
+  } else {
+    return { action_type: "link_entity", success: true };
+  }
+
+  // Update sender with entity link
+  await supabase
+    .from("senders")
+    .update({
+      entity_id: entityId,
+      entity_table: entityTable,
+    })
+    .eq("id", senderId);
+
+  // Link email to entity
+  const linkData: Record<string, string> = {
+    email_id: emailId,
+    [linkConfig.idField]: entityId,
+  };
+
+  const { error: linkError } = await supabase
+    .from(linkConfig.table)
+    .upsert(linkData, { onConflict: `email_id,${linkConfig.idField}` });
+
+  if (linkError) {
+    console.warn(`Failed to link email to ${entityTable}:`, linkError);
+  }
+
+  return { action_type: "link_entity", success: true };
 }
