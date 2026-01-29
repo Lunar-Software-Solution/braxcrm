@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database } from "lucide-react";
+import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database, Sparkles, Store, Package, Receipt, Contact, CreditCard } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
 
 interface RuleLog {
   id: string;
@@ -25,6 +26,7 @@ interface RuleLog {
   processed_at: string;
   email?: {
     subject: string | null;
+    entity_table: string | null;
     category?: {
       name: string;
       color: string | null;
@@ -91,6 +93,16 @@ const sourceIcons: Record<string, React.ReactNode> = {
   manual: <Eye className="h-4 w-4 text-blue-500" />,
 };
 
+const entityIcons: Record<string, React.ReactNode> = {
+  influencers: <Sparkles className="h-3.5 w-3.5" />,
+  resellers: <Store className="h-3.5 w-3.5" />,
+  product_suppliers: <Package className="h-3.5 w-3.5" />,
+  expense_suppliers: <Receipt className="h-3.5 w-3.5" />,
+  corporate_management: <Building2 className="h-3.5 w-3.5" />,
+  personal_contacts: <Contact className="h-3.5 w-3.5" />,
+  subscriptions: <CreditCard className="h-3.5 w-3.5" />,
+};
+
 const entityLabels: Record<string, string> = {
   influencers: "Influencer",
   resellers: "Reseller",
@@ -111,6 +123,7 @@ export default function RulesLog() {
           *,
           email:email_messages(
             subject,
+            entity_table,
             category:email_categories(name, color)
           ),
           rule:email_rules(name)
@@ -416,9 +429,9 @@ export default function RulesLog() {
                 <TableRow>
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead>Email Subject</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead>Entity Type</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Rule</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead className="w-[180px]">Processed At</TableHead>
                 </TableRow>
               </TableHeader>
@@ -454,7 +467,19 @@ export default function RulesLog() {
                         {log.email?.subject || "No subject"}
                       </TableCell>
                       <TableCell>
-                        {log.email?.category ? (
+                        {log.email?.entity_table ? (
+                          <Badge
+                            variant="outline"
+                            className="gap-1.5"
+                            style={{
+                              borderColor: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
+                              color: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
+                            }}
+                          >
+                            {entityIcons[log.email.entity_table]}
+                            {ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.label || log.email.entity_table}
+                          </Badge>
+                        ) : log.email?.category ? (
                           <Badge
                             variant="outline"
                             style={{
@@ -475,7 +500,7 @@ export default function RulesLog() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {log.rule?.name || "—"}
+                        {log.rule?.name || (log.rule_id === null ? "Entity Automation" : "—")}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(log.processed_at), "MMM d, h:mm a")}
