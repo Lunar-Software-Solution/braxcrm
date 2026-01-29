@@ -14,6 +14,7 @@ import {
   Building2,
   ClipboardList,
   ScrollText,
+  Contact,
   Shield,
 } from "lucide-react";
 import {
@@ -47,6 +48,7 @@ const entityItems = [
   { title: "Resellers", url: "/resellers", icon: Store, color: "#22c55e" },
   { title: "Suppliers", url: "/suppliers", icon: Truck, color: "#3b82f6" },
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
+  { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
 ];
 
 const futureItems = [
