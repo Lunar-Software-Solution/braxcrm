@@ -90,9 +90,10 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingInvite) {
+        // Return 200 with error flag so frontend can reliably read the message
         return new Response(
-          JSON.stringify({ error: "An invitation is already pending for this email" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "already_pending", message: "An invitation is already pending for this email" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -118,9 +119,10 @@ serve(async (req) => {
         );
       }
       
+      // Return 200 with error flag so frontend can reliably read the message
       return new Response(
-        JSON.stringify({ error: "A user with this email is already registered" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "already_registered", message: "A user with this email is already registered" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     

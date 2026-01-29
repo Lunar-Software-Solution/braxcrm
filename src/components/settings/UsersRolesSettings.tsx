@@ -254,29 +254,13 @@ export default function UsersRolesSettings() {
         },
       });
 
-      // Extract error message - check both response.data and error context
-      let errorMessage: string | null = null;
-      
-      if (response.data?.error) {
-        errorMessage = response.data.error;
-      } else if (response.error) {
-        // Try to get error from error context (FunctionsHttpError)
-        try {
-          const errorContext = (response.error as any).context;
-          if (errorContext && typeof errorContext.json === 'function') {
-            const errorBody = await errorContext.json();
-            errorMessage = errorBody?.error || response.error.message;
-          } else {
-            errorMessage = response.error.message;
-          }
-        } catch {
-          errorMessage = response.error.message || "Failed to send invite";
-        }
-      }
-
-      if (errorMessage) {
+      // Check for validation errors (returned as 200 with success: false)
+      if (response.data?.success === false || response.data?.error || response.error) {
+        const errorCode = response.data?.error;
+        const errorMessage = response.data?.message || response.error?.message || "Failed to send invite";
+        
         // Handle specific error cases with helpful messages
-        if (errorMessage.includes("already registered")) {
+        if (errorCode === "already_registered" || errorMessage.includes("already registered")) {
           toast({
             title: "User already exists",
             description: "This email is already registered. You can assign roles to them from the user list above.",
@@ -286,7 +270,7 @@ export default function UsersRolesSettings() {
           return;
         }
         
-        if (errorMessage.includes("already pending")) {
+        if (errorCode === "already_pending" || errorMessage.includes("already pending")) {
           toast({
             title: "Invitation pending",
             description: "An invitation has already been sent to this email. Check the pending invitations below.",
