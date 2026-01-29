@@ -1,28 +1,37 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Search,
   RefreshCw,
   MoreHorizontal,
   Paperclip,
   Flag,
-  Star,
-  ChevronDown,
+  RotateCcw,
   Loader2,
   Users,
+  Tag,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Email } from "@/types/email";
-import { formatDistanceToNow } from "date-fns";
+import { useEmailMetadata, useEmailTags, useResetEmailProcessing } from "@/hooks/use-email-metadata";
 
 interface EmailListProps {
   emails: Email[];
@@ -61,6 +70,24 @@ export function EmailList({
 }: EmailListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+
+  // Get microsoft message IDs for metadata lookup
+  const microsoftMessageIds = useMemo(() => emails.map((e) => e.id), [emails]);
+  
+  // Fetch metadata (category, processing status) from our database
+  const { data: metadataMap = {} } = useEmailMetadata(microsoftMessageIds);
+  
+  // Get internal email IDs for tags lookup
+  const internalEmailIds = useMemo(() => 
+    Object.values(metadataMap).map((m) => m.id), 
+    [metadataMap]
+  );
+  
+  // Fetch tags for emails
+  const { data: tagsMap = {} } = useEmailTags(internalEmailIds);
+  
+  // Reset processing mutation
+  const resetProcessing = useResetEmailProcessing();
 
   const filteredEmails = emails.filter((email) => {
     const query = searchQuery.toLowerCase();
@@ -161,6 +188,37 @@ export function EmailList({
             <span className="text-xs font-medium text-primary">
               {selectedEmails.size} selected
             </span>
+            <div className="flex-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  disabled={resetProcessing.isPending}
+                  onClick={() => {
+                    // Get internal IDs for selected emails
+                    const internalIds = Array.from(selectedEmails)
+                      .map((msId) => metadataMap[msId]?.id)
+                      .filter(Boolean) as string[];
+                    if (internalIds.length > 0) {
+                      resetProcessing.mutate(internalIds);
+                      setSelectedEmails(new Set());
+                    }
+                  }}
+                >
+                  {resetProcessing.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3 w-3" />
+                  )}
+                  Reset Processing
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Clear category and tags, re-classify on next sync
+              </TooltipContent>
+            </Tooltip>
           </>
         )}
       </div>
@@ -177,6 +235,8 @@ export function EmailList({
           {filteredEmails.map((email) => {
             const isSelected = selectedEmailId === email.id;
             const isChecked = selectedEmails.has(email.id);
+            const metadata = metadataMap[email.id];
+            const tags = metadata ? tagsMap[metadata.id] || [] : [];
 
             return (
               <button
@@ -208,9 +268,32 @@ export function EmailList({
                     >
                       {email.from?.emailAddress.name || email.from?.emailAddress.address}
                     </span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatEmailDate(email.receivedDateTime)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Processing status indicator */}
+                      {metadata && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              {metadata.is_processed ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                              ) : metadata.category_id ? (
+                                <Circle className="h-3.5 w-3.5 text-yellow-500" />
+                              ) : null}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {metadata.is_processed 
+                              ? "Rules processed" 
+                              : metadata.category_id 
+                                ? "Pending review" 
+                                : "Not classified"}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatEmailDate(email.receivedDateTime)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Subject */}
@@ -229,9 +312,47 @@ export function EmailList({
                   </div>
 
                   {/* Preview */}
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-muted-foreground truncate mb-1">
                     {email.bodyPreview}
                   </p>
+
+                  {/* Category and Tags */}
+                  {(metadata?.category || tags.length > 0) && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {metadata?.category && (
+                        <Badge
+                          variant="secondary"
+                          className="h-5 text-[10px] px-1.5 gap-1"
+                          style={{ 
+                            backgroundColor: metadata.category.color ? `${metadata.category.color}20` : undefined,
+                            color: metadata.category.color || undefined,
+                            borderColor: metadata.category.color ? `${metadata.category.color}40` : undefined,
+                          }}
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {metadata.category.name}
+                        </Badge>
+                      )}
+                      {tags.slice(0, 2).map((tag) => (
+                        <Badge
+                          key={tag.id}
+                          variant="outline"
+                          className="h-5 text-[10px] px-1.5"
+                          style={{ 
+                            borderColor: tag.color || undefined,
+                            color: tag.color || undefined,
+                          }}
+                        >
+                          {tag.name}
+                        </Badge>
+                      ))}
+                      {tags.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          +{tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Indicators */}

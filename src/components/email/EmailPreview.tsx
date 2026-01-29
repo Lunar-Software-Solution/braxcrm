@@ -19,6 +19,10 @@ import {
   Users,
   Building2,
   Truck,
+  Tag,
+  RotateCcw,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,6 +39,7 @@ import {
 import type { Email } from "@/types/email";
 import { format } from "date-fns";
 import { useEmailLinkedEntities } from "@/hooks/use-email-entities";
+import { useEmailMetadata, useEmailTags, useResetEmailProcessing } from "@/hooks/use-email-metadata";
 
 interface EmailPreviewProps {
   email: Email | null;
@@ -65,6 +70,19 @@ export function EmailPreview({
   isLoading = false,
 }: EmailPreviewProps) {
   const { data: linkedEntities, isLoading: loadingEntities } = useEmailLinkedEntities(email?.id || null);
+  
+  // Fetch metadata for this email
+  const microsoftIds = email ? [email.id] : [];
+  const { data: metadataMap = {} } = useEmailMetadata(microsoftIds);
+  const metadata = email ? metadataMap[email.id] : null;
+  
+  // Fetch tags for this email
+  const internalIds = metadata ? [metadata.id] : [];
+  const { data: tagsMap = {} } = useEmailTags(internalIds);
+  const tags = metadata ? tagsMap[metadata.id] || [] : [];
+  
+  // Reset processing mutation
+  const resetProcessing = useResetEmailProcessing();
   
   const hasLinkedEntities = linkedEntities && (
     linkedEntities.influencers.length > 0 ||
@@ -182,6 +200,98 @@ export function EmailPreview({
               </Badge>
             )}
           </div>
+
+          {/* Category, Tags & Processing Status */}
+          {metadata && (
+            <div className="mb-6 p-3 rounded-lg bg-muted/50 border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Tag className="h-4 w-4" />
+                  <span>Classification & Rules</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {metadata.is_processed ? (
+                    <Badge variant="secondary" className="gap-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Processed
+                    </Badge>
+                  ) : metadata.category_id ? (
+                    <Badge variant="secondary" className="gap-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                      <Clock className="h-3 w-3" />
+                      Pending Review
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="gap-1">
+                      Not Classified
+                    </Badge>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs"
+                        disabled={resetProcessing.isPending}
+                        onClick={() => {
+                          if (metadata.id) {
+                            resetProcessing.mutate([metadata.id]);
+                          }
+                        }}
+                      >
+                        {resetProcessing.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        Reset
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Clear category and tags, re-classify on next sync
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {metadata.category && (
+                  <Badge
+                    variant="secondary"
+                    className="gap-1.5"
+                    style={{ 
+                      backgroundColor: metadata.category.color ? `${metadata.category.color}20` : undefined,
+                      color: metadata.category.color || undefined,
+                      borderColor: metadata.category.color ? `${metadata.category.color}40` : undefined,
+                    }}
+                  >
+                    <Tag className="h-3 w-3" />
+                    {metadata.category.name}
+                    {metadata.ai_confidence !== null && (
+                      <span className="text-xs opacity-70">
+                        ({Math.round(metadata.ai_confidence * 100)}%)
+                      </span>
+                    )}
+                  </Badge>
+                )}
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant="outline"
+                    style={{ 
+                      borderColor: tag.color || undefined,
+                      color: tag.color || undefined,
+                    }}
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+                {!metadata.category && tags.length === 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    No category or tags assigned
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Sender info */}
           <div className="flex items-start gap-4 mb-6">
