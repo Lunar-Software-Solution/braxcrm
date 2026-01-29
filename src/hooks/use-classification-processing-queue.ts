@@ -9,11 +9,19 @@ export interface ClassificationQueueEmail {
   body_preview: string | null;
   received_at: string;
   person_id: string | null;
+  sender_id: string | null;
   microsoft_message_id: string;
+  sender_email: string | null;
+  sender_name: string | null;
   person?: {
     id: string;
     name: string;
     email: string;
+  };
+  sender?: {
+    id: string;
+    email: string;
+    display_name: string | null;
   };
 }
 
@@ -38,8 +46,12 @@ export function useClassificationProcessingQueue() {
           body_preview,
           received_at,
           person_id,
+          sender_id,
+          sender_email,
+          sender_name,
           microsoft_message_id,
-          person:people(id, name, email)
+          person:people(id, name, email),
+          sender:senders(id, email, display_name)
         `)
         .is("entity_table", null)
         .order("received_at", { ascending: false });

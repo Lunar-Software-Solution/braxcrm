@@ -352,6 +352,7 @@ export type Database = {
           folder_id: string | null
           has_attachments: boolean
           id: string
+          is_person: boolean | null
           is_processed: boolean
           is_read: boolean
           microsoft_message_id: string
@@ -375,6 +376,7 @@ export type Database = {
           folder_id?: string | null
           has_attachments?: boolean
           id?: string
+          is_person?: boolean | null
           is_processed?: boolean
           is_read?: boolean
           microsoft_message_id: string
@@ -398,6 +400,7 @@ export type Database = {
           folder_id?: string | null
           has_attachments?: boolean
           id?: string
+          is_person?: boolean | null
           is_processed?: boolean
           is_read?: boolean
           microsoft_message_id?: string

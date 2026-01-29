@@ -48,6 +48,26 @@ export function ClassificationProcessingQueueTable({
     onSelectionChange(newSelection);
   };
 
+  // Helper to get sender display info
+  const getSenderDisplay = (email: ClassificationQueueEmail) => {
+    if (email.sender) {
+      return {
+        name: email.sender.display_name || email.sender.email?.split('@')[0] || "Unknown",
+        email: email.sender.email || "",
+      };
+    }
+    if (email.person) {
+      return {
+        name: email.person.name || "Unknown",
+        email: email.person.email || "",
+      };
+    }
+    return {
+      name: email.sender_name || "Unknown",
+      email: email.sender_email || "",
+    };
+  };
+
   if (emails.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -84,64 +104,67 @@ export function ClassificationProcessingQueueTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {emails.map((email) => (
-            <TableRow
-              key={email.id}
-              className={cn(
-                safeSelectedIds.has(email.id) && "bg-muted/50",
-                isClassifying && safeSelectedIds.has(email.id) && "animate-pulse"
-              )}
-            >
-              <TableCell>
-                <Checkbox
-                  checked={safeSelectedIds.has(email.id)}
-                  onCheckedChange={(checked) =>
-                    handleSelectOne(email.id, checked as boolean)
-                  }
-                  aria-label={`Select email: ${email.subject}`}
-                  disabled={isClassifying}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium truncate max-w-[150px]">
-                    {email.person?.name || "Unknown"}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                    {email.person?.email || ""}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium truncate max-w-[300px]">
-                    {email.subject || "(No subject)"}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[300px]">
-                    {email.body_preview || ""}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                {isClassifying && safeSelectedIds.has(email.id) ? (
-                  <Badge variant="secondary" className="gap-1.5 text-primary">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Classifying...
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="gap-1.5 text-muted-foreground">
-                    <Brain className="h-3 w-3" />
-                    Awaiting Classification
-                  </Badge>
+          {emails.map((email) => {
+            const senderDisplay = getSenderDisplay(email);
+            return (
+              <TableRow
+                key={email.id}
+                className={cn(
+                  safeSelectedIds.has(email.id) && "bg-muted/50",
+                  isClassifying && safeSelectedIds.has(email.id) && "animate-pulse"
                 )}
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(email.received_at), "MMM d")}
-                </span>
-              </TableCell>
-            </TableRow>
-          ))}
+              >
+                <TableCell>
+                  <Checkbox
+                    checked={safeSelectedIds.has(email.id)}
+                    onCheckedChange={(checked) =>
+                      handleSelectOne(email.id, checked as boolean)
+                    }
+                    aria-label={`Select email: ${email.subject}`}
+                    disabled={isClassifying}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium truncate max-w-[150px]">
+                      {senderDisplay.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                      {senderDisplay.email}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium truncate max-w-[300px]">
+                      {email.subject || "(No subject)"}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate max-w-[300px]">
+                      {email.body_preview || ""}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {isClassifying && safeSelectedIds.has(email.id) ? (
+                    <Badge variant="secondary" className="gap-1.5 text-primary">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Classifying...
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+                      <Brain className="h-3 w-3" />
+                      Awaiting Classification
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(email.received_at), "MMM d")}
+                  </span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
