@@ -46,7 +46,7 @@ const workspaceItems = [
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Inbox", url: "/inbox", icon: Mail },
-  { title: "Email Classification Processing Queue", url: "/classification-processing-queue", icon: Brain },
+  { title: "Classification Queue", url: "/classification-processing-queue", icon: Brain },
   { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
   { title: "Processing Log", url: "/rules-log", icon: ScrollText },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
@@ -127,7 +127,7 @@ export function CRMSidebar() {
                       {!collapsed && (
                         <span className="flex-1">{item.title}</span>
                       )}
-                      {!collapsed && item.title === "Email Classification Processing Queue" && pendingClassificationCount > 0 && (
+                      {!collapsed && item.title === "Classification Queue" && pendingClassificationCount > 0 && (
                         <Badge variant="secondary" className="ml-auto text-xs">
                           {pendingClassificationCount}
                         </Badge>
