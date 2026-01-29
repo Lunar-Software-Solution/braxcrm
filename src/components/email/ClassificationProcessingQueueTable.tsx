@@ -21,12 +21,13 @@ interface ClassificationProcessingQueueTableProps {
 
 export function ClassificationProcessingQueueTable({
   emails,
-  selectedIds,
+  selectedIds = new Set(),
   onSelectionChange,
   isClassifying,
 }: ClassificationProcessingQueueTableProps) {
-  const allSelected = emails.length > 0 && selectedIds.size === emails.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < emails.length;
+  const safeSelectedIds = selectedIds ?? new Set<string>();
+  const allSelected = emails.length > 0 && safeSelectedIds.size === emails.length;
+  const someSelected = safeSelectedIds.size > 0 && safeSelectedIds.size < emails.length;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -37,7 +38,7 @@ export function ClassificationProcessingQueueTable({
   };
 
   const handleSelectOne = (emailId: string, checked: boolean) => {
-    const newSelection = new Set(selectedIds);
+    const newSelection = new Set(safeSelectedIds);
     if (checked) {
       newSelection.add(emailId);
     } else {
@@ -86,12 +87,12 @@ export function ClassificationProcessingQueueTable({
             <TableRow
               key={email.id}
               className={cn(
-                selectedIds.has(email.id) && "bg-muted/50"
+                safeSelectedIds.has(email.id) && "bg-muted/50"
               )}
             >
               <TableCell>
                 <Checkbox
-                  checked={selectedIds.has(email.id)}
+                  checked={safeSelectedIds.has(email.id)}
                   onCheckedChange={(checked) =>
                     handleSelectOne(email.id, checked as boolean)
                   }
