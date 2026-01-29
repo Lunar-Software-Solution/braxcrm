@@ -1,11 +1,11 @@
 import EntityList from "./EntityList";
 
-export default function CorporateManagement() {
+export default function Organisations() {
   return (
     <EntityList
       entityType="corporate_management"
-      title="Corporate Management"
-      singularTitle="Corporate Management"
+      title="Organisations"
+      singularTitle="Organisation"
       color="#0891b2"
     />
   );
