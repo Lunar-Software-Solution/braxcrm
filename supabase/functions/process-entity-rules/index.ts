@@ -102,7 +102,20 @@ serve(async (req) => {
     }
 
     if (!rules || rules.length === 0) {
-      // No rules defined - just mark as processed
+      // No rules defined - log it and mark as processed
+      const { data: claimsDataForLog } = await supabase.auth.getClaims(token);
+      const userIdForLog = claimsDataForLog?.claims?.sub as string;
+      
+      await supabase.from("email_rule_logs").insert({
+        email_id: email_id,
+        rule_id: null,
+        action_type: "no_rules",
+        action_config: { entity_table },
+        success: true,
+        error_message: null,
+        user_id: userIdForLog,
+      });
+      
       await supabase
         .from("email_messages")
         .update({ is_processed: true })
@@ -118,12 +131,15 @@ serve(async (req) => {
     }
 
     const actionsApplied: ActionResult[] = [];
+    let totalActiveActions = 0;
 
     // Process each rule's actions
     for (const rule of rules as EntityRule[]) {
       const activeActions = (rule.actions || [])
         .filter((a) => a.is_active)
         .sort((a, b) => a.sort_order - b.sort_order);
+
+      totalActiveActions += activeActions.length;
 
       for (const action of activeActions) {
         let result: ActionResult;
@@ -159,6 +175,19 @@ serve(async (req) => {
           user_id: userId,
         });
       }
+    }
+
+    // If rules exist but no active actions, log that
+    if (totalActiveActions === 0) {
+      await supabase.from("email_rule_logs").insert({
+        email_id: email_id,
+        rule_id: null,
+        action_type: "no_actions",
+        action_config: { entity_table },
+        success: true,
+        error_message: null,
+        user_id: userId,
+      });
     }
 
     // Mark email as processed
