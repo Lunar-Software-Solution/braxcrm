@@ -3,17 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Person, EmailMessage, ObjectType, PersonObjectType } from "@/types/crm";
 
 export function useCRM() {
-  // Object Types
-  const listObjectTypes = useCallback(async (workspaceId: string): Promise<ObjectType[]> => {
+  // Object Types - no longer filtered by workspace, RLS handles access
+  const listObjectTypes = useCallback(async (): Promise<ObjectType[]> => {
     const { data, error } = await supabase
       .from("object_types")
       .select("*")
-      .eq("workspace_id", workspaceId)
       .eq("is_active", true)
       .order("sort_order");
 
     if (error) throw error;
-    return data || [];
+    return data as unknown as ObjectType[] || [];
   }, []);
 
   const getObjectType = useCallback(async (objectTypeId: string): Promise<ObjectType | null> => {
@@ -24,7 +23,7 @@ export function useCRM() {
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data as unknown as ObjectType;
   }, []);
 
   const createObjectType = useCallback(async (objectType: Omit<ObjectType, "id" | "created_at" | "updated_at">): Promise<ObjectType> => {
@@ -35,7 +34,7 @@ export function useCRM() {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as ObjectType;
   }, []);
 
   const updateObjectType = useCallback(async (objectTypeId: string, updates: Partial<ObjectType>): Promise<ObjectType> => {
@@ -47,7 +46,7 @@ export function useCRM() {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as ObjectType;
   }, []);
 
   const deleteObjectType = useCallback(async (objectTypeId: string): Promise<void> => {
@@ -70,7 +69,8 @@ export function useCRM() {
     return (data || []).map(d => ({
       ...d,
       source: d.source as 'manual' | 'email_rule' | 'ai_suggestion',
-    }));
+      object_type: d.object_type as unknown as ObjectType,
+    })) as PersonObjectType[];
   }, []);
 
   const assignObjectTypeToPerson = useCallback(async (
@@ -101,19 +101,16 @@ export function useCRM() {
     if (error) throw error;
   }, []);
 
-  // People
-  const listPeople = useCallback(async (workspaceId: string, options?: { objectTypeId?: string }): Promise<Person[]> => {
-    let query = supabase
+  // People - RLS handles access control
+  const listPeople = useCallback(async (options?: { objectTypeId?: string }): Promise<Person[]> => {
+    const { data, error } = await supabase
       .from("people")
       .select("*")
-      .eq("workspace_id", workspaceId)
       .order("name");
-
-    const { data, error } = await query;
 
     if (error) throw error;
 
-    let people = data || [];
+    let people = (data || []) as unknown as Person[];
 
     // If filtering by object type, we need to join with person_object_types
     if (options?.objectTypeId) {
@@ -140,7 +137,8 @@ export function useCRM() {
         list.push({
           ...a,
           source: a.source as 'manual' | 'email_rule' | 'ai_suggestion',
-        });
+          object_type: a.object_type as unknown as ObjectType,
+        } as PersonObjectType);
         assignmentsByPerson.set(a.person_id, list);
       });
 
@@ -174,20 +172,20 @@ export function useCRM() {
       object_types: (assignments || []).map(a => ({
         ...a,
         source: a.source as 'manual' | 'email_rule' | 'ai_suggestion',
+        object_type: a.object_type as unknown as ObjectType,
       })),
-    };
+    } as unknown as Person;
   }, []);
 
-  const getPersonByEmail = useCallback(async (workspaceId: string, email: string): Promise<Person | null> => {
+  const getPersonByEmail = useCallback(async (email: string): Promise<Person | null> => {
     const { data, error } = await supabase
       .from("people")
       .select("*")
-      .eq("workspace_id", workspaceId)
       .ilike("email", email)
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data as unknown as Person;
   }, []);
 
   const createPerson = useCallback(async (person: Omit<Person, "id" | "created_at" | "updated_at" | "object_types">): Promise<Person> => {
@@ -198,7 +196,7 @@ export function useCRM() {
       .single();
 
     if (error) throw error;
-    return { ...data, object_types: [] };
+    return { ...data, object_types: [] } as unknown as Person;
   }, []);
 
   const updatePerson = useCallback(async (personId: string, updates: Partial<Person>): Promise<Person> => {
@@ -213,7 +211,7 @@ export function useCRM() {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as Person;
   }, []);
 
   const deletePerson = useCallback(async (personId: string): Promise<void> => {
@@ -237,14 +235,13 @@ export function useCRM() {
     return (data || []).map(d => ({
       ...d,
       direction: d.direction as 'inbound' | 'outbound',
-    }));
+    })) as unknown as EmailMessage[];
   }, []);
 
-  const listRecentEmails = useCallback(async (workspaceId: string, limit = 50): Promise<EmailMessage[]> => {
+  const listRecentEmails = useCallback(async (limit = 50): Promise<EmailMessage[]> => {
     const { data, error } = await supabase
       .from("email_messages")
       .select("*, person:people(*)")
-      .eq("workspace_id", workspaceId)
       .order("received_at", { ascending: false })
       .limit(limit);
 
@@ -252,12 +249,12 @@ export function useCRM() {
     return (data || []).map(d => ({
       ...d,
       direction: d.direction as 'inbound' | 'outbound',
-    }));
+      person: d.person as unknown as Person,
+    })) as unknown as EmailMessage[];
   }, []);
 
   // Sync emails to CRM
   const syncEmails = useCallback(async (
-    workspaceId: string,
     messages: unknown[],
     userEmail: string
   ): Promise<{ peopleCreated: number; emailsSynced: number; errors: string[] }> => {
@@ -274,7 +271,7 @@ export function useCRM() {
           Authorization: `Bearer ${sessionData.session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ workspaceId, messages, userEmail }),
+        body: JSON.stringify({ messages, userEmail }),
       }
     );
 

@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TableHeader as CRMTableHeader } from "@/components/crm/TableHeader";
 import { useEntities } from "@/hooks/use-entities";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Entity, EntityType } from "@/types/entities";
@@ -37,13 +36,12 @@ export default function EntityList({ entityType, title, singularTitle, color }: 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null);
 
-  const { workspaceId, loading: workspaceLoading } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { list, isLoading, create, update, delete: deleteEntity } = useEntities(entityType, workspaceId);
+  const { list, isLoading, create, update, delete: deleteEntity } = useEntities(entityType);
 
   const handleSave = async (formData: FormData) => {
-    if (!workspaceId || !user) return;
+    if (!user) return;
     try {
       const data = {
         name: formData.get("name") as string,
@@ -58,7 +56,6 @@ export default function EntityList({ entityType, title, singularTitle, color }: 
       } else {
         await create({
           ...data,
-          workspace_id: workspaceId,
           created_by: user.id,
         });
         toast({ title: `${singularTitle} created` });
@@ -106,11 +103,11 @@ export default function EntityList({ entityType, title, singularTitle, color }: 
       <CRMTableHeader title={title} count={list.length} />
 
       <div className="flex-1 overflow-hidden p-6">
-        {isLoading || workspaceLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">Loading {title.toLowerCase()}...</p>
           </div>
-        ) : !workspaceId ? (
+        ) : !user ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">Please log in to view {title.toLowerCase()}</p>
           </div>

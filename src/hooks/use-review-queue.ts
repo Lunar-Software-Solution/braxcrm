@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace } from "./use-workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "./use-toast";
 
 export interface ReviewQueueEmail {
@@ -31,7 +31,7 @@ export interface EmailCategory {
 }
 
 export function useReviewQueue() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -41,10 +41,8 @@ export function useReviewQueue() {
     isLoading: isLoadingEmails,
     refetch: refetchEmails,
   } = useQuery({
-    queryKey: ["review-queue", workspaceId],
+    queryKey: ["review-queue"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-
       const { data, error } = await supabase
         .from("email_messages")
         .select(`
@@ -58,7 +56,6 @@ export function useReviewQueue() {
           category:email_categories(id, name, color),
           person:people(id, name, email)
         `)
-        .eq("workspace_id", workspaceId)
         .not("category_id", "is", null)
         .eq("is_processed", false)
         .order("received_at", { ascending: false });
@@ -66,77 +63,23 @@ export function useReviewQueue() {
       if (error) throw error;
       return data as unknown as ReviewQueueEmail[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 
   // Fetch all categories for the dropdown
   const { data: categories = [] } = useQuery({
-    queryKey: ["email-categories", workspaceId],
+    queryKey: ["email-categories"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-
       const { data, error } = await supabase
         .from("email_categories")
         .select("id, name, color, description")
-        .eq("workspace_id", workspaceId)
         .eq("is_active", true)
         .order("sort_order");
 
       if (error) throw error;
       return data as EmailCategory[];
     },
-    enabled: !!workspaceId,
-  });
-
-  // Fetch workspace settings
-  const { data: workspaceSettings, isLoading: isLoadingSettings } = useQuery({
-    queryKey: ["workspace-settings", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return null;
-
-      const { data, error } = await supabase
-        .from("workspace_settings")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-  });
-
-  // Update auto-process setting
-  const updateAutoProcessMutation = useMutation({
-    mutationFn: async (autoProcess: boolean) => {
-      if (!workspaceId) throw new Error("No workspace");
-
-      // Upsert the setting
-      const { error } = await supabase
-        .from("workspace_settings")
-        .upsert({
-          workspace_id: workspaceId,
-          auto_process_emails: autoProcess,
-        }, {
-          onConflict: "workspace_id",
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace-settings", workspaceId] });
-      toast({
-        title: "Settings updated",
-        description: "Auto-process setting has been saved.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error updating settings",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    enabled: !!user,
   });
 
   // Update email category
@@ -164,7 +107,7 @@ export function useReviewQueue() {
       if (categoryError) throw categoryError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["review-queue", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       toast({
         title: "Category updated",
         description: "Email category has been changed.",
@@ -182,8 +125,6 @@ export function useReviewQueue() {
   // Process selected emails through rules
   const processEmailsMutation = useMutation({
     mutationFn: async (emailIds: string[]) => {
-      if (!workspaceId) throw new Error("No workspace");
-
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
@@ -209,7 +150,6 @@ export function useReviewQueue() {
             body: {
               email_id: email.id,
               category_id: email.category_id,
-              workspace_id: workspaceId,
               microsoft_message_id: email.microsoft_message_id,
             },
           });
@@ -227,7 +167,7 @@ export function useReviewQueue() {
       return results;
     },
     onSuccess: (results) => {
-      queryClient.invalidateQueries({ queryKey: ["review-queue", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       toast({
         title: "Processing complete",
         description: `${results.processed} email(s) processed. ${results.errors.length > 0 ? `${results.errors.length} error(s).` : ""}`,
@@ -247,10 +187,6 @@ export function useReviewQueue() {
     isLoadingEmails,
     refetchEmails,
     categories,
-    autoProcessEnabled: workspaceSettings?.auto_process_emails ?? true,
-    isLoadingSettings,
-    updateAutoProcess: updateAutoProcessMutation.mutate,
-    isUpdatingAutoProcess: updateAutoProcessMutation.isPending,
     updateCategory: updateCategoryMutation.mutate,
     isUpdatingCategory: updateCategoryMutation.isPending,
     processEmails: processEmailsMutation.mutate,
@@ -260,24 +196,21 @@ export function useReviewQueue() {
 
 // Hook to get pending count for sidebar badge
 export function usePendingEmailCount() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   const { data: count = 0 } = useQuery({
-    queryKey: ["pending-email-count", workspaceId],
+    queryKey: ["pending-email-count"],
     queryFn: async () => {
-      if (!workspaceId) return 0;
-
       const { count, error } = await supabase
         .from("email_messages")
         .select("*", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
         .not("category_id", "is", null)
         .eq("is_processed", false);
 
       if (error) return 0;
       return count || 0;
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
