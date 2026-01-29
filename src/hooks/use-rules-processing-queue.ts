@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "./use-toast";
 import type { EntityTable } from "@/types/entity-automation";
 
-export interface ReviewQueueEmail {
+export interface RulesProcessingQueueEmail {
   id: string;
   subject: string | null;
   body_preview: string | null;
@@ -19,7 +19,7 @@ export interface ReviewQueueEmail {
   };
 }
 
-export function useReviewQueue() {
+export function useRulesProcessingQueue() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,7 +30,7 @@ export function useReviewQueue() {
     isLoading: isLoadingEmails,
     refetch: refetchEmails,
   } = useQuery({
-    queryKey: ["review-queue"],
+    queryKey: ["rules-processing-queue"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("email_messages")
@@ -49,7 +49,7 @@ export function useReviewQueue() {
         .order("received_at", { ascending: false });
 
       if (error) throw error;
-      return data as unknown as ReviewQueueEmail[];
+      return data as unknown as RulesProcessingQueueEmail[];
     },
     enabled: !!user,
   });
@@ -68,7 +68,7 @@ export function useReviewQueue() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
       toast({
         title: "Entity type updated",
         description: "Email entity type has been changed.",
@@ -128,7 +128,7 @@ export function useReviewQueue() {
       return results;
     },
     onSuccess: (results) => {
-      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
       queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
       toast({
         title: "Processing complete",

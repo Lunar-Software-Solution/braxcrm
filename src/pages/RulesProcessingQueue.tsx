@@ -13,11 +13,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ReviewQueueTable } from "@/components/email/ReviewQueueTable";
-import { useReviewQueue } from "@/hooks/use-review-queue";
+import { RulesProcessingQueueTable } from "@/components/email/RulesProcessingQueueTable";
+import { useRulesProcessingQueue } from "@/hooks/use-rules-processing-queue";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function EmailReviewQueue() {
+export default function RulesProcessingQueue() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -29,7 +29,7 @@ export default function EmailReviewQueue() {
     isUpdatingEntityType,
     processEmails,
     isProcessing,
-  } = useReviewQueue();
+  } = useRulesProcessingQueue();
 
   // Filter emails by search query
   const filteredEmails = pendingEmails.filter((email) => {
@@ -65,7 +65,7 @@ export default function EmailReviewQueue() {
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-2xl font-semibold">Review Queue</h1>
+            <h1 className="text-2xl font-semibold">Rules Processing Queue</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Review AI-classified emails before processing automation rules
             </p>
@@ -141,7 +141,7 @@ export default function EmailReviewQueue() {
             ))}
           </div>
         ) : (
-          <ReviewQueueTable
+          <RulesProcessingQueueTable
             emails={filteredEmails}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
@@ -153,7 +153,7 @@ export default function EmailReviewQueue() {
 
       {/* Footer */}
       <div className="border-t px-6 py-3 text-sm text-muted-foreground">
-        Showing {filteredEmails.length} email{filteredEmails.length !== 1 ? "s" : ""} pending review
+        Showing {filteredEmails.length} email{filteredEmails.length !== 1 ? "s" : ""} pending processing
       </div>
     </div>
   );

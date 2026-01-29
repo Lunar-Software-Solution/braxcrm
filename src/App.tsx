@@ -22,7 +22,7 @@ import ExpenseSuppliers from "./pages/ExpenseSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
-import EmailReviewQueue from "./pages/EmailReviewQueue";
+import RulesProcessingQueue from "./pages/RulesProcessingQueue";
 import RulesLog from "./pages/RulesLog";
 import EmailAutomation from "./pages/EmailAutomation";
 import UsersRoles from "./pages/UsersRoles";
@@ -65,7 +65,7 @@ const App = () => (
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
-              <Route path="/review-queue" element={<EmailReviewQueue />} />
+              <Route path="/rules-processing-queue" element={<RulesProcessingQueue />} />
               <Route path="/rules-log" element={<RulesLog />} />
               <Route path="/email-automation" element={<EmailAutomation />} />
               <Route path="/users-roles" element={<UsersRoles />} />
