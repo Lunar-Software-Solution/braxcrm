@@ -30,12 +30,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, Shield, Plus, X, MoreVertical, Building2, Mail, Loader2, UserPlus } from "lucide-react";
+import { Users, Shield, Plus, X, MoreVertical, Building2, Mail, Loader2, UserPlus, SendHorizonal } from "lucide-react";
 import { useUsersRoles, type UserWithRoles, type EntityRole } from "@/hooks/use-users-roles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRoles } from "@/hooks/use-user-roles";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import InvitationsManager from "./InvitationsManager";
 
 function EntityRoleBadge({ role, onRemove }: { role: { id: string; role_name: string; entity_table: string }; onRemove?: () => void }) {
   const entityLabels: Record<string, string> = {
@@ -224,6 +226,7 @@ export default function UsersRolesSettings() {
   const { user } = useAuth();
   const { isAdmin } = useUserRoles();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const {
     users,
     isLoadingUsers,
@@ -263,6 +266,7 @@ export default function UsersRolesSettings() {
       setInviteEmail("");
       setInviteName("");
       setInviteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
     } catch (error) {
       console.error("Failed to send invite:", error);
       toast({
@@ -396,6 +400,17 @@ export default function UsersRolesSettings() {
             </div>
           </div>
         </div>
+
+        {/* Pending Invitations */}
+        {isAdmin && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <SendHorizonal className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-medium">Pending Invitations</h3>
+            </div>
+            <InvitationsManager />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

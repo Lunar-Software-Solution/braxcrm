@@ -10,6 +10,8 @@ const corsHeaders = {
 interface InviteRequest {
   email: string;
   name?: string;
+  resend?: boolean;
+  invitationId?: string;
 }
 
 serve(async (req) => {
@@ -66,7 +68,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, name }: InviteRequest = await req.json();
+    const { email, name, resend, invitationId }: InviteRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -75,8 +77,26 @@ serve(async (req) => {
       );
     }
 
-    // Use service role to generate invite link
+    // Use service role for admin operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check for existing pending invitation if not a resend
+    if (!resend) {
+      const { data: existingInvite } = await adminClient
+        .from("invitations")
+        .select("id")
+        .eq("email", email)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (existingInvite) {
+        return new Response(
+          JSON.stringify({ error: "An invitation is already pending for this email" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
     
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.generateLink({
       type: "invite",
@@ -131,6 +151,26 @@ serve(async (req) => {
       const errorText = await brevoResponse.text();
       console.error("Brevo API error:", errorText);
       throw new Error(`Failed to send email: ${errorText}`);
+    }
+
+    // Store or update invitation in database
+    if (resend && invitationId) {
+      // Update existing invitation
+      await adminClient
+        .from("invitations")
+        .update({ 
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq("id", invitationId);
+    } else {
+      // Create new invitation record
+      await adminClient.from("invitations").insert({
+        email,
+        name: name || null,
+        invited_by: userId,
+        status: "pending",
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
     }
 
     console.log("Invitation sent successfully to:", email);
