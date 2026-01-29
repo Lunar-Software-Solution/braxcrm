@@ -10,7 +10,7 @@ export type RuleActionType =
   | 'assign_object_type'
   | 'assign_entity';
 
-export type EntityType = 'influencer' | 'reseller' | 'supplier';
+export type EntityType = 'influencer' | 'reseller' | 'supplier' | 'corporate_management';
 
 export type InvoiceStatus = 'pending' | 'reviewed' | 'approved' | 'rejected';
 

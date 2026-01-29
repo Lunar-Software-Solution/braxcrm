@@ -342,7 +342,7 @@ async function processAction(
       const entityType = config.entity_type as string;
       const createIfNotExists = config.create_if_not_exists as boolean;
 
-      if (!entityType || !["influencer", "reseller", "supplier"].includes(entityType)) {
+      if (!entityType || !["influencer", "reseller", "supplier", "corporate_management"].includes(entityType)) {
         return { action_type: "assign_entity", success: false, error: "Invalid entity type" };
       }
 
@@ -372,10 +372,10 @@ async function processAction(
         return { action_type: "assign_entity", success: true }; // Nothing to do
       }
 
-      // Determine which table to use
-      const tableName = `${entityType}s`; // influencers, resellers, suppliers
-      const linkTable = `email_${tableName}`; // email_influencers, etc.
-      const entityIdField = `${entityType}_id`; // influencer_id, etc.
+      // Determine which table to use - handle corporate_management specially (no 's' suffix)
+      const tableName = entityType === "corporate_management" ? "corporate_management" : `${entityType}s`;
+      const linkTable = `email_${tableName}`; // email_influencers, email_corporate_management, etc.
+      const entityIdField = `${entityType}_id`; // influencer_id, corporate_management_id, etc.
 
       // Check if entity already exists by email
       const { data: existingEntity } = await supabase
