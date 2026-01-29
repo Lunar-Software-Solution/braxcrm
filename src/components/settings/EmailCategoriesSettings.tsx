@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -54,24 +53,21 @@ export default function EmailCategoriesSettings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<EmailCategory | null>(null);
 
-  const { workspaceId } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["email-categories", workspaceId],
+    queryKey: ["email-categories"],
     queryFn: async () => {
-      if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("email_categories")
         .select("*")
-        .eq("workspace_id", workspaceId)
         .order("sort_order");
       if (error) throw error;
       return data as EmailCategory[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
@@ -141,7 +137,7 @@ export default function EmailCategoriesSettings() {
   });
 
   const handleSave = (formData: FormData) => {
-    if (!workspaceId || !user) return;
+    if (!user) return;
 
     const data = {
       name: formData.get("name") as string,
@@ -150,7 +146,6 @@ export default function EmailCategoriesSettings() {
       icon: "tag",
       is_active: true,
       sort_order: categories.length,
-      workspace_id: workspaceId,
       created_by: user.id,
     };
 

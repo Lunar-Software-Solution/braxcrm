@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
@@ -25,39 +24,34 @@ import type {
 // ==================== CATEGORIES ====================
 
 export function useEmailCategories() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["email-categories", workspaceId],
+    queryKey: ["email-categories"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-      
       const { data, error } = await supabase
         .from("email_categories")
         .select("*")
-        .eq("workspace_id", workspaceId)
         .order("sort_order");
 
       if (error) throw error;
       return data as EmailCategory[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 }
 
 export function useCreateCategory() {
   const { user } = useAuth();
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateEmailCategoryInput) => {
-      if (!workspaceId || !user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("email_categories")
         .insert({
-          workspace_id: workspaceId,
           created_by: user.id,
           name: input.name,
           description: input.description || null,
@@ -73,7 +67,7 @@ export function useCreateCategory() {
       return data as EmailCategory;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-categories", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-categories"] });
       toast.success("Category created");
     },
     onError: (error) => {
@@ -83,7 +77,6 @@ export function useCreateCategory() {
 }
 
 export function useUpdateCategory() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -101,7 +94,7 @@ export function useUpdateCategory() {
       return data as EmailCategory;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-categories", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-categories"] });
       toast.success("Category updated");
     },
     onError: (error) => {
@@ -111,7 +104,6 @@ export function useUpdateCategory() {
 }
 
 export function useDeleteCategory() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -124,7 +116,7 @@ export function useDeleteCategory() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-categories", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-categories"] });
       toast.success("Category deleted");
     },
     onError: (error) => {
@@ -136,13 +128,11 @@ export function useDeleteCategory() {
 // ==================== RULES ====================
 
 export function useEmailRules(categoryId?: string) {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["email-rules", workspaceId, categoryId],
+    queryKey: ["email-rules", categoryId],
     queryFn: async () => {
-      if (!workspaceId) return [];
-      
       let query = supabase
         .from("email_rules")
         .select(`
@@ -150,7 +140,6 @@ export function useEmailRules(categoryId?: string) {
           category:email_categories(*),
           actions:email_rule_actions(*)
         `)
-        .eq("workspace_id", workspaceId)
         .order("priority", { ascending: false });
 
       if (categoryId) {
@@ -162,23 +151,21 @@ export function useEmailRules(categoryId?: string) {
       if (error) throw error;
       return data as (EmailRule & { category: EmailCategory; actions: EmailRuleAction[] })[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 }
 
 export function useCreateRule() {
   const { user } = useAuth();
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateEmailRuleInput) => {
-      if (!workspaceId || !user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from("email_rules")
         .insert({
-          workspace_id: workspaceId,
           created_by: user.id,
           category_id: input.category_id,
           name: input.name,
@@ -192,7 +179,7 @@ export function useCreateRule() {
       return data as EmailRule;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Rule created");
     },
     onError: (error) => {
@@ -202,7 +189,6 @@ export function useCreateRule() {
 }
 
 export function useUpdateRule() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -220,7 +206,7 @@ export function useUpdateRule() {
       return data as EmailRule;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Rule updated");
     },
     onError: (error) => {
@@ -230,7 +216,6 @@ export function useUpdateRule() {
 }
 
 export function useDeleteRule() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -243,7 +228,7 @@ export function useDeleteRule() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Rule deleted");
     },
     onError: (error) => {
@@ -255,12 +240,10 @@ export function useDeleteRule() {
 // ==================== RULE ACTIONS ====================
 
 export function useCreateRuleAction() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateEmailRuleActionInput) => {
-      // Cast to any to avoid type issues before types are regenerated
       const insertData = {
         rule_id: input.rule_id,
         action_type: input.action_type,
@@ -279,7 +262,7 @@ export function useCreateRuleAction() {
       return data as EmailRuleAction;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Action added");
     },
     onError: (error) => {
@@ -289,7 +272,6 @@ export function useCreateRuleAction() {
 }
 
 export function useUpdateRuleAction() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -309,7 +291,7 @@ export function useUpdateRuleAction() {
       return data as EmailRuleAction;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Action updated");
     },
     onError: (error) => {
@@ -319,7 +301,6 @@ export function useUpdateRuleAction() {
 }
 
 export function useDeleteRuleAction() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -332,7 +313,7 @@ export function useDeleteRuleAction() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-rules", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-rules"] });
       toast.success("Action removed");
     },
     onError: (error) => {
@@ -344,38 +325,31 @@ export function useDeleteRuleAction() {
 // ==================== TAGS ====================
 
 export function useEmailTags() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["email-tags", workspaceId],
+    queryKey: ["email-tags"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-      
       const { data, error } = await supabase
         .from("email_tags")
         .select("*")
-        .eq("workspace_id", workspaceId)
         .order("name");
 
       if (error) throw error;
       return data as EmailTag[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 }
 
 export function useCreateTag() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateEmailTagInput) => {
-      if (!workspaceId) throw new Error("No workspace");
-
       const { data, error } = await supabase
         .from("email_tags")
         .insert({
-          workspace_id: workspaceId,
           name: input.name,
           color: input.color || "#6366f1",
           outlook_category: input.outlook_category || null,
@@ -387,7 +361,7 @@ export function useCreateTag() {
       return data as EmailTag;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-tags", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-tags"] });
       toast.success("Tag created");
     },
     onError: (error) => {
@@ -397,7 +371,6 @@ export function useCreateTag() {
 }
 
 export function useUpdateTag() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -415,7 +388,7 @@ export function useUpdateTag() {
       return data as EmailTag;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-tags", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-tags"] });
       toast.success("Tag updated");
     },
     onError: (error) => {
@@ -425,7 +398,6 @@ export function useUpdateTag() {
 }
 
 export function useDeleteTag() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -438,7 +410,7 @@ export function useDeleteTag() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-tags", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["email-tags"] });
       toast.success("Tag deleted");
     },
     onError: (error) => {
@@ -450,41 +422,34 @@ export function useDeleteTag() {
 // ==================== VISIBILITY GROUPS ====================
 
 export function useVisibilityGroups() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["visibility-groups", workspaceId],
+    queryKey: ["visibility-groups"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-      
       const { data, error } = await supabase
         .from("email_visibility_groups")
         .select(`
           *,
           members:email_visibility_group_members(*)
         `)
-        .eq("workspace_id", workspaceId)
         .order("name");
 
       if (error) throw error;
       return data as (EmailVisibilityGroup & { members: { id: string; user_id: string }[] })[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 }
 
 export function useCreateVisibilityGroup() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateVisibilityGroupInput) => {
-      if (!workspaceId) throw new Error("No workspace");
-
       const { data, error } = await supabase
         .from("email_visibility_groups")
         .insert({
-          workspace_id: workspaceId,
           name: input.name,
           description: input.description || null,
         })
@@ -495,17 +460,16 @@ export function useCreateVisibilityGroup() {
       return data as EmailVisibilityGroup;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["visibility-groups", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["visibility-groups"] });
       toast.success("Visibility group created");
     },
     onError: (error) => {
-      toast.error(`Failed to create group: ${error.message}`);
+      toast.error(`Failed to create visibility group: ${error.message}`);
     },
   });
 }
 
 export function useUpdateVisibilityGroup() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -523,17 +487,16 @@ export function useUpdateVisibilityGroup() {
       return data as EmailVisibilityGroup;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["visibility-groups", workspaceId] });
-      toast.success("Group updated");
+      queryClient.invalidateQueries({ queryKey: ["visibility-groups"] });
+      toast.success("Visibility group updated");
     },
     onError: (error) => {
-      toast.error(`Failed to update group: ${error.message}`);
+      toast.error(`Failed to update visibility group: ${error.message}`);
     },
   });
 }
 
 export function useDeleteVisibilityGroup() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -546,17 +509,16 @@ export function useDeleteVisibilityGroup() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["visibility-groups", workspaceId] });
-      toast.success("Group deleted");
+      queryClient.invalidateQueries({ queryKey: ["visibility-groups"] });
+      toast.success("Visibility group deleted");
     },
     onError: (error) => {
-      toast.error(`Failed to delete group: ${error.message}`);
+      toast.error(`Failed to delete visibility group: ${error.message}`);
     },
   });
 }
 
 export function useAddGroupMember() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -574,7 +536,7 @@ export function useAddGroupMember() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["visibility-groups", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["visibility-groups"] });
       toast.success("Member added");
     },
     onError: (error) => {
@@ -584,7 +546,6 @@ export function useAddGroupMember() {
 }
 
 export function useRemoveGroupMember() {
-  const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -597,63 +558,11 @@ export function useRemoveGroupMember() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["visibility-groups", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["visibility-groups"] });
       toast.success("Member removed");
     },
     onError: (error) => {
       toast.error(`Failed to remove member: ${error.message}`);
-    },
-  });
-}
-
-// ==================== EXTRACTED INVOICES ====================
-
-export function useExtractedInvoices() {
-  const { workspaceId } = useWorkspace();
-
-  return useQuery({
-    queryKey: ["extracted-invoices", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      
-      const { data, error } = await supabase
-        .from("extracted_invoices")
-        .select(`
-          *,
-          email:email_messages(subject, received_at)
-        `)
-        .eq("workspace_id", workspaceId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-  });
-}
-
-export function useUpdateInvoiceStatus() {
-  const { workspaceId } = useWorkspace();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "pending" | "reviewed" | "approved" | "rejected" }) => {
-      const { data, error } = await supabase
-        .from("extracted_invoices")
-        .update({ status })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["extracted-invoices", workspaceId] });
-      toast.success("Invoice status updated");
-    },
-    onError: (error) => {
-      toast.error(`Failed to update status: ${error.message}`);
     },
   });
 }
