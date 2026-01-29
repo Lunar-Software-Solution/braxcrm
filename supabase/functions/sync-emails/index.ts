@@ -32,7 +32,6 @@ async function classifyAndProcessEmail(
   authHeader: string,
   emailId: string,
   msg: GraphMessage,
-  workspaceId: string,
   autoProcessRules: boolean = true
 ): Promise<{ classified: boolean; rulesApplied: boolean; error?: string }> {
   try {
@@ -49,7 +48,6 @@ async function classifyAndProcessEmail(
         body_preview: msg.bodyPreview || "",
         sender_email: msg.from?.emailAddress?.address || "",
         sender_name: msg.from?.emailAddress?.name || "",
-        workspace_id: workspaceId,
       }),
     });
 
@@ -81,7 +79,6 @@ async function classifyAndProcessEmail(
       body: JSON.stringify({
         email_id: emailId,
         category_id: classification.category_id,
-        workspace_id: workspaceId,
         microsoft_message_id: msg.id,
       }),
     });
@@ -128,10 +125,10 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { workspaceId, messages, userEmail, enableAiProcessing = true } = await req.json();
+    const { messages, userEmail, enableAiProcessing = true } = await req.json();
 
-    if (!workspaceId || !messages || !Array.isArray(messages)) {
-      throw new Error("Missing workspaceId or messages");
+    if (!messages || !Array.isArray(messages)) {
+      throw new Error("Missing messages array");
     }
 
     const results = {
@@ -171,11 +168,10 @@ serve(async (req) => {
         let personId: string | undefined = personCache[safeContactEmail];
 
         if (!personId) {
-          // Check if person exists
+          // Check if person exists (RLS will handle access control)
           const { data: existingPerson } = await supabase
             .from("people")
             .select("id")
-            .eq("workspace_id", workspaceId)
             .ilike("email", safeContactEmail)
             .maybeSingle();
 
@@ -183,11 +179,10 @@ serve(async (req) => {
             personId = existingPerson.id;
             personCache[safeContactEmail] = personId;
           } else {
-            // Create new person (without company - companies are replaced by object types)
+            // Create new person
             const { data: newPerson, error: personError } = await supabase
               .from("people")
               .insert({
-                workspace_id: workspaceId,
                 name: safeContactName,
                 email: safeContactEmail,
                 is_auto_created: true,
@@ -201,7 +196,6 @@ serve(async (req) => {
               const { data: retryPerson } = await supabase
                 .from("people")
                 .select("id")
-                .eq("workspace_id", workspaceId)
                 .ilike("email", safeContactEmail)
                 .maybeSingle();
               
@@ -221,14 +215,12 @@ serve(async (req) => {
         const { data: existingEmail } = await supabase
           .from("email_messages")
           .select("id, is_processed")
-          .eq("workspace_id", workspaceId)
           .eq("microsoft_message_id", msg.id)
           .maybeSingle();
 
         const { data: upsertedEmail, error: emailError } = await supabase
           .from("email_messages")
           .upsert({
-            workspace_id: workspaceId,
             microsoft_message_id: msg.id,
             person_id: personId || null,
             direction: isInbound ? "inbound" : "outbound",
@@ -242,7 +234,7 @@ serve(async (req) => {
             // Only set is_processed to false for new emails
             ...(existingEmail ? {} : { is_processed: false }),
           }, {
-            onConflict: "workspace_id,microsoft_message_id",
+            onConflict: "microsoft_message_id",
           })
           .select("id, is_processed")
           .single();
@@ -262,22 +254,8 @@ serve(async (req) => {
       }
     }
 
-    // Check workspace auto-process setting
-    let autoProcessRules = true;
-    const adminSupabase = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-    
-    const { data: workspaceSettings } = await adminSupabase
-      .from("workspace_settings")
-      .select("auto_process_emails")
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    
-    if (workspaceSettings) {
-      autoProcessRules = workspaceSettings.auto_process_emails;
-    }
+    // Auto-process is always enabled now (no workspace settings)
+    const autoProcessRules = true;
 
     // Process AI classification for unprocessed emails (limit to avoid timeout)
     const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
@@ -289,7 +267,6 @@ serve(async (req) => {
         authHeader,
         emailId,
         msg,
-        workspaceId,
         autoProcessRules
       );
 
