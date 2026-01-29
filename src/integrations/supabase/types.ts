@@ -321,6 +321,8 @@ export type Database = {
           microsoft_message_id: string
           person_id: string | null
           received_at: string
+          sender_email: string | null
+          sender_name: string | null
           subject: string | null
           user_id: string | null
           visibility_group_id: string | null
@@ -341,6 +343,8 @@ export type Database = {
           microsoft_message_id: string
           person_id?: string | null
           received_at: string
+          sender_email?: string | null
+          sender_name?: string | null
           subject?: string | null
           user_id?: string | null
           visibility_group_id?: string | null
@@ -361,6 +365,8 @@ export type Database = {
           microsoft_message_id?: string
           person_id?: string | null
           received_at?: string
+          sender_email?: string | null
+          sender_name?: string | null
           subject?: string | null
           user_id?: string | null
           visibility_group_id?: string | null

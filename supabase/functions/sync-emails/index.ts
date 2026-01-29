@@ -202,12 +202,16 @@ serve(async (req) => {
         
         const isInbound = Boolean(fromEmail && fromEmail !== userEmail?.toLowerCase());
         const contactEmail = isInbound ? fromEmail : msg.toRecipients?.[0]?.emailAddress?.address?.toLowerCase();
+        const contactName = isInbound 
+          ? fromName 
+          : msg.toRecipients?.[0]?.emailAddress?.name || contactEmail || "Unknown";
 
         if (!contactEmail) {
           continue; // Skip if no contact email
         }
 
         const safeContactEmail = contactEmail;
+        const safeContactName = contactName;
 
         // Only check if person exists - don't create (people are created by rules)
         let personId: string | undefined = personCache[safeContactEmail];
@@ -244,7 +248,9 @@ serve(async (req) => {
             has_attachments: msg.hasAttachments,
             conversation_id: msg.conversationId || null,
             folder_id: msg.parentFolderId || null,
-            // Store sender info for later person creation by rules
+            // Store sender info for person creation by rules
+            sender_email: safeContactEmail,
+            sender_name: safeContactName,
             // Only set is_processed to false for new emails
             ...(existingEmail ? {} : { is_processed: false }),
           }, {

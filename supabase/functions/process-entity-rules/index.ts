@@ -352,22 +352,77 @@ async function processAction(
         return { action_type: "link_entity", success: true }; // No link table for this entity type
       }
 
-      // Get person from email
+      // Get email with person and sender info
       const { data: email } = await supabase
         .from("email_messages")
-        .select("person_id")
+        .select("person_id, sender_email, sender_name, user_id")
         .eq("id", emailId)
         .single();
 
-      if (!email?.person_id) {
-        return { action_type: "link_entity", success: false, error: "No person linked to email" };
+      if (!email) {
+        return { action_type: "link_entity", success: false, error: "Email not found" };
+      }
+
+      let personId = email.person_id;
+
+      // Create person if they don't exist and we have sender info
+      if (!personId && email.sender_email) {
+        // Check if person already exists by email
+        const { data: existingPerson } = await supabase
+          .from("people")
+          .select("id")
+          .ilike("email", email.sender_email)
+          .maybeSingle();
+
+        if (existingPerson) {
+          personId = existingPerson.id;
+        } else {
+          // Create new person
+          const { data: newPerson, error: personError } = await supabase
+            .from("people")
+            .insert({
+              name: email.sender_name || email.sender_email,
+              email: email.sender_email,
+              is_auto_created: true,
+              created_by: email.user_id || userId,
+            })
+            .select("id")
+            .single();
+
+          if (personError) {
+            // Race condition - try to fetch again
+            const { data: retryPerson } = await supabase
+              .from("people")
+              .select("id")
+              .ilike("email", email.sender_email)
+              .maybeSingle();
+            
+            if (retryPerson) {
+              personId = retryPerson.id;
+            }
+          } else if (newPerson) {
+            personId = newPerson.id;
+          }
+        }
+
+        // Update email with person_id
+        if (personId) {
+          await supabase
+            .from("email_messages")
+            .update({ person_id: personId })
+            .eq("id", emailId);
+        }
+      }
+
+      if (!personId) {
+        return { action_type: "link_entity", success: false, error: "No person linked to email and no sender info available" };
       }
 
       // Get entity record from people_entities
       const { data: peopleEntity } = await supabase
         .from("people_entities")
         .select("entity_id")
-        .eq("person_id", email.person_id)
+        .eq("person_id", personId)
         .eq("entity_table", entityTable)
         .maybeSingle();
 
@@ -376,7 +431,7 @@ async function processAction(
         const { data: person } = await supabase
           .from("people")
           .select("name, email, phone, notes")
-          .eq("id", email.person_id)
+          .eq("id", personId)
           .single();
 
         if (!person) {
@@ -420,7 +475,7 @@ async function processAction(
         await supabase
           .from("people_entities")
           .upsert({
-            person_id: email.person_id,
+            person_id: personId,
             entity_id: entityId,
             entity_table: entityTable,
           }, { onConflict: "person_id,entity_id,entity_table" });
