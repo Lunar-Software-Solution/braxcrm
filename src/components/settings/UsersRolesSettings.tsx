@@ -254,8 +254,30 @@ export default function UsersRolesSettings() {
         },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to send invite");
+      // Check for error in response data (edge function returns JSON with error field)
+      if (response.error || response.data?.error) {
+        const errorMessage = response.data?.error || response.error?.message || "Failed to send invite";
+        
+        // Handle specific error cases with helpful messages
+        if (errorMessage.includes("already registered")) {
+          toast({
+            title: "User already exists",
+            description: "This email is already registered. You can assign roles to them from the user list above.",
+          });
+          setInviteDialogOpen(false);
+          return;
+        }
+        
+        if (errorMessage.includes("already pending")) {
+          toast({
+            title: "Invitation pending",
+            description: "An invitation has already been sent to this email. Check the pending invitations below.",
+          });
+          setInviteDialogOpen(false);
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       toast({
