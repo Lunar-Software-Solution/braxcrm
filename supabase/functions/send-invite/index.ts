@@ -123,16 +123,16 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         sender: {
-          name: "Graph Mail CRM",
+          name: "CRM",
           email: "noreply@braxtech.net",
         },
         to: [{ email, name: name || email }],
-        subject: "You've been invited to Graph Mail CRM",
+        subject: "You've been invited to CRM",
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #1a1a2e;">You're Invited!</h1>
             <p>Hello${name ? ` ${name}` : ""},</p>
-            <p>You've been invited to join Graph Mail CRM. Click the button below to set up your account:</p>
+            <p>You've been invited to join CRM. Click the button below to set up your account:</p>
             <p style="text-align: center; margin: 30px 0;">
               <a href="${inviteLink}" 
                  style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
