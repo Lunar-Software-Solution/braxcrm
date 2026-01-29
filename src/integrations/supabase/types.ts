@@ -25,7 +25,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
-          workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -37,7 +36,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -49,7 +47,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id?: string
         }
         Relationships: []
       }
@@ -673,7 +670,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
-          workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -685,7 +681,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -697,7 +692,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id?: string
         }
         Relationships: []
       }
@@ -987,7 +981,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
-          workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -999,7 +992,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -1011,7 +1003,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id?: string
         }
         Relationships: []
       }
@@ -1026,7 +1017,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
-          workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -1038,7 +1028,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -1050,7 +1039,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
-          workspace_id?: string
         }
         Relationships: []
       }
