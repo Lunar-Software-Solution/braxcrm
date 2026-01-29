@@ -32,7 +32,8 @@ async function classifyAndProcessEmail(
   authHeader: string,
   emailId: string,
   msg: GraphMessage,
-  workspaceId: string
+  workspaceId: string,
+  autoProcessRules: boolean = true
 ): Promise<{ classified: boolean; rulesApplied: boolean; error?: string }> {
   try {
     // Step 1: Classify the email
@@ -62,6 +63,11 @@ async function classifyAndProcessEmail(
 
     // If no category matched, skip rule processing
     if (!classification.category_id) {
+      return { classified: true, rulesApplied: false };
+    }
+
+    // Skip rule processing if auto-process is disabled
+    if (!autoProcessRules) {
       return { classified: true, rulesApplied: false };
     }
 
@@ -256,6 +262,23 @@ serve(async (req) => {
       }
     }
 
+    // Check workspace auto-process setting
+    let autoProcessRules = true;
+    const adminSupabase = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    
+    const { data: workspaceSettings } = await adminSupabase
+      .from("workspace_settings")
+      .select("auto_process_emails")
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    
+    if (workspaceSettings) {
+      autoProcessRules = workspaceSettings.auto_process_emails;
+    }
+
     // Process AI classification for unprocessed emails (limit to avoid timeout)
     const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
     const emailsToClassify = emailsToProcess.slice(0, maxAiProcessing);
@@ -266,7 +289,8 @@ serve(async (req) => {
         authHeader,
         emailId,
         msg,
-        workspaceId
+        workspaceId,
+        autoProcessRules
       );
 
       if (aiResult.classified) {
