@@ -425,6 +425,57 @@ export type Database = {
           },
         ]
       }
+      email_rule_logs: {
+        Row: {
+          action_config: Json | null
+          action_type: string
+          email_id: string
+          error_message: string | null
+          id: string
+          processed_at: string
+          rule_id: string | null
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type: string
+          email_id: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string
+          rule_id?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string
+          email_id?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string
+          rule_id?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_rule_logs_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_rule_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "email_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_rules: {
         Row: {
           category_id: string

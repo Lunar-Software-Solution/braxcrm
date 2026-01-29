@@ -1,0 +1,185 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface RuleLog {
+  id: string;
+  email_id: string;
+  rule_id: string | null;
+  action_type: string;
+  action_config: Record<string, unknown>;
+  success: boolean;
+  error_message: string | null;
+  processed_at: string;
+  email?: {
+    subject: string | null;
+    category?: {
+      name: string;
+      color: string | null;
+    } | null;
+  };
+  rule?: {
+    name: string;
+  } | null;
+}
+
+const actionIcons: Record<string, React.ReactNode> = {
+  tag: <Tag className="h-4 w-4" />,
+  extract_invoice: <FileText className="h-4 w-4" />,
+  assign_entity: <Building2 className="h-4 w-4" />,
+  visibility: <Eye className="h-4 w-4" />,
+  move_folder: <Folder className="h-4 w-4" />,
+  mark_priority: <AlertTriangle className="h-4 w-4" />,
+  assign_object_type: <Layers className="h-4 w-4" />,
+  extract_attachments: <FileText className="h-4 w-4" />,
+};
+
+const actionLabels: Record<string, string> = {
+  tag: "Apply Tag",
+  extract_invoice: "Extract Invoice",
+  assign_entity: "Assign Entity",
+  visibility: "Set Visibility",
+  move_folder: "Move to Folder",
+  mark_priority: "Mark Priority",
+  assign_object_type: "Assign Object Type",
+  extract_attachments: "Extract Attachments",
+  assign_role: "Assign Role",
+};
+
+export default function RulesLog() {
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["rules-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("email_rule_logs")
+        .select(`
+          *,
+          email:email_messages(
+            subject,
+            category:email_categories(name, color)
+          ),
+          rule:email_rules(name)
+        `)
+        .order("processed_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      return data as unknown as RuleLog[];
+    },
+  });
+
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Rules Processing Log</h1>
+        <p className="text-muted-foreground">
+          View the history of automated rule actions applied to emails
+        </p>
+      </div>
+
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">Status</TableHead>
+              <TableHead>Email Subject</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Rule</TableHead>
+              <TableHead className="w-[180px]">Processed At</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-5" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                </TableRow>
+              ))
+            ) : logs?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No rule processing logs yet. Sync your inbox to trigger automation.
+                </TableCell>
+              </TableRow>
+            ) : (
+              logs?.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>
+                    {log.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium max-w-[300px] truncate">
+                    {log.email?.subject || "No subject"}
+                  </TableCell>
+                  <TableCell>
+                    {log.email?.category ? (
+                      <Badge
+                        variant="outline"
+                        style={{
+                          borderColor: log.email.category.color || undefined,
+                          color: log.email.category.color || undefined,
+                        }}
+                      >
+                        {log.email.category.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {actionIcons[log.action_type] || <Layers className="h-4 w-4" />}
+                      <span>{actionLabels[log.action_type] || log.action_type}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {log.rule?.name || "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(log.processed_at), "MMM d, h:mm a")}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {logs && logs.some((l) => !l.success) && (
+        <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <h3 className="font-medium text-destructive mb-2">Failed Actions</h3>
+          <ul className="text-sm space-y-1">
+            {logs
+              .filter((l) => !l.success)
+              .slice(0, 5)
+              .map((log) => (
+                <li key={log.id} className="text-destructive/80">
+                  {log.action_type}: {log.error_message || "Unknown error"}
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
