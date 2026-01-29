@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "./use-toast";
 
 export interface ClassificationQueueEmail {
   id: string;
@@ -8,6 +9,7 @@ export interface ClassificationQueueEmail {
   body_preview: string | null;
   received_at: string;
   person_id: string | null;
+  microsoft_message_id: string;
   person?: {
     id: string;
     name: string;
@@ -17,6 +19,8 @@ export interface ClassificationQueueEmail {
 
 export function useClassificationProcessingQueue() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch emails awaiting classification (entity_table IS NULL)
   const {
@@ -34,6 +38,7 @@ export function useClassificationProcessingQueue() {
           body_preview,
           received_at,
           person_id,
+          microsoft_message_id,
           person:people(id, name, email)
         `)
         .is("entity_table", null)
@@ -45,10 +50,73 @@ export function useClassificationProcessingQueue() {
     enabled: !!user,
   });
 
+  // Classify selected emails
+  const classifyEmailsMutation = useMutation({
+    mutationFn: async (emailIds: string[]) => {
+      const results = {
+        classified: 0,
+        errors: [] as string[],
+      };
+
+      // Get email details for classification
+      const { data: emails, error: fetchError } = await supabase
+        .from("email_messages")
+        .select("id, microsoft_message_id, subject, body_preview, person:people(name, email)")
+        .in("id", emailIds);
+
+      if (fetchError) throw fetchError;
+
+      // Classify each email
+      for (const email of emails || []) {
+        try {
+          const response = await supabase.functions.invoke("classify-email", {
+            body: {
+              email_id: email.id,
+              microsoft_message_id: email.microsoft_message_id,
+              subject: email.subject,
+              body_preview: email.body_preview,
+              sender_email: email.person?.email,
+              sender_name: email.person?.name,
+            },
+          });
+
+          if (response.error) {
+            results.errors.push(`${email.subject || email.id}: ${response.error.message}`);
+          } else {
+            results.classified++;
+          }
+        } catch (error) {
+          results.errors.push(`${email.subject || email.id}: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      }
+
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-classification-count"] });
+      queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
+      toast({
+        title: "Classification complete",
+        description: `${results.classified} email(s) classified. ${results.errors.length > 0 ? `${results.errors.length} error(s).` : ""}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error classifying emails",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     pendingEmails,
     isLoadingEmails,
     refetchEmails,
+    classifyEmails: classifyEmailsMutation.mutate,
+    isClassifying: classifyEmailsMutation.isPending,
   };
 }
 
