@@ -13,7 +13,6 @@ interface ClassifyEmailRequest {
   body_preview: string;
   sender_email: string;
   sender_name: string;
-  workspace_id: string;
 }
 
 interface Category {
@@ -53,17 +52,16 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { email_id, subject, body_preview, sender_email, sender_name, workspace_id }: ClassifyEmailRequest = await req.json();
+    const { email_id, subject, body_preview, sender_email, sender_name }: ClassifyEmailRequest = await req.json();
 
-    if (!workspace_id || !email_id) {
-      throw new Error("Missing required fields: workspace_id and email_id");
+    if (!email_id) {
+      throw new Error("Missing required field: email_id");
     }
 
-    // Fetch active categories for this workspace
+    // Fetch all active categories
     const { data: categories, error: catError } = await supabase
       .from("email_categories")
       .select("id, name, description")
-      .eq("workspace_id", workspace_id)
       .eq("is_active", true)
       .order("sort_order");
 
@@ -78,7 +76,7 @@ serve(async (req) => {
         category_id: null,
         category_name: null,
         confidence: 0,
-        reasoning: "No categories defined for this workspace",
+        reasoning: "No categories defined",
       };
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
