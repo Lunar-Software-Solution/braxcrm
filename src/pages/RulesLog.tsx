@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database, Sparkles, Store, Package, Receipt, Contact, CreditCard } from "lucide-react";
+import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database, Sparkles, Store, Package, Receipt, Contact, CreditCard, Megaphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
 
@@ -73,6 +73,8 @@ const actionIcons: Record<string, React.ReactNode> = {
   mark_priority: <AlertTriangle className="h-4 w-4" />,
   assign_object_type: <Layers className="h-4 w-4" />,
   extract_attachments: <FileText className="h-4 w-4" />,
+  no_rules: <CheckCircle2 className="h-4 w-4 text-muted-foreground" />,
+  no_actions: <CheckCircle2 className="h-4 w-4 text-muted-foreground" />,
 };
 
 const actionLabels: Record<string, string> = {
@@ -85,6 +87,8 @@ const actionLabels: Record<string, string> = {
   assign_object_type: "Assign Object Type",
   extract_attachments: "Extract Attachments",
   assign_role: "Assign Role",
+  no_rules: "No Rules Configured",
+  no_actions: "No Actions Configured",
 };
 
 const sourceIcons: Record<string, React.ReactNode> = {
@@ -101,6 +105,7 @@ const entityIcons: Record<string, React.ReactNode> = {
   corporate_management: <Building2 className="h-3.5 w-3.5" />,
   personal_contacts: <Contact className="h-3.5 w-3.5" />,
   subscriptions: <CreditCard className="h-3.5 w-3.5" />,
+  marketing_sources: <Megaphone className="h-3.5 w-3.5" />,
 };
 
 const entityLabels: Record<string, string> = {
@@ -111,6 +116,7 @@ const entityLabels: Record<string, string> = {
   corporate_management: "Corporate Mgmt",
   personal_contacts: "Personal Contact",
   subscriptions: "Subscription",
+  marketing_sources: "Marketing Source",
 };
 
 export default function RulesLog() {
