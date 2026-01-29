@@ -20,6 +20,7 @@ import {
   Shield,
   Zap,
   Brain,
+  Megaphone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,7 @@ const entityItems = [
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
   { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
   { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },
+  { title: "Marketing Sources", url: "/marketing-sources", icon: Megaphone, color: "#64748b" },
 ];
 
 const futureItems = [

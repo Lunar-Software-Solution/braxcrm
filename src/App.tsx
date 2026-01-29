@@ -22,6 +22,7 @@ import ExpenseSuppliers from "./pages/ExpenseSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
+import MarketingSources from "./pages/MarketingSources";
 import RulesProcessingQueue from "./pages/RulesProcessingQueue";
 import ClassificationProcessingQueue from "./pages/ClassificationProcessingQueue";
 import RulesLog from "./pages/RulesLog";
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/personal-contacts" element={<PersonalContacts />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
+              <Route path="/marketing-sources" element={<MarketingSources />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/classification-processing-queue" element={<ClassificationProcessingQueue />} />

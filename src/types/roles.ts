@@ -44,4 +44,5 @@ export const ENTITY_TABLE_CONFIG: Record<string, { displayName: string; route: s
   corporate_management: { displayName: 'Corporate Management', route: '/corporate-management', color: '#0891b2' },
   personal_contacts: { displayName: 'Personal Contacts', route: '/personal-contacts', color: '#8b5cf6' },
   subscriptions: { displayName: 'Subscriptions', route: '/subscriptions', color: '#f59e0b' },
+  marketing_sources: { displayName: 'Marketing Sources', route: '/marketing-sources', color: '#64748b' },
 };
