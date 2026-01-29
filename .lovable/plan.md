@@ -1,65 +1,143 @@
 
-# Plan: Add Subscriptions Entity Type
+# Plan: Split Suppliers into Product Suppliers and Expense Suppliers
 
 ## Overview
-Adding a new "Subscriptions" entity type to track subscription-based services (like Lovable, SaaS tools, etc.). This will follow the same pattern as the existing entities (Influencers, Resellers, Suppliers, etc.).
+Splitting the current "Suppliers" entity into two distinct types:
+1. **Product Suppliers** - Vendors selling products for resale (electronics, mobile phones, etc.)
+2. **Expense Suppliers** - Vendors providing services/expenses (travel, marketing, SaaS tools, etc.)
 
-## What Will Be Created
+## Database Changes
 
-### 1. Database Table
-A new `subscriptions` table with the same core fields as other entities:
-- `id` - UUID primary key
-- `name` - Subscription/service name (e.g., "Lovable", "GitHub", "Figma")
-- `email` - Contact email for the subscription
-- `phone` - Contact phone
-- `notes` - Additional notes
-- `avatar_url` - Logo/avatar for the service
-- `created_by` - User who created the record
-- `created_at` / `updated_at` - Timestamps
+### Step 1: Rename Existing Table and Role
+The existing `suppliers` table will be renamed to `product_suppliers`, and the associated entity role will be updated.
 
-### 2. Security (RLS Policies)
-Following the existing RBAC pattern:
-- Admins can do everything
-- Users with "Subscription Manager" role can manage all subscription records
-- Users can view records assigned to them via `record_role_assignments`
+### Step 2: Create New expense_suppliers Table
+A new table for expense suppliers with the same structure.
 
-### 3. Entity Role
-A new entry in `entity_roles` table:
-- Name: "Subscription Manager"
-- Slug: `subscription_manager`
-- Entity table: `subscriptions`
+### Step 3: Update Junction Table
+The `email_suppliers` junction table will be renamed to `email_product_suppliers` and a new `email_expense_suppliers` table will be created.
 
-### 4. Frontend Changes
+## Visual Changes
 
-| File | Change |
-|------|--------|
-| `src/types/entities.ts` | Add `Subscription` interface and update `EntityType` union |
-| `src/types/activities.ts` | Add `subscriptions` to `EntityTable` type |
-| `src/types/roles.ts` | Add subscriptions to `ENTITY_TABLE_CONFIG` |
-| `src/pages/Subscriptions.tsx` | New page using `EntityList` component |
-| `src/components/layout/CRMSidebar.tsx` | Add navigation link with `CreditCard` icon |
-| `src/App.tsx` | Add route for `/subscriptions` |
+### Sidebar Navigation (Before → After)
 
-## Visual Preview
-
-The Subscriptions page will appear in the sidebar under "ORGANISATIONS" with an orange/amber color theme and a credit card icon:
+| Before | After |
+|--------|-------|
+| Suppliers (blue, Truck icon) | Product Suppliers (blue, Package icon) |
+| | Expense Suppliers (orange, Receipt icon) |
 
 ```text
 ORGANISATIONS
 ├── Influencers (pink)
 ├── Resellers (green)
-├── Suppliers (blue)
+├── Product Suppliers (blue) ← Renamed
+├── Expense Suppliers (orange) ← NEW
 ├── Corporate Management (cyan)
 ├── Personal Contacts (purple)
-└── Subscriptions (amber) ← NEW
+└── Subscriptions (amber)
 ```
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/types/entities.ts` | Replace `Supplier` with `ProductSupplier` and add `ExpenseSupplier` |
+| `src/types/activities.ts` | Update `EntityTable` type and labels |
+| `src/types/roles.ts` | Update `ENTITY_TABLE_CONFIG` with both supplier types |
+| `src/pages/Suppliers.tsx` | Rename to `ProductSuppliers.tsx` |
+| `src/pages/ExpenseSuppliers.tsx` | Create new page |
+| `src/components/layout/CRMSidebar.tsx` | Update navigation with both supplier types |
+| `src/App.tsx` | Update routes |
+| `src/hooks/use-email-entities.ts` | Update to use `product_suppliers` table |
 
 ## Technical Details
 
-### Database Migration SQL
+### Database Migration
+
 ```sql
--- Create subscriptions table
-CREATE TABLE public.subscriptions (
+-- Step 1: Rename suppliers table to product_suppliers
+ALTER TABLE public.suppliers RENAME TO product_suppliers;
+
+-- Step 2: Drop existing RLS policies on the renamed table
+DROP POLICY IF EXISTS "Role-based select for suppliers" ON public.product_suppliers;
+DROP POLICY IF EXISTS "Role-based insert for suppliers" ON public.product_suppliers;
+DROP POLICY IF EXISTS "Role-based update for suppliers" ON public.product_suppliers;
+DROP POLICY IF EXISTS "Role-based delete for suppliers" ON public.product_suppliers;
+
+-- Step 3: Create new RLS policies for product_suppliers
+CREATE POLICY "Role-based select for product_suppliers"
+  ON public.product_suppliers FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+    OR can_view_record(auth.uid(), id, 'product_suppliers')
+  );
+
+CREATE POLICY "Role-based insert for product_suppliers"
+  ON public.product_suppliers FOR INSERT
+  WITH CHECK (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+  );
+
+CREATE POLICY "Role-based update for product_suppliers"
+  ON public.product_suppliers FOR UPDATE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+  );
+
+CREATE POLICY "Role-based delete for product_suppliers"
+  ON public.product_suppliers FOR DELETE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+  );
+
+-- Step 4: Update entity role
+UPDATE public.entity_roles 
+SET name = 'Product Supplier Manager',
+    slug = 'product_supplier_manager',
+    entity_table = 'product_suppliers',
+    description = 'Full access to Product Suppliers and linked People'
+WHERE entity_table = 'suppliers';
+
+-- Step 5: Rename email_suppliers junction table
+ALTER TABLE public.email_suppliers RENAME TO email_product_suppliers;
+ALTER TABLE public.email_product_suppliers RENAME COLUMN supplier_id TO product_supplier_id;
+
+-- Step 6: Update RLS policies on email_product_suppliers
+DROP POLICY IF EXISTS "Role-based select for email_suppliers" ON public.email_product_suppliers;
+DROP POLICY IF EXISTS "Role-based insert for email_suppliers" ON public.email_product_suppliers;
+DROP POLICY IF EXISTS "Role-based delete for email_suppliers" ON public.email_product_suppliers;
+
+CREATE POLICY "Role-based select for email_product_suppliers"
+  ON public.email_product_suppliers FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+    OR EXISTS (
+      SELECT 1 FROM email_messages e
+      WHERE e.id = email_product_suppliers.email_id AND e.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Role-based insert for email_product_suppliers"
+  ON public.email_product_suppliers FOR INSERT
+  WITH CHECK (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+  );
+
+CREATE POLICY "Role-based delete for email_product_suppliers"
+  ON public.email_product_suppliers FOR DELETE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'product_suppliers')
+  );
+
+-- Step 7: Create expense_suppliers table
+CREATE TABLE public.expense_suppliers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   email text,
@@ -71,58 +149,94 @@ CREATE TABLE public.subscriptions (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Enable RLS
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+-- Step 8: Enable RLS on expense_suppliers
+ALTER TABLE public.expense_suppliers ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies (same pattern as other entities)
-CREATE POLICY "Role-based select for subscriptions"
-  ON public.subscriptions FOR SELECT
+-- Step 9: Create RLS policies for expense_suppliers
+CREATE POLICY "Role-based select for expense_suppliers"
+  ON public.expense_suppliers FOR SELECT
   USING (
     has_role(auth.uid(), 'admin'::app_role)
-    OR has_entity_role(auth.uid(), 'subscriptions')
-    OR can_view_record(auth.uid(), id, 'subscriptions')
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
+    OR can_view_record(auth.uid(), id, 'expense_suppliers')
   );
 
-CREATE POLICY "Role-based insert for subscriptions"
-  ON public.subscriptions FOR INSERT
+CREATE POLICY "Role-based insert for expense_suppliers"
+  ON public.expense_suppliers FOR INSERT
   WITH CHECK (
     has_role(auth.uid(), 'admin'::app_role)
-    OR has_entity_role(auth.uid(), 'subscriptions')
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
   );
 
-CREATE POLICY "Role-based update for subscriptions"
-  ON public.subscriptions FOR UPDATE
+CREATE POLICY "Role-based update for expense_suppliers"
+  ON public.expense_suppliers FOR UPDATE
   USING (
     has_role(auth.uid(), 'admin'::app_role)
-    OR has_entity_role(auth.uid(), 'subscriptions')
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
   );
 
-CREATE POLICY "Role-based delete for subscriptions"
-  ON public.subscriptions FOR DELETE
+CREATE POLICY "Role-based delete for expense_suppliers"
+  ON public.expense_suppliers FOR DELETE
   USING (
     has_role(auth.uid(), 'admin'::app_role)
-    OR has_entity_role(auth.uid(), 'subscriptions')
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
   );
 
--- Add updated_at trigger
-CREATE TRIGGER update_subscriptions_updated_at
-  BEFORE UPDATE ON public.subscriptions
+-- Step 10: Add trigger for updated_at
+CREATE TRIGGER update_expense_suppliers_updated_at
+  BEFORE UPDATE ON public.expense_suppliers
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Insert entity role
+-- Step 11: Create expense supplier manager role
 INSERT INTO public.entity_roles (name, slug, entity_table, description)
 VALUES (
-  'Subscription Manager',
-  'subscription_manager',
-  'subscriptions',
-  'Full access to Subscriptions and linked People'
+  'Expense Supplier Manager',
+  'expense_supplier_manager',
+  'expense_suppliers',
+  'Full access to Expense Suppliers and linked People'
 );
+
+-- Step 12: Create email_expense_suppliers junction table
+CREATE TABLE public.email_expense_suppliers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_id uuid NOT NULL,
+  expense_supplier_id uuid NOT NULL,
+  assigned_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.email_expense_suppliers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Role-based select for email_expense_suppliers"
+  ON public.email_expense_suppliers FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
+    OR EXISTS (
+      SELECT 1 FROM email_messages e
+      WHERE e.id = email_expense_suppliers.email_id AND e.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Role-based insert for email_expense_suppliers"
+  ON public.email_expense_suppliers FOR INSERT
+  WITH CHECK (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
+  );
+
+CREATE POLICY "Role-based delete for email_expense_suppliers"
+  ON public.email_expense_suppliers FOR DELETE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR has_entity_role(auth.uid(), 'expense_suppliers')
+  );
 ```
 
-### Type Updates
+### Type Definitions
+
 ```typescript
 // src/types/entities.ts
-export interface Subscription {
+export interface ProductSupplier {
   id: string;
   name: string;
   email: string | null;
@@ -134,25 +248,78 @@ export interface Subscription {
   updated_at: string;
 }
 
-export type EntityType = "influencers" | "resellers" | "suppliers" 
-  | "corporate_management" | "personal_contacts" | "subscriptions";
+export interface ExpenseSupplier {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export type Entity = Influencer | Reseller | Supplier 
-  | CorporateManagement | PersonalContact | Subscription;
+export type EntityType = 
+  | "influencers" 
+  | "resellers" 
+  | "product_suppliers"
+  | "expense_suppliers"
+  | "corporate_management" 
+  | "personal_contacts" 
+  | "subscriptions";
+```
+
+### Page Components
+
+```typescript
+// src/pages/ProductSuppliers.tsx
+import EntityList from "./EntityList";
+
+export default function ProductSuppliers() {
+  return (
+    <EntityList
+      entityType="product_suppliers"
+      title="Product Suppliers"
+      singularTitle="Product Supplier"
+      color="#3b82f6"
+    />
+  );
+}
+
+// src/pages/ExpenseSuppliers.tsx
+import EntityList from "./EntityList";
+
+export default function ExpenseSuppliers() {
+  return (
+    <EntityList
+      entityType="expense_suppliers"
+      title="Expense Suppliers"
+      singularTitle="Expense Supplier"
+      color="#f97316"
+    />
+  );
+}
 ```
 
 ## Implementation Order
-1. Run database migration to create table, RLS policies, and entity role
+
+1. Run database migration to rename table, create new table, update roles, and update junction tables
 2. Update TypeScript types (`entities.ts`, `activities.ts`, `roles.ts`)
-3. Create `Subscriptions.tsx` page component
-4. Add route in `App.tsx`
-5. Add sidebar navigation in `CRMSidebar.tsx`
+3. Rename `Suppliers.tsx` to `ProductSuppliers.tsx` and update contents
+4. Create `ExpenseSuppliers.tsx` page
+5. Update routes in `App.tsx`
+6. Update sidebar navigation in `CRMSidebar.tsx`
+7. Update `use-email-entities.ts` hook for new table names
+
+## Existing Data
+All 12 existing suppliers will remain in the renamed `product_suppliers` table. You can manually move any that are expense-related to the new `expense_suppliers` table after implementation.
 
 ## Features Included
-Once implemented, Subscriptions will automatically support:
-- List view with spreadsheet-style table
+Both entity types will automatically support:
+- Spreadsheet-style list view with selection
 - Detail panel with Home, Tasks, Notes, and Files tabs
-- CRUD operations (Create, Read, Update, Delete)
-- Role-based access control
+- CRUD operations
+- Role-based access control (separate manager roles for each)
 - File attachments
-- Linked tasks and notes
+- Email linking
