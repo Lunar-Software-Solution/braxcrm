@@ -48,7 +48,7 @@ const workspaceItems = [
   { title: "Inbox", url: "/inbox", icon: Mail },
   { title: "Email Classification Processing Queue", url: "/classification-processing-queue", icon: Brain },
   { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
-  { title: "Rules Log", url: "/rules-log", icon: ScrollText },
+  { title: "Processing Log", url: "/rules-log", icon: ScrollText },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
 ];
 
