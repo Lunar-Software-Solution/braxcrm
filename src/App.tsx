@@ -18,6 +18,7 @@ import Inbox from "./pages/Inbox";
 import Influencers from "./pages/Influencers";
 import Resellers from "./pages/Resellers";
 import Suppliers from "./pages/Suppliers";
+import CorporateManagement from "./pages/CorporateManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/influencers" element={<Influencers />} />
               <Route path="/resellers" element={<Resellers />} />
               <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} />
             </Route>
