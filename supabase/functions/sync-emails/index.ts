@@ -172,7 +172,9 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { messages, userEmail, enableAiProcessing = true } = await req.json();
+    // AI processing is now manual-only via the queue UI
+    const { messages, userEmail } = await req.json();
+    const enableAiProcessing = false;
 
     if (!messages || !Array.isArray(messages)) {
       throw new Error("Missing messages array");
@@ -303,8 +305,8 @@ serve(async (req) => {
       }
     }
 
-    // Auto-process is always enabled now (no workspace settings)
-    const autoProcessRules = true;
+    // Rules processing is now manual-only via the queue UI
+    const autoProcessRules = false;
 
     // Process AI classification for unprocessed emails (limit to avoid timeout)
     const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
