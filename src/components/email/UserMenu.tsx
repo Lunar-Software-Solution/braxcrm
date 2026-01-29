@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/use-user-roles";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function getInitials(name: string | undefined, email: string | undefined): string {
@@ -30,6 +31,7 @@ interface UserMenuProps {
 
 export function UserMenu({ collapsed = false }: UserMenuProps) {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRoles();
   const navigate = useNavigate();
 
   const displayName = user?.user_metadata?.full_name || user?.email;
@@ -74,6 +76,12 @@ export function UserMenu({ collapsed = false }: UserMenuProps) {
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate("/email-automation")}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            AI Classification
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
