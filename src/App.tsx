@@ -17,7 +17,8 @@ import PersonDetail from "./pages/PersonDetail";
 import Inbox from "./pages/Inbox";
 import Influencers from "./pages/Influencers";
 import Resellers from "./pages/Resellers";
-import Suppliers from "./pages/Suppliers";
+import ProductSuppliers from "./pages/ProductSuppliers";
+import ExpenseSuppliers from "./pages/ExpenseSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
@@ -56,7 +57,8 @@ const App = () => (
               <Route path="/person/:personId" element={<PersonDetail />} />
               <Route path="/influencers" element={<Influencers />} />
               <Route path="/resellers" element={<Resellers />} />
-              <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/product-suppliers" element={<ProductSuppliers />} />
+              <Route path="/expense-suppliers" element={<ExpenseSuppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/personal-contacts" element={<PersonalContacts />} />
               <Route path="/subscriptions" element={<Subscriptions />} />

@@ -22,7 +22,19 @@ export interface Reseller {
   updated_at: string;
 }
 
-export interface Supplier {
+export interface ProductSupplier {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExpenseSupplier {
   id: string;
   name: string;
   email: string | null;
@@ -70,6 +82,6 @@ export interface Subscription {
   updated_at: string;
 }
 
-export type EntityType = "influencers" | "resellers" | "suppliers" | "corporate_management" | "personal_contacts" | "subscriptions";
+export type EntityType = "influencers" | "resellers" | "product_suppliers" | "expense_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions";
 
-export type Entity = Influencer | Reseller | Supplier | CorporateManagement | PersonalContact | Subscription;
+export type Entity = Influencer | Reseller | ProductSupplier | ExpenseSupplier | CorporateManagement | PersonalContact | Subscription;
