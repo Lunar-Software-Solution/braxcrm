@@ -125,6 +125,27 @@ export type Database = {
           },
         ]
       }
+      email_expense_suppliers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          expense_supplier_id: string
+          id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          expense_supplier_id: string
+          id?: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          expense_supplier_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       email_influencers: {
         Row: {
           assigned_at: string
@@ -354,6 +375,42 @@ export type Database = {
           },
         ]
       }
+      email_product_suppliers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          product_supplier_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          product_supplier_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          product_supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_suppliers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_suppliers_supplier_id_fkey"
+            columns: ["product_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "product_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_resellers: {
         Row: {
           assigned_at: string
@@ -513,42 +570,6 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "email_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_suppliers: {
-        Row: {
-          assigned_at: string
-          email_id: string
-          id: string
-          supplier_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          email_id: string
-          id?: string
-          supplier_id: string
-        }
-        Update: {
-          assigned_at?: string
-          email_id?: string
-          id?: string
-          supplier_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_suppliers_email_id_fkey"
-            columns: ["email_id"]
-            isOneToOne: false
-            referencedRelation: "email_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_suppliers_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -794,6 +815,42 @@ export type Database = {
           id?: string
           name?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      expense_suppliers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1239,6 +1296,42 @@ export type Database = {
         }
         Relationships: []
       }
+      product_suppliers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1348,42 +1441,6 @@ export type Database = {
         Relationships: []
       }
       subscriptions: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          created_by: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      suppliers: {
         Row: {
           avatar_url: string | null
           created_at: string

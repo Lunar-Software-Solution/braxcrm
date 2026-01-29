@@ -4,7 +4,8 @@ export type EntityTable =
   | 'people'
   | 'influencers'
   | 'resellers'
-  | 'suppliers'
+  | 'product_suppliers'
+  | 'expense_suppliers'
   | 'corporate_management'
   | 'personal_contacts'
   | 'subscriptions';
@@ -136,7 +137,8 @@ export const entityTableLabels: Record<EntityTable, string> = {
   people: 'People',
   influencers: 'Influencers',
   resellers: 'Resellers',
-  suppliers: 'Suppliers',
+  product_suppliers: 'Product Suppliers',
+  expense_suppliers: 'Expense Suppliers',
   corporate_management: 'Corporate Management',
   personal_contacts: 'Personal Contacts',
   subscriptions: 'Subscriptions',

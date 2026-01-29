@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Influencer, Reseller, Supplier } from "@/types/entities";
+import type { Influencer, Reseller, ProductSupplier } from "@/types/entities";
 
 interface LinkedEntities {
   influencers: Influencer[];
   resellers: Reseller[];
-  suppliers: Supplier[];
+  productSuppliers: ProductSupplier[];
 }
 
 export function useEmailLinkedEntities(microsoftMessageId: string | null) {
@@ -13,7 +13,7 @@ export function useEmailLinkedEntities(microsoftMessageId: string | null) {
     queryKey: ["email-linked-entities", microsoftMessageId],
     queryFn: async (): Promise<LinkedEntities> => {
       if (!microsoftMessageId) {
-        return { influencers: [], resellers: [], suppliers: [] };
+        return { influencers: [], resellers: [], productSuppliers: [] };
       }
 
       // First, get the email record by Microsoft message ID
@@ -24,13 +24,13 @@ export function useEmailLinkedEntities(microsoftMessageId: string | null) {
         .maybeSingle();
 
       if (emailError || !emailRecord) {
-        return { influencers: [], resellers: [], suppliers: [] };
+        return { influencers: [], resellers: [], productSuppliers: [] };
       }
 
       const emailId = emailRecord.id;
 
       // Fetch all linked entities in parallel
-      const [influencersResult, resellersResult, suppliersResult] = await Promise.all([
+      const [influencersResult, resellersResult, productSuppliersResult] = await Promise.all([
         supabase
           .from("email_influencers")
           .select("influencer_id, influencers(*)")
@@ -40,8 +40,8 @@ export function useEmailLinkedEntities(microsoftMessageId: string | null) {
           .select("reseller_id, resellers(*)")
           .eq("email_id", emailId),
         supabase
-          .from("email_suppliers")
-          .select("supplier_id, suppliers(*)")
+          .from("email_product_suppliers")
+          .select("product_supplier_id, product_suppliers(*)")
           .eq("email_id", emailId),
       ]);
 
@@ -53,11 +53,11 @@ export function useEmailLinkedEntities(microsoftMessageId: string | null) {
         .map((r) => r.resellers)
         .filter(Boolean) as Reseller[];
       
-      const suppliers = (suppliersResult.data || [])
-        .map((r) => r.suppliers)
-        .filter(Boolean) as Supplier[];
+      const productSuppliers = (productSuppliersResult.data || [])
+        .map((r) => r.product_suppliers)
+        .filter(Boolean) as ProductSupplier[];
 
-      return { influencers, resellers, suppliers };
+      return { influencers, resellers, productSuppliers };
     },
     enabled: !!microsoftMessageId,
   });

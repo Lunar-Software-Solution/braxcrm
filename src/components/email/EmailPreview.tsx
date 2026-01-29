@@ -88,7 +88,7 @@ export function EmailPreview({
   const hasLinkedEntities = linkedEntities && (
     linkedEntities.influencers.length > 0 ||
     linkedEntities.resellers.length > 0 ||
-    linkedEntities.suppliers.length > 0
+    linkedEntities.productSuppliers.length > 0
   );
 
   if (isLoading) {
@@ -346,7 +346,7 @@ export function EmailPreview({
                     <span className="text-xs opacity-70">Reseller</span>
                   </Badge>
                 ))}
-                {linkedEntities.suppliers.map((supplier) => (
+                {linkedEntities.productSuppliers.map((supplier) => (
                   <Badge
                     key={supplier.id}
                     variant="secondary"
@@ -354,7 +354,7 @@ export function EmailPreview({
                   >
                     <Truck className="h-3 w-3" />
                     {supplier.name}
-                    <span className="text-xs opacity-70">Supplier</span>
+                    <span className="text-xs opacity-70">Product Supplier</span>
                   </Badge>
                 ))}
               </div>
