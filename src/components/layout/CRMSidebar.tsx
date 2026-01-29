@@ -161,8 +161,8 @@ export function CRMSidebar() {
 
         {/* Entities Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2">
-            {!collapsed && "Categories"}
+        <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2">
+            {!collapsed && "Organization"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
