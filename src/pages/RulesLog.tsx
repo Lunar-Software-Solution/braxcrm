@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap } from "lucide-react";
+import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface RuleLog {
@@ -49,6 +49,16 @@ interface ClassificationLog {
   email?: {
     subject: string | null;
   };
+}
+
+interface PendingProcessingEmail {
+  id: string;
+  subject: string | null;
+  sender_email: string | null;
+  sender_name: string | null;
+  received_at: string;
+  entity_table: string | null;
+  ai_confidence: number | null;
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
@@ -129,6 +139,30 @@ export default function RulesLog() {
     },
   });
 
+  const { data: pendingEmails, isLoading: pendingLoading } = useQuery({
+    queryKey: ["pending-processing-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("email_messages")
+        .select(`
+          id,
+          subject,
+          sender_email,
+          sender_name,
+          received_at,
+          entity_table,
+          ai_confidence
+        `)
+        .not("entity_table", "is", null)
+        .eq("is_processed", false)
+        .order("received_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      return data as PendingProcessingEmail[];
+    },
+  });
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -143,6 +177,15 @@ export default function RulesLog() {
           <TabsTrigger value="classification" className="gap-2">
             <Brain className="h-4 w-4" />
             Classification Log
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2">
+            <Loader2 className="h-4 w-4" />
+            Pending Processing
+            {pendingEmails && pendingEmails.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                {pendingEmails.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="rules" className="gap-2">
             <Layers className="h-4 w-4" />
@@ -255,6 +298,69 @@ export default function RulesLog() {
               </ul>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-4">
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email Subject</TableHead>
+                  <TableHead>Sender</TableHead>
+                  <TableHead>Entity Type</TableHead>
+                  <TableHead>Confidence</TableHead>
+                  <TableHead className="w-[150px]">Received At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : pendingEmails?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No emails pending rules processing. All classified emails have been processed.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pendingEmails?.map((email) => (
+                    <TableRow key={email.id}>
+                      <TableCell className="font-medium max-w-[250px] truncate">
+                        {email.subject || "No subject"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {email.sender_name || email.sender_email || "Unknown"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {entityLabels[email.entity_table || ""] || email.entity_table}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {email.ai_confidence !== null ? (
+                          <span className={email.ai_confidence >= 0.8 ? "text-green-600" : email.ai_confidence >= 0.5 ? "text-yellow-600" : "text-muted-foreground"}>
+                            {Math.round(email.ai_confidence * 100)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {format(new Date(email.received_at), "MMM d, h:mm a")}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
