@@ -28,10 +28,6 @@ export default function EmailReviewQueue() {
     isLoadingEmails,
     refetchEmails,
     categories,
-    autoProcessEnabled,
-    isLoadingSettings,
-    updateAutoProcess,
-    isUpdatingAutoProcess,
     updateCategory,
     isUpdatingCategory,
     processEmails,
@@ -76,19 +72,6 @@ export default function EmailReviewQueue() {
             <p className="text-sm text-muted-foreground mt-1">
               Review AI-classified emails before processing rules
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="auto-process"
-                checked={autoProcessEnabled}
-                onCheckedChange={updateAutoProcess}
-                disabled={isLoadingSettings || isUpdatingAutoProcess}
-              />
-              <Label htmlFor="auto-process" className="text-sm">
-                Auto-process
-              </Label>
-            </div>
           </div>
         </div>
 

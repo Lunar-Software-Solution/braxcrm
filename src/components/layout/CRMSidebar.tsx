@@ -41,7 +41,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { usePendingEmailCount } from "@/hooks/use-review-queue";
 
 const workspaceItems = [
@@ -68,7 +67,6 @@ export function CRMSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { workspaceId } = useWorkspace();
   const pendingCount = usePendingEmailCount();
 
   return (

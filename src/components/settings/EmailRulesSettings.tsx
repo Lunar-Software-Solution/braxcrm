@@ -60,9 +60,9 @@ import {
   useVisibilityGroups,
 } from "@/hooks/use-email-rules";
 // useObjectTypes is now defined above
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ObjectType } from "@/types/crm";
 import type { RuleActionType, AssignObjectTypeConfig, AssignEntityConfig, EntityType } from "@/types/email-rules";
 
@@ -75,27 +75,25 @@ const ACTION_TYPE_LABELS: Record<RuleActionType, { label: string; icon: React.Re
   mark_priority: { label: "Set Priority", icon: <AlertTriangle className="h-4 w-4" />, description: "Mark email priority level" },
   assign_object_type: { label: "Assign Object Type", icon: <Layers className="h-4 w-4" />, description: "Assign object types to person/email" },
   assign_entity: { label: "Assign to Entity", icon: <Users className="h-4 w-4" />, description: "Create/link to Influencer, Reseller, or Supplier" },
+  assign_role: { label: "Assign Role", icon: <Users className="h-4 w-4" />, description: "Assign a role to the sender" },
 };
 
 function useObjectTypes() {
-  const { workspaceId } = useWorkspace();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ["object-types", workspaceId],
+    queryKey: ["object-types"],
     queryFn: async () => {
-      if (!workspaceId) return [];
-      
       const { data, error } = await supabase
         .from("object_types")
         .select("*")
-        .eq("workspace_id", workspaceId)
         .eq("is_active", true)
         .order("sort_order");
 
       if (error) throw error;
       return data as ObjectType[];
     },
-    enabled: !!workspaceId,
+    enabled: !!user,
   });
 }
 

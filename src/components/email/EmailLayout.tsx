@@ -14,7 +14,6 @@ import {
 import type { Email, EmailFolder } from "@/types/email";
 import { useGraphApi, useMicrosoftAccounts, MicrosoftAccount } from "@/hooks/use-graph-api";
 import { useCRM } from "@/hooks/use-crm";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronDown, Mail, Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +43,6 @@ export function EmailLayout() {
   const { listAccounts } = useMicrosoftAccounts();
   const { listFolders, listMessages, getMessage, markAsRead, deleteMessage, moveMessage, sendMessage } = useGraphApi(selectedAccountId);
   const { syncEmails } = useCRM();
-  const { workspaceId, loading: workspaceLoading } = useWorkspace();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -135,7 +133,7 @@ export function EmailLayout() {
 
   // Sync emails to CRM (separate effect to handle async dependencies)
   useEffect(() => {
-    if (!workspaceId || !selectedAccountId || !selectedFolderId || emails.length === 0) {
+    if (!selectedAccountId || !selectedFolderId || emails.length === 0) {
       return;
     }
 
@@ -171,7 +169,7 @@ export function EmailLayout() {
           parentFolderId: email.parentFolderId,
         }));
         
-        const result = await syncEmails(workspaceId, messagesToSync, userEmail);
+        const result = await syncEmails(messagesToSync, userEmail);
         console.log("Sync result:", result);
         
         if (result.peopleCreated > 0) {
@@ -190,7 +188,7 @@ export function EmailLayout() {
     };
 
     syncToBackend();
-  }, [workspaceId, selectedAccountId, selectedFolderId, emails, currentAccount, syncEmails, toast]);
+  }, [selectedAccountId, selectedFolderId, emails, currentAccount, syncEmails, toast]);
 
   const handleAccountSelect = (accountId: string) => {
     setSelectedAccountId(accountId);
@@ -256,10 +254,10 @@ export function EmailLayout() {
   }, [selectedFolderId, listMessages, toast]);
 
   const handleSyncContacts = useCallback(async () => {
-    if (!workspaceId || emails.length === 0) {
+    if (emails.length === 0) {
       toast({
         title: "Cannot sync",
-        description: "No emails to sync or workspace not ready",
+        description: "No emails to sync",
         variant: "destructive",
       });
       return;
@@ -290,7 +288,7 @@ export function EmailLayout() {
         parentFolderId: email.parentFolderId,
       }));
       
-      const result = await syncEmails(workspaceId, messagesToSync, userEmail);
+      const result = await syncEmails(messagesToSync, userEmail);
       
       toast({
         title: "Contacts synced",
@@ -305,7 +303,7 @@ export function EmailLayout() {
     } finally {
       setSyncing(false);
     }
-  }, [workspaceId, emails, currentAccount, syncEmails, toast]);
+  }, [emails, currentAccount, syncEmails, toast]);
 
   const handleCompose = () => {
     setReplyData(undefined);

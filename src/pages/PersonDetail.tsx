@@ -11,7 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRM } from "@/hooks/use-crm";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Person, EmailMessage, ObjectType } from "@/types/crm";
@@ -27,26 +26,25 @@ export default function PersonDetail() {
   const [addingObjectType, setAddingObjectType] = useState(false);
   
   const { getPerson, listEmailsByPerson, listObjectTypes, assignObjectTypeToPerson, removeObjectTypeFromPerson } = useCRM();
-  const { workspaceId } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (personId && workspaceId) {
+    if (personId) {
       loadData();
     }
-  }, [personId, workspaceId]);
+  }, [personId]);
 
   const loadData = async () => {
-    if (!personId || !workspaceId) return;
+    if (!personId) return;
     
     try {
       setLoading(true);
       const [personData, emailsData, objectTypesData] = await Promise.all([
         getPerson(personId),
         listEmailsByPerson(personId),
-        listObjectTypes(workspaceId),
+        listObjectTypes(),
       ]);
       setPerson(personData);
       setEmails(emailsData);
