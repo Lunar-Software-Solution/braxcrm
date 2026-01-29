@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "./use-toast";
+import type { EntityTable } from "@/types/entity-automation";
 
 export interface ReviewQueueEmail {
   id: string;
@@ -9,13 +10,8 @@ export interface ReviewQueueEmail {
   body_preview: string | null;
   received_at: string;
   ai_confidence: number | null;
-  category_id: string | null;
+  entity_table: string | null;
   person_id: string | null;
-  category?: {
-    id: string;
-    name: string;
-    color: string | null;
-  };
   person?: {
     id: string;
     name: string;
@@ -23,19 +19,12 @@ export interface ReviewQueueEmail {
   };
 }
 
-export interface EmailCategory {
-  id: string;
-  name: string;
-  color: string | null;
-  description: string | null;
-}
-
 export function useReviewQueue() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch pending emails (categorized but not processed)
+  // Fetch pending emails (classified but not processed)
   const {
     data: pendingEmails = [],
     isLoading: isLoadingEmails,
@@ -51,12 +40,11 @@ export function useReviewQueue() {
           body_preview,
           received_at,
           ai_confidence,
-          category_id,
+          entity_table,
           person_id,
-          category:email_categories(id, name, color),
           person:people(id, name, email)
         `)
-        .not("category_id", "is", null)
+        .not("entity_table", "is", null)
         .eq("is_processed", false)
         .order("received_at", { ascending: false });
 
@@ -66,63 +54,36 @@ export function useReviewQueue() {
     enabled: !!user,
   });
 
-  // Fetch all categories for the dropdown
-  const { data: categories = [] } = useQuery({
-    queryKey: ["email-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("email_categories")
-        .select("id, name, color, description")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-      return data as EmailCategory[];
-    },
-    enabled: !!user,
-  });
-
-  // Update email category
-  const updateCategoryMutation = useMutation({
-    mutationFn: async ({ emailId, categoryId }: { emailId: string; categoryId: string }) => {
-      // Update the email_messages table
-      const { error: emailError } = await supabase
+  // Update email entity type
+  const updateEntityTypeMutation = useMutation({
+    mutationFn: async ({ emailId, entityTable }: { emailId: string; entityTable: string }) => {
+      const { error } = await supabase
         .from("email_messages")
-        .update({ category_id: categoryId })
+        .update({ 
+          entity_table: entityTable,
+          ai_confidence: 1.0, // Manual override = 100% confidence
+        })
         .eq("id", emailId);
 
-      if (emailError) throw emailError;
-
-      // Also update email_message_categories for tracking
-      const { error: categoryError } = await supabase
-        .from("email_message_categories")
-        .upsert({
-          email_id: emailId,
-          category_id: categoryId,
-          confidence: 1.0, // Manual override = 100% confidence
-        }, {
-          onConflict: "email_id,category_id",
-        });
-
-      if (categoryError) throw categoryError;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
       toast({
-        title: "Category updated",
-        description: "Email category has been changed.",
+        title: "Entity type updated",
+        description: "Email entity type has been changed.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Error updating category",
+        title: "Error updating entity type",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Process selected emails through rules
+  // Process selected emails through entity rules
   const processEmailsMutation = useMutation({
     mutationFn: async (emailIds: string[]) => {
       const { data: session } = await supabase.auth.getSession();
@@ -136,20 +97,20 @@ export function useReviewQueue() {
       // Get email details for processing
       const { data: emails, error: fetchError } = await supabase
         .from("email_messages")
-        .select("id, category_id, microsoft_message_id")
+        .select("id, entity_table, microsoft_message_id")
         .in("id", emailIds);
 
       if (fetchError) throw fetchError;
 
       // Process each email
       for (const email of emails || []) {
-        if (!email.category_id) continue;
+        if (!email.entity_table) continue;
 
         try {
-          const response = await supabase.functions.invoke("process-email-rules", {
+          const response = await supabase.functions.invoke("process-entity-rules", {
             body: {
               email_id: email.id,
-              category_id: email.category_id,
+              entity_table: email.entity_table,
               microsoft_message_id: email.microsoft_message_id,
             },
           });
@@ -168,6 +129,7 @@ export function useReviewQueue() {
     },
     onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
       toast({
         title: "Processing complete",
         description: `${results.processed} email(s) processed. ${results.errors.length > 0 ? `${results.errors.length} error(s).` : ""}`,
@@ -186,9 +148,8 @@ export function useReviewQueue() {
     pendingEmails,
     isLoadingEmails,
     refetchEmails,
-    categories,
-    updateCategory: updateCategoryMutation.mutate,
-    isUpdatingCategory: updateCategoryMutation.isPending,
+    updateEntityType: updateEntityTypeMutation.mutate,
+    isUpdatingEntityType: updateEntityTypeMutation.isPending,
     processEmails: processEmailsMutation.mutate,
     isProcessing: processEmailsMutation.isPending,
   };
@@ -204,7 +165,7 @@ export function usePendingEmailCount() {
       const { count, error } = await supabase
         .from("email_messages")
         .select("*", { count: "exact", head: true })
-        .not("category_id", "is", null)
+        .not("entity_table", "is", null)
         .eq("is_processed", false);
 
       if (error) return 0;

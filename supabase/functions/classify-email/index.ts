@@ -13,6 +13,7 @@ interface ClassifyEmailRequest {
   body_preview: string;
   sender_email: string;
   sender_name: string;
+  person_id?: string; // Optional - for checking existing entity mappings
 }
 
 interface EntityRule {
@@ -62,10 +63,45 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { email_id, subject, body_preview, sender_email, sender_name }: ClassifyEmailRequest = await req.json();
+    const { email_id, subject, body_preview, sender_email, sender_name, person_id }: ClassifyEmailRequest = await req.json();
 
     if (!email_id) {
       throw new Error("Missing required field: email_id");
+    }
+
+    // Check if person already has an entity mapping (skip AI if so)
+    if (person_id) {
+      const { data: existingMapping } = await supabase
+        .from("people_entities")
+        .select("entity_table")
+        .eq("person_id", person_id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingMapping?.entity_table) {
+        // Use cached result - skip AI
+        const result: ClassificationResult = {
+          entity_table: existingMapping.entity_table,
+          confidence: 1.0,
+          reasoning: "Person already linked to this entity type",
+        };
+
+        // Update email_messages with the entity
+        await supabase
+          .from("email_messages")
+          .update({
+            entity_table: existingMapping.entity_table,
+            ai_confidence: 1.0,
+          })
+          .eq("id", email_id);
+
+        console.log(`Skipped AI - person ${person_id} already mapped to ${existingMapping.entity_table}`);
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Fetch entity automation rules

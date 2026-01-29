@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Search, Play, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +25,8 @@ export default function EmailReviewQueue() {
     pendingEmails,
     isLoadingEmails,
     refetchEmails,
-    categories,
-    updateCategory,
-    isUpdatingCategory,
+    updateEntityType,
+    isUpdatingEntityType,
     processEmails,
     isProcessing,
   } = useReviewQueue();
@@ -58,8 +55,8 @@ export default function EmailReviewQueue() {
     setSelectedIds(new Set());
   };
 
-  const handleCategoryChange = (emailId: string, categoryId: string) => {
-    updateCategory({ emailId, categoryId });
+  const handleEntityTypeChange = (emailId: string, entityTable: string) => {
+    updateEntityType({ emailId, entityTable });
   };
 
   return (
@@ -70,7 +67,7 @@ export default function EmailReviewQueue() {
           <div>
             <h1 className="text-2xl font-semibold">Review Queue</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Review AI-classified emails before processing rules
+              Review AI-classified emails before processing automation rules
             </p>
           </div>
         </div>
@@ -120,7 +117,7 @@ export default function EmailReviewQueue() {
                   <AlertDialogTitle>Process All Emails</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will process all {filteredEmails.length} emails through their
-                    assigned rules. This action cannot be undone.
+                    assigned entity automation rules. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -146,11 +143,10 @@ export default function EmailReviewQueue() {
         ) : (
           <ReviewQueueTable
             emails={filteredEmails}
-            categories={categories}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
-            onCategoryChange={handleCategoryChange}
-            isUpdatingCategory={isUpdatingCategory}
+            onEntityTypeChange={handleEntityTypeChange}
+            isUpdatingEntityType={isUpdatingEntityType}
           />
         )}
       </div>

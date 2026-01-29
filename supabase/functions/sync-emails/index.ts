@@ -21,56 +21,103 @@ interface GraphMessage {
 }
 
 interface ClassificationResult {
-  category_id: string | null;
-  category_name: string | null;
+  entity_table: string | null;
   confidence: number;
   reasoning?: string;
 }
 
+// Check if person already has an entity mapping in people_entities
+async function getExistingEntityMapping(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  personId: string
+): Promise<string | null> {
+  const { data: mapping } = await supabase
+    .from("people_entities")
+    .select("entity_table")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return mapping?.entity_table || null;
+}
+
 async function classifyAndProcessEmail(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   supabaseUrl: string,
   authHeader: string,
   emailId: string,
   msg: GraphMessage,
+  personId: string | null,
   autoProcessRules: boolean = true
-): Promise<{ classified: boolean; rulesApplied: boolean; error?: string }> {
+): Promise<{ classified: boolean; rulesApplied: boolean; skippedAi?: boolean; error?: string }> {
   try {
-    // Step 1: Classify the email
-    const classifyResponse = await fetch(`${supabaseUrl}/functions/v1/classify-email`, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email_id: emailId,
-        subject: msg.subject || "",
-        body_preview: msg.bodyPreview || "",
-        sender_email: msg.from?.emailAddress?.address || "",
-        sender_name: msg.from?.emailAddress?.name || "",
-      }),
-    });
+    let entityTable: string | null = null;
+    let confidence = 0;
+    let skippedAi = false;
 
-    if (!classifyResponse.ok) {
-      const errorText = await classifyResponse.text();
-      console.warn("Classification failed:", errorText);
-      return { classified: false, rulesApplied: false, error: `Classification failed: ${errorText}` };
+    // Step 1: Check if person already has an entity mapping
+    if (personId) {
+      const existingEntity = await getExistingEntityMapping(supabase, personId);
+      if (existingEntity) {
+        // Use cached entity mapping - skip AI call
+        entityTable = existingEntity;
+        confidence = 1.0;
+        skippedAi = true;
+
+        // Update email with known entity type
+        await supabase
+          .from("email_messages")
+          .update({ entity_table: existingEntity, ai_confidence: 1.0 })
+          .eq("id", emailId);
+
+        console.log(`Skipped AI - person ${personId} already mapped to ${existingEntity}`);
+      }
     }
 
-    const classification: ClassificationResult = await classifyResponse.json();
+    // Step 2: If no cached mapping, call AI classification
+    if (!entityTable) {
+      const classifyResponse = await fetch(`${supabaseUrl}/functions/v1/classify-email`, {
+        method: "POST",
+        headers: {
+          Authorization: authHeader,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email_id: emailId,
+          subject: msg.subject || "",
+          body_preview: msg.bodyPreview || "",
+          sender_email: msg.from?.emailAddress?.address || "",
+          sender_name: msg.from?.emailAddress?.name || "",
+          person_id: personId,
+        }),
+      });
 
-    // If no category matched, skip rule processing
-    if (!classification.category_id) {
-      return { classified: true, rulesApplied: false };
+      if (!classifyResponse.ok) {
+        const errorText = await classifyResponse.text();
+        console.warn("Classification failed:", errorText);
+        return { classified: false, rulesApplied: false, error: `Classification failed: ${errorText}` };
+      }
+
+      const classification: ClassificationResult = await classifyResponse.json();
+      entityTable = classification.entity_table;
+      confidence = classification.confidence;
     }
 
-    // Skip rule processing if auto-process is disabled
+    // If no entity matched, skip rule processing
+    if (!entityTable) {
+      return { classified: true, rulesApplied: false, skippedAi };
+    }
+
+    // Skip rule processing if auto-process is disabled (emails will appear in review queue)
     if (!autoProcessRules) {
-      return { classified: true, rulesApplied: false };
+      return { classified: true, rulesApplied: false, skippedAi };
     }
 
-    // Step 2: Process rules for this category
-    const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-email-rules`, {
+    // Step 3: Process entity-based rules for this entity type
+    const processResponse = await fetch(`${supabaseUrl}/functions/v1/process-entity-rules`, {
       method: "POST",
       headers: {
         Authorization: authHeader,
@@ -78,7 +125,7 @@ async function classifyAndProcessEmail(
       },
       body: JSON.stringify({
         email_id: emailId,
-        category_id: classification.category_id,
+        entity_table: entityTable,
         microsoft_message_id: msg.id,
       }),
     });
@@ -86,10 +133,10 @@ async function classifyAndProcessEmail(
     if (!processResponse.ok) {
       const errorText = await processResponse.text();
       console.warn("Rule processing failed:", errorText);
-      return { classified: true, rulesApplied: false, error: `Rule processing failed: ${errorText}` };
+      return { classified: true, rulesApplied: false, skippedAi, error: `Rule processing failed: ${errorText}` };
     }
 
-    return { classified: true, rulesApplied: true };
+    return { classified: true, rulesApplied: true, skippedAi };
   } catch (error) {
     console.error("AI processing error:", error);
     return { 
@@ -135,6 +182,7 @@ serve(async (req) => {
       peopleCreated: 0,
       emailsSynced: 0,
       emailsClassified: 0,
+      emailsSkippedAi: 0, // Track emails that used cached entity mapping
       rulesApplied: 0,
       errors: [] as string[],
     };
@@ -143,7 +191,7 @@ serve(async (req) => {
     const personCache: Record<string, string | undefined> = {}; // email -> person_id
 
     // Track emails that need AI processing
-    const emailsToProcess: Array<{ emailId: string; msg: GraphMessage }> = [];
+    const emailsToProcess: Array<{ emailId: string; msg: GraphMessage; personId: string | null }> = [];
 
     for (const msg of messages as GraphMessage[]) {
       try {
@@ -223,6 +271,7 @@ serve(async (req) => {
           .upsert({
             microsoft_message_id: msg.id,
             person_id: personId || null,
+            user_id: userId,
             direction: isInbound ? "inbound" : "outbound",
             subject: msg.subject || null,
             body_preview: msg.bodyPreview || null,
@@ -246,7 +295,7 @@ serve(async (req) => {
 
           // Queue for AI processing if not already processed
           if (enableAiProcessing && upsertedEmail && !upsertedEmail.is_processed) {
-            emailsToProcess.push({ emailId: upsertedEmail.id, msg });
+            emailsToProcess.push({ emailId: upsertedEmail.id, msg, personId: personId || null });
           }
         }
       } catch (msgError) {
@@ -261,17 +310,22 @@ serve(async (req) => {
     const maxAiProcessing = 10; // Process max 10 emails per sync to avoid timeout
     const emailsToClassify = emailsToProcess.slice(0, maxAiProcessing);
 
-    for (const { emailId, msg } of emailsToClassify) {
+    for (const { emailId, msg, personId } of emailsToClassify) {
       const aiResult = await classifyAndProcessEmail(
+        supabase,
         supabaseUrl,
         authHeader,
         emailId,
         msg,
+        personId,
         autoProcessRules
       );
 
       if (aiResult.classified) {
         results.emailsClassified++;
+      }
+      if (aiResult.skippedAi) {
+        results.emailsSkippedAi++;
       }
       if (aiResult.rulesApplied) {
         results.rulesApplied++;

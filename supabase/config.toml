@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.process-email-rules]
 verify_jwt = false
 
+[functions.process-entity-rules]
+verify_jwt = false
+
 [functions.extract-invoice]
 verify_jwt = false
 
