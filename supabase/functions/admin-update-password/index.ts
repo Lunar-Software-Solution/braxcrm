@@ -51,19 +51,62 @@ serve(async (req) => {
       throw new Error("Only admins can perform this action");
     }
 
+    // Handle suspend action
+    if (action === "suspend") {
+      if (targetUserId === callerUser.id) {
+        throw new Error("You cannot suspend your own account");
+      }
+
+      const { error: suspendError } = await supabaseAdmin
+        .from("profiles")
+        .update({ 
+          status: "suspended", 
+          suspended_at: new Date().toISOString(),
+          suspended_by: callerUser.id 
+        })
+        .eq("user_id", targetUserId);
+
+      if (suspendError) {
+        throw suspendError;
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "User suspended" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Handle unsuspend action
+    if (action === "unsuspend") {
+      const { error: unsuspendError } = await supabaseAdmin
+        .from("profiles")
+        .update({ 
+          status: "active", 
+          suspended_at: null,
+          suspended_by: null 
+        })
+        .eq("user_id", targetUserId);
+
+      if (unsuspendError) {
+        throw unsuspendError;
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "User reactivated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Handle delete action
     if (action === "delete") {
-      // Prevent deleting yourself
       if (targetUserId === callerUser.id) {
         throw new Error("You cannot delete your own account");
       }
 
-      // Delete user's profile and roles first (cascade should handle this, but be explicit)
       await supabaseAdmin.from("user_entity_roles").delete().eq("user_id", targetUserId);
       await supabaseAdmin.from("user_roles").delete().eq("user_id", targetUserId);
       await supabaseAdmin.from("profiles").delete().eq("user_id", targetUserId);
 
-      // Delete the auth user
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
       if (deleteError) {
         throw deleteError;
