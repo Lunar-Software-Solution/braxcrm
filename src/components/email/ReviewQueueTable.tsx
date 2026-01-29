@@ -8,18 +8,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { CategorySelector } from "./CategorySelector";
-import type { ReviewQueueEmail, EmailCategory } from "@/hooks/use-review-queue";
+import { EntitySelector } from "./EntitySelector";
+import type { ReviewQueueEmail } from "@/hooks/use-review-queue";
 import { cn } from "@/lib/utils";
+import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
+import * as LucideIcons from "lucide-react";
 
 interface ReviewQueueTableProps {
   emails: ReviewQueueEmail[];
-  categories: EmailCategory[];
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
-  onCategoryChange: (emailId: string, categoryId: string) => void;
-  isUpdatingCategory: boolean;
+  onEntityTypeChange: (emailId: string, entityTable: string) => void;
+  isUpdatingEntityType: boolean;
 }
 
 function ConfidenceIndicator({ confidence }: { confidence: number | null }) {
@@ -46,13 +46,28 @@ function ConfidenceIndicator({ confidence }: { confidence: number | null }) {
   );
 }
 
+function EntityTypeBadge({ entityTable }: { entityTable: string | null }) {
+  if (!entityTable) return <span className="text-muted-foreground text-xs">Not classified</span>;
+  
+  const config = ENTITY_AUTOMATION_CONFIG[entityTable];
+  if (!config) return <span className="text-xs">{entityTable}</span>;
+
+  const Icon = LucideIcons[config.icon as keyof typeof LucideIcons] as React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {Icon && <Icon className="h-3.5 w-3.5" style={{ color: config.color }} />}
+      <span className="text-xs font-medium">{config.label}</span>
+    </div>
+  );
+}
+
 export function ReviewQueueTable({
   emails,
-  categories,
   selectedIds,
   onSelectionChange,
-  onCategoryChange,
-  isUpdatingCategory,
+  onEntityTypeChange,
+  isUpdatingEntityType,
 }: ReviewQueueTableProps) {
   const allSelected = emails.length > 0 && selectedIds.size === emails.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < emails.length;
@@ -105,7 +120,7 @@ export function ReviewQueueTable({
             </TableHead>
             <TableHead>Sender</TableHead>
             <TableHead className="min-w-[200px]">Subject</TableHead>
-            <TableHead>Category</TableHead>
+            <TableHead>Entity Type</TableHead>
             <TableHead className="w-[120px]">Confidence</TableHead>
             <TableHead className="w-[100px]">Date</TableHead>
           </TableRow>
@@ -148,11 +163,10 @@ export function ReviewQueueTable({
                 </div>
               </TableCell>
               <TableCell>
-                <CategorySelector
-                  categories={categories}
-                  selectedCategoryId={email.category_id}
-                  onSelect={(categoryId) => onCategoryChange(email.id, categoryId)}
-                  disabled={isUpdatingCategory}
+                <EntitySelector
+                  selectedEntityTable={email.entity_table}
+                  onSelect={(entityTable) => onEntityTypeChange(email.id, entityTable)}
+                  disabled={isUpdatingEntityType}
                 />
               </TableCell>
               <TableCell>
