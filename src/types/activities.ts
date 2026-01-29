@@ -8,7 +8,8 @@ export type EntityTable =
   | 'expense_suppliers'
   | 'corporate_management'
   | 'personal_contacts'
-  | 'subscriptions';
+  | 'subscriptions'
+  | 'marketing_sources';
 
 export interface LinkableEntity {
   entity_table: EntityTable;
@@ -142,6 +143,7 @@ export const entityTableLabels: Record<EntityTable, string> = {
   corporate_management: 'Corporate Management',
   personal_contacts: 'Personal Contacts',
   subscriptions: 'Subscriptions',
+  marketing_sources: 'Marketing Sources',
 };
 
 export const taskStatusLabels: Record<TaskStatus, string> = {

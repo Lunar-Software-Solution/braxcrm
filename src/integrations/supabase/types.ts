@@ -229,6 +229,42 @@ export type Database = {
           },
         ]
       }
+      email_marketing_sources: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          marketing_source_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          marketing_source_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          marketing_source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_marketing_sources_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_marketing_sources_marketing_source_id_fkey"
+            columns: ["marketing_source_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_message_categories: {
         Row: {
           category_id: string
@@ -1100,6 +1136,42 @@ export type Database = {
           invited_by?: string
           name?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      marketing_sources: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
