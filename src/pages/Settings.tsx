@@ -330,7 +330,43 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Security Section */}
+          {/* Entity Roles Section */}
+          {entityRoles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <CardTitle>Entity Access</CardTitle>
+                    <CardDescription>Your assigned entity management roles</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {entityRoles.map((role) => (
+                    <div
+                      key={role.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{role.entity_role?.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {role.entity_role?.entity_table?.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">Active</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Security Section */}
           <Card>
