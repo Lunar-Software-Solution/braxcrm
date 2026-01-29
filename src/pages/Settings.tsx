@@ -34,6 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import EmailRulesSettings from "@/components/settings/EmailRulesSettings";
 import EmailCategoriesSettings from "@/components/settings/EmailCategoriesSettings";
+import UsersRolesSettings from "@/components/settings/UsersRolesSettings";
 
 interface MicrosoftAccount {
   id: string;
@@ -307,6 +308,9 @@ export default function Settings() {
 
           {/* Email Rules Section */}
           <EmailRulesSettings />
+
+          {/* Users & Roles Section */}
+          <UsersRolesSettings />
 
           {/* Security Section */}
           <Card>
