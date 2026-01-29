@@ -10,6 +10,8 @@ export interface UserWithRoles {
   display_name: string | null;
   avatar_url: string | null;
   app_role: "admin" | "member";
+  status: "active" | "suspended";
+  suspended_at: string | null;
   entity_roles: {
     id: string;
     role_name: string;
@@ -41,7 +43,7 @@ export function useUsersRoles() {
       // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, email, display_name, avatar_url")
+        .select("user_id, email, display_name, avatar_url, status, suspended_at")
         .order("display_name");
 
       if (profilesError) throw profilesError;
@@ -83,6 +85,8 @@ export function useUsersRoles() {
           display_name: profile.display_name,
           avatar_url: profile.avatar_url,
           app_role: appRole as "admin" | "member",
+          status: (profile.status as "active" | "suspended") || "active",
+          suspended_at: profile.suspended_at,
           entity_roles: entityRoles,
         });
       }
@@ -180,6 +184,62 @@ export function useUsersRoles() {
     },
   });
 
+  // Suspend user (admin only via edge function)
+  const suspendUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("admin-update-password", {
+        body: { userId, action: "suspend" },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.data?.error || response.error?.message || "Failed to suspend user");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
+      toast({ title: "User suspended", description: "The user has been suspended and can no longer access the system." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error suspending user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unsuspend user (admin only via edge function)
+  const unsuspendUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke("admin-update-password", {
+        body: { userId, action: "unsuspend" },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.data?.error || response.error?.message || "Failed to reactivate user");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
+      toast({ title: "User reactivated", description: "The user has been reactivated and can access the system again." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error reactivating user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete user (admin only via edge function)
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -219,6 +279,10 @@ export function useUsersRoles() {
     isAssigningEntityRole: assignEntityRoleMutation.isPending,
     removeEntityRole: removeEntityRoleMutation.mutate,
     isRemovingEntityRole: removeEntityRoleMutation.isPending,
+    suspendUser: suspendUserMutation.mutate,
+    isSuspendingUser: suspendUserMutation.isPending,
+    unsuspendUser: unsuspendUserMutation.mutate,
+    isUnsuspendingUser: unsuspendUserMutation.isPending,
     deleteUser: deleteUserMutation.mutate,
     isDeletingUser: deleteUserMutation.isPending,
   };

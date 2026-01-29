@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Users, Mail, Shield, Building2, MoreVertical, Trash2, UserPlus, Loader2, CheckCircle2, X, UserX } from "lucide-react";
+import { Plus, Users, Mail, Shield, Building2, MoreVertical, Trash2, UserPlus, Loader2, CheckCircle2, X, UserX, UserCheck, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -79,6 +79,10 @@ export default function UsersRoles() {
     updateAppRole,
     assignEntityRole,
     removeEntityRole,
+    suspendUser,
+    isSuspendingUser,
+    unsuspendUser,
+    isUnsuspendingUser,
     deleteUser,
     isDeletingUser,
   } = useUsersRoles();
@@ -203,7 +207,8 @@ export default function UsersRoles() {
   const aggregations = [
     { label: "Total Users", value: users.length },
     { label: "Admins", value: users.filter(u => u.app_role === "admin").length },
-    { label: "Members", value: users.filter(u => u.app_role === "member").length },
+    { label: "Active", value: users.filter(u => u.status === "active").length },
+    { label: "Suspended", value: users.filter(u => u.status === "suspended").length },
   ];
 
   return (
@@ -320,10 +325,17 @@ export default function UsersRoles() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Active
-                        </Badge>
+                        {userItem.status === "suspended" ? (
+                          <Badge variant="outline" className="gap-1 text-xs text-orange-600 border-orange-200 bg-orange-50">
+                            <Ban className="h-3 w-3" />
+                            Suspended
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Active
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -342,6 +354,54 @@ export default function UsersRoles() {
                             {!isCurrentUser && (
                               <>
                                 <DropdownMenuSeparator />
+                                {userItem.status === "suspended" ? (
+                                  <DropdownMenuItem 
+                                    onClick={() => unsuspendUser(userItem.id)}
+                                    disabled={isUnsuspendingUser}
+                                  >
+                                    {isUnsuspendingUser ? (
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <UserCheck className="h-4 w-4 mr-2" />
+                                    )}
+                                    Reactivate User
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem 
+                                        onSelect={(e) => e.preventDefault()}
+                                        className="text-orange-600 focus:text-orange-600"
+                                      >
+                                        <Ban className="h-4 w-4 mr-2" />
+                                        Suspend User
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Suspend user?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will suspend {userItem.display_name || userItem.email}. They will no longer be able to access the system until reactivated.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => suspendUser(userItem.id)}
+                                          className="bg-orange-600 text-white hover:bg-orange-700"
+                                          disabled={isSuspendingUser}
+                                        >
+                                          {isSuspendingUser ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                          ) : (
+                                            <Ban className="h-4 w-4 mr-2" />
+                                          )}
+                                          Suspend
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <DropdownMenuItem 
