@@ -11,6 +11,7 @@ import {
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Brain, Loader2 } from "lucide-react";
 
 interface ClassificationProcessingQueueTableProps {
   emails: ClassificationQueueEmail[];
@@ -87,7 +88,8 @@ export function ClassificationProcessingQueueTable({
             <TableRow
               key={email.id}
               className={cn(
-                safeSelectedIds.has(email.id) && "bg-muted/50"
+                safeSelectedIds.has(email.id) && "bg-muted/50",
+                isClassifying && safeSelectedIds.has(email.id) && "animate-pulse"
               )}
             >
               <TableCell>
@@ -121,9 +123,17 @@ export function ClassificationProcessingQueueTable({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="text-muted-foreground">
-                  Awaiting Classification
-                </Badge>
+                {isClassifying && safeSelectedIds.has(email.id) ? (
+                  <Badge variant="secondary" className="gap-1.5 text-primary">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Classifying...
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+                    <Brain className="h-3 w-3" />
+                    Awaiting Classification
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <span className="text-sm text-muted-foreground">
