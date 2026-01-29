@@ -104,7 +104,7 @@ serve(async (req) => {
       body: JSON.stringify({
         sender: {
           name: "Graph Mail CRM",
-          email: "noreply@lunr.tech", // Replace with your verified Brevo sender
+          email: "noreply@braxtech.net",
         },
         to: [{ email, name: name || email }],
         subject: "You've been invited to Graph Mail CRM",
