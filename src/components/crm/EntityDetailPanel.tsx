@@ -187,14 +187,23 @@ export function EntityDetailPanel({
               </div>
             </div>
           </TabsContent>
-          <TabsContent value="tasks" className="m-0 p-4">
+          <TabsContent value="tasks" className="m-0">
             <TasksList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
-          <TabsContent value="notes" className="m-0 p-4">
+          <TabsContent value="notes" className="m-0">
             <NotesList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
           <TabsContent value="files" className="m-0 p-4">
-            <p className="text-sm text-muted-foreground">No files yet</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Paperclip className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">No files yet</p>
+              <Button size="sm" variant="outline" disabled>
+                <Paperclip className="h-4 w-4 mr-1" />
+                Add file
+              </Button>
+            </div>
           </TabsContent>
         </ScrollArea>
       </Tabs>
