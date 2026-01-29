@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +13,8 @@ interface ClassifyEmailRequest {
   body_preview: string;
   sender_email: string;
   sender_name: string;
-  person_id?: string; // Optional - for checking existing entity mappings
+  person_id?: string;
+  user_id?: string;
 }
 
 interface EntityRule {
@@ -40,10 +41,46 @@ const ENTITY_TABLES = [
   "subscriptions",
 ];
 
+// Helper to log classification
+async function logClassification(
+  supabase: SupabaseClient,
+  emailId: string,
+  userId: string | null,
+  entityTable: string | null,
+  confidence: number,
+  source: string,
+  success: boolean,
+  errorMessage: string | null,
+  processingTimeMs: number
+) {
+  try {
+    // Use service client for logging to bypass RLS
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    
+    await serviceClient.from("email_classification_logs").insert({
+      email_id: emailId,
+      user_id: userId,
+      entity_table: entityTable,
+      confidence,
+      source,
+      success,
+      error_message: errorMessage,
+      processing_time_ms: processingTimeMs,
+    });
+  } catch (e) {
+    console.error("Failed to log classification:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = Date.now();
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -63,7 +100,8 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { email_id, subject, body_preview, sender_email, sender_name, person_id }: ClassifyEmailRequest = await req.json();
+    const { email_id, subject, body_preview, sender_email, sender_name, person_id, user_id }: ClassifyEmailRequest = await req.json();
+    const effectiveUserId = user_id || user.id;
 
     if (!email_id) {
       throw new Error("Missing required field: email_id");
@@ -80,13 +118,8 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingMapping?.entity_table) {
-        // Use cached result - skip AI
-        const result: ClassificationResult = {
-          entity_table: existingMapping.entity_table,
-          confidence: 1.0,
-          reasoning: "Person already linked to this entity type",
-        };
-
+        const processingTime = Date.now() - startTime;
+        
         // Update email_messages with the entity
         await supabase
           .from("email_messages")
@@ -96,7 +129,26 @@ serve(async (req) => {
           })
           .eq("id", email_id);
 
+        // Log the cached classification
+        await logClassification(
+          supabase,
+          email_id,
+          effectiveUserId,
+          existingMapping.entity_table,
+          1.0,
+          "cache",
+          true,
+          null,
+          processingTime
+        );
+
         console.log(`Skipped AI - person ${person_id} already mapped to ${existingMapping.entity_table}`);
+
+        const result: ClassificationResult = {
+          entity_table: existingMapping.entity_table,
+          confidence: 1.0,
+          reasoning: "Person already linked to this entity type",
+        };
 
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,6 +170,19 @@ serve(async (req) => {
 
     // If no rules defined, return null classification
     if (!rules || rules.length === 0) {
+      const processingTime = Date.now() - startTime;
+      await logClassification(
+        supabase,
+        email_id,
+        effectiveUserId,
+        null,
+        0,
+        "ai",
+        true,
+        "No entity rules defined",
+        processingTime
+      );
+
       const result: ClassificationResult = {
         entity_table: null,
         confidence: 0,
@@ -178,19 +243,24 @@ Only respond with the JSON object, no other text.`;
       const errorText = await aiResponse.text();
       console.error("AI Gateway error:", aiResponse.status, errorText);
       
+      const processingTime = Date.now() - startTime;
+      
       if (aiResponse.status === 429) {
+        await logClassification(supabase, email_id, effectiveUserId, null, 0, "ai", false, "Rate limit exceeded", processingTime);
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
+        await logClassification(supabase, email_id, effectiveUserId, null, 0, "ai", false, "AI credits exhausted", processingTime);
         return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       
+      await logClassification(supabase, email_id, effectiveUserId, null, 0, "ai", false, `AI Gateway error: ${aiResponse.status}`, processingTime);
       throw new Error("AI classification failed");
     }
 
@@ -198,6 +268,8 @@ Only respond with the JSON object, no other text.`;
     const aiContent = aiData.choices?.[0]?.message?.content;
 
     if (!aiContent) {
+      const processingTime = Date.now() - startTime;
+      await logClassification(supabase, email_id, effectiveUserId, null, 0, "ai", false, "No response from AI", processingTime);
       throw new Error("No response from AI");
     }
 
@@ -209,6 +281,8 @@ Only respond with the JSON object, no other text.`;
       parsedResponse = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error("Failed to parse AI response:", aiContent);
+      const processingTime = Date.now() - startTime;
+      await logClassification(supabase, email_id, effectiveUserId, null, 0, "ai", false, "Failed to parse AI response", processingTime);
       throw new Error("Failed to parse AI classification response");
     }
 
@@ -234,6 +308,20 @@ Only respond with the JSON object, no other text.`;
         })
         .eq("id", email_id);
     }
+
+    // Log successful classification
+    const processingTime = Date.now() - startTime;
+    await logClassification(
+      supabase,
+      email_id,
+      effectiveUserId,
+      result.entity_table,
+      result.confidence,
+      "ai",
+      true,
+      null,
+      processingTime
+    );
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
