@@ -8,11 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { EntitySelector } from "./EntitySelector";
 import type { RulesProcessingQueueEmail } from "@/hooks/use-rules-processing-queue";
 import { cn } from "@/lib/utils";
 import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
 import * as LucideIcons from "lucide-react";
+import { User, Bot } from "lucide-react";
 
 interface RulesProcessingQueueTableProps {
   emails: RulesProcessingQueueEmail[];
@@ -43,6 +45,29 @@ function ConfidenceIndicator({ confidence }: { confidence: number | null }) {
       </div>
       <span className="text-xs text-muted-foreground w-8">{percentage}%</span>
     </div>
+  );
+}
+
+function SenderTypeBadge({ isPerson }: { isPerson: boolean | null }) {
+  if (isPerson === null) {
+    return (
+      <Badge variant="outline" className="gap-1 text-muted-foreground text-xs">
+        <User className="h-3 w-3" />
+        Unknown
+      </Badge>
+    );
+  }
+
+  return isPerson ? (
+    <Badge variant="outline" className="gap-1 text-xs">
+      <User className="h-3 w-3" />
+      Person
+    </Badge>
+  ) : (
+    <Badge variant="secondary" className="gap-1 text-xs">
+      <Bot className="h-3 w-3" />
+      Automated
+    </Badge>
   );
 }
 
@@ -90,6 +115,26 @@ export function RulesProcessingQueueTable({
     onSelectionChange(newSelection);
   };
 
+  // Helper to get sender display info
+  const getSenderDisplay = (email: RulesProcessingQueueEmail) => {
+    if (email.is_person === false && email.sender) {
+      return {
+        name: email.sender.display_name || email.sender.email?.split('@')[0] || "Unknown",
+        email: email.sender.email || "",
+      };
+    }
+    if (email.person) {
+      return {
+        name: email.person.name || "Unknown",
+        email: email.person.email || "",
+      };
+    }
+    return {
+      name: email.sender_name || "Unknown",
+      email: email.sender_email || "",
+    };
+  };
+
   if (emails.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -120,65 +165,72 @@ export function RulesProcessingQueueTable({
             </TableHead>
             <TableHead>Sender</TableHead>
             <TableHead className="min-w-[200px]">Subject</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Entity Type</TableHead>
             <TableHead className="w-[120px]">Confidence</TableHead>
             <TableHead className="w-[100px]">Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {emails.map((email) => (
-            <TableRow
-              key={email.id}
-              className={cn(
-                selectedIds.has(email.id) && "bg-muted/50"
-              )}
-            >
-              <TableCell>
-                <Checkbox
-                  checked={selectedIds.has(email.id)}
-                  onCheckedChange={(checked) =>
-                    handleSelectOne(email.id, checked as boolean)
-                  }
-                  aria-label={`Select email: ${email.subject}`}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium truncate max-w-[150px]">
-                    {email.person?.name || "Unknown"}
+          {emails.map((email) => {
+            const senderDisplay = getSenderDisplay(email);
+            return (
+              <TableRow
+                key={email.id}
+                className={cn(
+                  selectedIds.has(email.id) && "bg-muted/50"
+                )}
+              >
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(email.id)}
+                    onCheckedChange={(checked) =>
+                      handleSelectOne(email.id, checked as boolean)
+                    }
+                    aria-label={`Select email: ${email.subject}`}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium truncate max-w-[150px]">
+                      {senderDisplay.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                      {senderDisplay.email}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium truncate max-w-[300px]">
+                      {email.subject || "(No subject)"}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate max-w-[300px]">
+                      {email.body_preview || ""}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <SenderTypeBadge isPerson={email.is_person} />
+                </TableCell>
+                <TableCell>
+                  <EntitySelector
+                    selectedEntityTable={email.entity_table}
+                    onSelect={(entityTable) => onEntityTypeChange(email.id, entityTable)}
+                    disabled={isUpdatingEntityType}
+                  />
+                </TableCell>
+                <TableCell>
+                  <ConfidenceIndicator confidence={email.ai_confidence} />
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(email.received_at), "MMM d")}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                    {email.person?.email || ""}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium truncate max-w-[300px]">
-                    {email.subject || "(No subject)"}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[300px]">
-                    {email.body_preview || ""}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <EntitySelector
-                  selectedEntityTable={email.entity_table}
-                  onSelect={(entityTable) => onEntityTypeChange(email.id, entityTable)}
-                  disabled={isUpdatingEntityType}
-                />
-              </TableCell>
-              <TableCell>
-                <ConfidenceIndicator confidence={email.ai_confidence} />
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(email.received_at), "MMM d")}
-                </span>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

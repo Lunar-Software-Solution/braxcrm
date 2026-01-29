@@ -335,15 +335,18 @@ async function processAction(
         return { action_type: "assign_role", success: false, error: "No role configured" };
       }
 
-      // Get the email to find related entity for role assignment
+      // Get the email to check is_person flag
       const { data: email } = await supabase
         .from("email_messages")
-        .select("person_id, sender_id")
+        .select("person_id, sender_id, is_person")
         .eq("id", emailId)
         .single();
 
-      // For sender-based emails, we need to get entity from senders table
-      if (email?.sender_id) {
+      // Use is_person flag to determine which record type to use
+      const isPerson = email?.is_person ?? true; // Default to person for backwards compatibility
+
+      // For sender-based emails (is_person = false), use sender's entity
+      if (!isPerson && email?.sender_id) {
         const { data: sender } = await supabase
           .from("senders")
           .select("entity_id, entity_table")
@@ -421,10 +424,10 @@ async function handleLinkEntity(
     return { action_type: "link_entity", success: true }; // No link table for this entity type
   }
 
-  // Get email with person and sender info
+  // Get email with person, sender, and is_person info
   const { data: email } = await supabase
     .from("email_messages")
-    .select("person_id, sender_id, sender_email, sender_name, user_id")
+    .select("person_id, sender_id, sender_email, sender_name, user_id, is_person")
     .eq("id", emailId)
     .single();
 
@@ -432,12 +435,34 @@ async function handleLinkEntity(
     return { action_type: "link_entity", success: false, error: "Email not found" };
   }
 
-  // If email has a sender_id (non-person sender), link sender to entity
-  if (email.sender_id) {
-    return await handleSenderLinkEntity(supabase, emailId, email.sender_id, entityTable, linkConfig, config, userId);
+  // Use is_person flag to determine linking strategy
+  const isPerson = email.is_person ?? true; // Default to person for backwards compatibility
+
+  // If is_person = false, handle as sender-based linking
+  if (!isPerson) {
+    // If we have a sender_id, use sender linking
+    if (email.sender_id) {
+      return await handleSenderLinkEntity(supabase, emailId, email.sender_id, entityTable, linkConfig, config, userId);
+    }
+    
+    // No sender_id yet but classified as non-person - create sender and link
+    if (email.sender_email) {
+      const newSenderId = await createSenderFromEmail(supabase, email.sender_email, email.sender_name, email.user_id || userId);
+      if (newSenderId) {
+        // Update email with sender_id
+        await supabase
+          .from("email_messages")
+          .update({ sender_id: newSenderId })
+          .eq("id", emailId);
+        
+        return await handleSenderLinkEntity(supabase, emailId, newSenderId, entityTable, linkConfig, config, userId);
+      }
+    }
+    
+    return { action_type: "link_entity", success: false, error: "Non-person email but no sender info available" };
   }
 
-  // Otherwise, handle as person-based linking
+  // is_person = true: handle as person-based linking
   let personId = email.person_id;
 
   // Create person if they don't exist and we have sender info
@@ -587,6 +612,75 @@ async function handleLinkEntity(
   }
 
   return { action_type: "link_entity", success: true };
+}
+
+// Helper to create sender record from email info
+async function createSenderFromEmail(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string,
+  displayName: string | null,
+  userId: string
+): Promise<string | null> {
+  try {
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Check if sender already exists
+    const { data: existingSender } = await serviceClient
+      .from("senders")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (existingSender) {
+      return existingSender.id;
+    }
+
+    // Determine sender type from email pattern
+    const localPart = email.split('@')[0].toLowerCase();
+    let senderType = 'automated';
+    if (/^(newsletter|news|updates|digest)/.test(localPart)) {
+      senderType = 'newsletter';
+    } else if (/^(support|info|hello|contact|sales|team|help)/.test(localPart)) {
+      senderType = 'shared_inbox';
+    } else if (/^(system|automated|notifications|alerts)/.test(localPart)) {
+      senderType = 'system';
+    }
+
+    const domain = email.split('@')[1]?.toLowerCase() || null;
+
+    const { data: newSender, error } = await serviceClient
+      .from("senders")
+      .insert({
+        email: email.toLowerCase(),
+        display_name: displayName,
+        sender_type: senderType,
+        domain,
+        is_auto_created: true,
+        created_by: userId,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to create sender:", error);
+      // Race condition - try to fetch again
+      const { data: retrySender } = await serviceClient
+        .from("senders")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      return retrySender?.id || null;
+    }
+
+    return newSender?.id || null;
+  } catch (e) {
+    console.error("Error creating sender:", e);
+    return null;
+  }
 }
 
 async function handleSenderLinkEntity(

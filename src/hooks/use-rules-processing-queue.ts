@@ -11,11 +11,20 @@ export interface RulesProcessingQueueEmail {
   received_at: string;
   ai_confidence: number | null;
   entity_table: string | null;
+  is_person: boolean | null;
   person_id: string | null;
+  sender_id: string | null;
+  sender_email: string | null;
+  sender_name: string | null;
   person?: {
     id: string;
     name: string;
     email: string;
+  };
+  sender?: {
+    id: string;
+    email: string;
+    display_name: string | null;
   };
 }
 
@@ -41,8 +50,13 @@ export function useRulesProcessingQueue() {
           received_at,
           ai_confidence,
           entity_table,
+          is_person,
           person_id,
-          person:people(id, name, email)
+          sender_id,
+          sender_email,
+          sender_name,
+          person:people(id, name, email),
+          sender:senders(id, email, display_name)
         `)
         .not("entity_table", "is", null)
         .eq("is_processed", false)
