@@ -96,7 +96,33 @@ serve(async (req) => {
         );
       }
     }
-    
+
+    // Check if user already exists in auth
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+    const userExists = existingUsers?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (userExists) {
+      // User already registered - update invitation to accepted if it exists
+      if (resend && invitationId) {
+        await adminClient
+          .from("invitations")
+          .update({ 
+            status: "accepted",
+            accepted_at: new Date().toISOString(),
+          })
+          .eq("id", invitationId);
+        
+        return new Response(
+          JSON.stringify({ success: true, message: "User has already registered. Invitation marked as accepted." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: "A user with this email is already registered" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.generateLink({
       type: "invite",
