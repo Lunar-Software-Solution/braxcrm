@@ -818,6 +818,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          entity_id: string
+          entity_table: string
+          id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          entity_id: string
+          entity_table: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          entity_id?: string
+          entity_table?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       object_types: {
         Row: {
           color: string | null
@@ -854,6 +887,57 @@ export type Database = {
           name?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          currency: string | null
+          description: string | null
+          entity_id: string
+          entity_table: string
+          expected_close_date: string | null
+          id: string
+          name: string
+          probability: number | null
+          stage: Database["public"]["Enums"]["opportunity_stage"]
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          description?: string | null
+          entity_id: string
+          entity_table: string
+          expected_close_date?: string | null
+          id?: string
+          name: string
+          probability?: number | null
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          description?: string | null
+          entity_id?: string
+          entity_table?: string
+          expected_close_date?: string | null
+          id?: string
+          name?: string
+          probability?: number | null
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
+          updated_at?: string
+          value?: number | null
         }
         Relationships: []
       }
@@ -1162,6 +1246,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          entity_id: string
+          entity_table: string
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          entity_id: string
+          entity_table: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string
+          entity_table?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_entity_roles: {
         Row: {
           assigned_at: string
@@ -1240,6 +1372,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "member"
       invoice_status: "pending" | "reviewed" | "approved" | "rejected"
+      opportunity_stage:
+        | "lead"
+        | "qualified"
+        | "proposal"
+        | "negotiation"
+        | "won"
+        | "lost"
       rule_action_type:
         | "visibility"
         | "tag"
@@ -1250,6 +1389,8 @@ export type Database = {
         | "assign_object_type"
         | "assign_entity"
         | "assign_role"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1379,6 +1520,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "member"],
       invoice_status: ["pending", "reviewed", "approved", "rejected"],
+      opportunity_stage: [
+        "lead",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "won",
+        "lost",
+      ],
       rule_action_type: [
         "visibility",
         "tag",
@@ -1390,6 +1539,8 @@ export const Constants = {
         "assign_entity",
         "assign_role",
       ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "completed", "cancelled"],
     },
   },
 } as const
