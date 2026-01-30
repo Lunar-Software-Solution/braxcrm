@@ -197,6 +197,74 @@ serve(async (req) => {
       throw new Error("Missing required field: email_id");
     }
 
+    // Service client for lookups that bypass RLS
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // ============================================================
+    // AUTO-LINK CHECK: Look up Person by sender email and check if
+    // they're already linked to an entity - skip AI if so
+    // ============================================================
+    if (sender_email && !person_id) {
+      const { data: matchingPerson } = await serviceClient
+        .from("people")
+        .select("id")
+        .ilike("email", sender_email)
+        .maybeSingle();
+
+      if (matchingPerson) {
+        // Check if this person is linked to any entity
+        const { data: personEntityLink } = await serviceClient
+          .from("people_entities")
+          .select("entity_table, entity_id")
+          .eq("person_id", matchingPerson.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (personEntityLink?.entity_table) {
+          const processingTime = Date.now() - startTime;
+
+          // Update email with person_id link and confidence
+          await serviceClient
+            .from("email_messages")
+            .update({
+              person_id: matchingPerson.id,
+              ai_confidence: 1.0,
+              is_person: true,
+            })
+            .eq("id", email_id);
+
+          await logClassification(
+            supabase,
+            email_id,
+            effectiveUserId,
+            personEntityLink.entity_table,
+            1.0,
+            "person_lookup",
+            true,
+            null,
+            processingTime
+          );
+
+          console.log(`Skipped AI - found existing person ${matchingPerson.id} linked to ${personEntityLink.entity_table}`);
+
+          const result: ClassificationResult = {
+            entity_table: personEntityLink.entity_table,
+            is_person: true,
+            confidence: 1.0,
+            reasoning: "Sender email matched existing person linked to this entity type",
+          };
+
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     // If email already has a sender_id, it's already determined to be non-person
     if (sender_id) {
       // Get the sender's cached entity mapping
