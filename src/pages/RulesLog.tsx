@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -10,10 +11,46 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Tag, FileText, Building2, Eye, Folder, AlertTriangle, Layers, Brain, Clock, Zap, Loader2, Database, Sparkles, Store, Package, Receipt, Contact, CreditCard, Megaphone } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  CheckCircle2,
+  XCircle,
+  Tag,
+  FileText,
+  Building2,
+  Eye,
+  Folder,
+  AlertTriangle,
+  Layers,
+  Brain,
+  Clock,
+  Zap,
+  Loader2,
+  Database,
+  Sparkles,
+  Store,
+  Package,
+  Receipt,
+  Contact,
+  CreditCard,
+  Megaphone,
+  RotateCcw,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ENTITY_AUTOMATION_CONFIG } from "@/types/entity-automation";
+import { useReprocessEmails } from "@/hooks/use-reprocess-emails";
 
 interface RuleLog {
   id: string;
@@ -120,6 +157,10 @@ const entityLabels: Record<string, string> = {
 };
 
 export default function RulesLog() {
+  const [selectedEmailIds, setSelectedEmailIds] = useState<Set<string>>(new Set());
+  const [showReprocessDialog, setShowReprocessDialog] = useState(false);
+  const { reprocessEmails, isReprocessing } = useReprocessEmails();
+
   const { data: ruleLogs, isLoading: rulesLoading } = useQuery({
     queryKey: ["rules-log"],
     queryFn: async () => {
@@ -206,6 +247,46 @@ export default function RulesLog() {
         classification_source: sourceMap.get(email.id) || null
       })) as PendingProcessingEmail[];
     },
+  });
+
+  // Get unique email IDs from rule logs for selection
+  const uniqueEmailIds = Array.from(new Set(ruleLogs?.map(log => log.email_id) || []));
+  const allSelected = uniqueEmailIds.length > 0 && uniqueEmailIds.every(id => selectedEmailIds.has(id));
+  const someSelected = selectedEmailIds.size > 0;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEmailIds(new Set(uniqueEmailIds));
+    } else {
+      setSelectedEmailIds(new Set());
+    }
+  };
+
+  const handleSelectEmail = (emailId: string, checked: boolean) => {
+    const newSelected = new Set(selectedEmailIds);
+    if (checked) {
+      newSelected.add(emailId);
+    } else {
+      newSelected.delete(emailId);
+    }
+    setSelectedEmailIds(newSelected);
+  };
+
+  const handleReprocess = () => {
+    reprocessEmails(Array.from(selectedEmailIds), {
+      onSuccess: () => {
+        setSelectedEmailIds(new Set());
+        setShowReprocessDialog(false);
+      },
+    });
+  };
+
+  // Group logs by email_id to show checkbox only once per email
+  const emailIdToFirstLogIndex = new Map<string, number>();
+  ruleLogs?.forEach((log, index) => {
+    if (!emailIdToFirstLogIndex.has(log.email_id)) {
+      emailIdToFirstLogIndex.set(log.email_id, index);
+    }
   });
 
   return (
@@ -429,10 +510,36 @@ export default function RulesLog() {
         </TabsContent>
 
         <TabsContent value="rules" className="mt-4">
+          {/* Toolbar for reprocessing */}
+          {someSelected && (
+            <div className="mb-4 p-3 bg-muted/50 border rounded-lg flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedEmailIds.size} email(s) selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowReprocessDialog(true)}
+                disabled={isReprocessing}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reprocess Selected
+              </Button>
+            </div>
+          )}
+
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead>Email Subject</TableHead>
                   <TableHead>Entity Type</TableHead>
@@ -445,6 +552,7 @@ export default function RulesLog() {
                 {rulesLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-5" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -455,64 +563,76 @@ export default function RulesLog() {
                   ))
                 ) : ruleLogs?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No rule processing logs yet. Sync your inbox to trigger automation.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  ruleLogs?.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>
-                        {log.success ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-destructive" />
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium max-w-[300px] truncate">
-                        {log.email?.subject || "No subject"}
-                      </TableCell>
-                      <TableCell>
-                        {log.email?.entity_table ? (
-                          <Badge
-                            variant="outline"
-                            className="gap-1.5"
-                            style={{
-                              borderColor: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
-                              color: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
-                            }}
-                          >
-                            {entityIcons[log.email.entity_table]}
-                            {ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.label || log.email.entity_table}
-                          </Badge>
-                        ) : log.email?.category ? (
-                          <Badge
-                            variant="outline"
-                            style={{
-                              borderColor: log.email.category.color || undefined,
-                              color: log.email.category.color || undefined,
-                            }}
-                          >
-                            {log.email.category.name}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {actionIcons[log.action_type] || <Layers className="h-4 w-4" />}
-                          <span>{actionLabels[log.action_type] || log.action_type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {log.rule?.name || (log.rule_id === null ? "Entity Automation" : "—")}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(log.processed_at), "MMM d, h:mm a")}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  ruleLogs?.map((log, index) => {
+                    const isFirstForEmail = emailIdToFirstLogIndex.get(log.email_id) === index;
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          {isFirstForEmail ? (
+                            <Checkbox
+                              checked={selectedEmailIds.has(log.email_id)}
+                              onCheckedChange={(checked) => handleSelectEmail(log.email_id, !!checked)}
+                              aria-label={`Select email ${log.email?.subject || log.email_id}`}
+                            />
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          {log.success ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-destructive" />
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[300px] truncate">
+                          {log.email?.subject || "No subject"}
+                        </TableCell>
+                        <TableCell>
+                          {log.email?.entity_table ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1.5"
+                              style={{
+                                borderColor: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
+                                color: ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.color || undefined,
+                              }}
+                            >
+                              {entityIcons[log.email.entity_table]}
+                              {ENTITY_AUTOMATION_CONFIG[log.email.entity_table]?.label || log.email.entity_table}
+                            </Badge>
+                          ) : log.email?.category ? (
+                            <Badge
+                              variant="outline"
+                              style={{
+                                borderColor: log.email.category.color || undefined,
+                                color: log.email.category.color || undefined,
+                              }}
+                            >
+                              {log.email.category.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {actionIcons[log.action_type] || <Layers className="h-4 w-4" />}
+                            <span>{actionLabels[log.action_type] || log.action_type}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {log.rule?.name || (log.rule_id === null ? "Entity Automation" : "—")}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(log.processed_at), "MMM d, h:mm a")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -535,6 +655,33 @@ export default function RulesLog() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Reprocess Confirmation Dialog */}
+      <AlertDialog open={showReprocessDialog} onOpenChange={setShowReprocessDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reprocess Emails</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset {selectedEmailIds.size} email(s) for reprocessing. Tags and entity links will be removed, but the entity classification will be preserved.
+              <br /><br />
+              The emails will appear in the Pending Processing tab and can be processed again through the Rules Processing Queue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isReprocessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReprocess} disabled={isReprocessing}>
+              {isReprocessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Reprocessing...
+                </>
+              ) : (
+                "Reprocess"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
