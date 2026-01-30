@@ -21,7 +21,7 @@ export function useWebhookEndpoints() {
   });
 
   const createEndpoint = useMutation({
-    mutationFn: async (endpoint: Omit<WebhookEndpoint, "id" | "created_at" | "updated_at" | "created_by">) => {
+    mutationFn: async (endpoint: Omit<WebhookEndpoint, "id" | "created_at" | "updated_at" | "created_by" | "secret_key">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 

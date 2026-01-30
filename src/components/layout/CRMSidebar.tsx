@@ -59,6 +59,7 @@ const workspaceItems = [
   { title: "Processing Log", url: "/rules-log", icon: ScrollText },
   { title: "Webhook Queue", url: "/webhook-processing-queue", icon: Webhook },
   { title: "Webhook Log", url: "/webhook-log", icon: History },
+  { title: "Webhook Endpoints", url: "/webhook-endpoints", icon: Zap },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
   { title: "Settings", url: "/settings", icon: Settings },
 ];

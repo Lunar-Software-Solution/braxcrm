@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.classify-webhook-event]
 verify_jwt = false
+
+[functions.admin-update-password]
+verify_jwt = false
