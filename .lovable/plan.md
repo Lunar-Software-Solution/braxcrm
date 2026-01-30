@@ -1,8 +1,15 @@
-# QuickBooks Online Bills Integration
+
+
+# Webhook Object Processing System
 
 ## Overview
 
-This plan implements QuickBooks Online (QBO) integration starting with the Bills object. The integration will follow the same OAuth pattern used for Microsoft Graph API, storing QBO tokens and enabling bill synchronization for matching against email invoices and card charges.
+This plan implements a webhook system that allows external systems to create objects (Persons, Entities, and other CRM records) and process them through the existing entity automation rules engine - similar to how email automation works today.
+
+The system mirrors the email flow:
+1. **Webhook receives data** (like email sync receives emails)
+2. **Objects enter a processing queue** (like Classification Queue)
+3. **Rules are applied** (like Rules Processing Queue)
 
 ---
 
@@ -10,284 +17,309 @@ This plan implements QuickBooks Online (QBO) integration starting with the Bills
 
 ### 1.1 New Tables
 
-**qbo_tokens** (OAuth token storage - similar to `microsoft_tokens`)
-```
-qbo_tokens
+**webhook_endpoints** (registered webhook sources)
+```text
+webhook_endpoints
   - id (uuid, PK)
-  - user_id (uuid, FK -> auth.users, not null)
-  - access_token (text, not null)
-  - refresh_token (text, not null)
-  - realm_id (text, not null) -- QBO company ID
-  - company_name (text, nullable)
-  - expires_at (timestamptz, not null)
-  - refresh_token_expires_at (timestamptz, nullable)
-  - is_primary (boolean, default true)
-  - created_at, updated_at (timestamps)
-  - UNIQUE(user_id, realm_id)
-```
-
-**qbo_vendors** (Vendor master data from QBO)
-```
-qbo_vendors
-  - id (uuid, PK)
-  - qbo_vendor_id (text, not null) -- QBO internal ID
-  - realm_id (text, not null) -- Which QBO company
-  - display_name (text, not null)
-  - company_name (text, nullable)
-  - primary_email (text, nullable)
-  - balance (numeric, nullable)
-  - active (boolean, default true)
-  - subscription_id (uuid, FK -> subscriptions, nullable) -- Link to our vendor
-  - raw_payload (jsonb, nullable)
-  - user_id (uuid, FK -> auth.users)
-  - synced_at (timestamptz)
-  - created_at, updated_at (timestamps)
-  - UNIQUE(realm_id, qbo_vendor_id)
-```
-
-**qbo_bills** (Bills from QBO)
-```
-qbo_bills
-  - id (uuid, PK)
-  - qbo_bill_id (text, not null) -- QBO internal ID
-  - realm_id (text, not null)
-  - qbo_vendor_id (text, nullable)
-  - vendor_display_name (text, nullable)
-  - txn_date (date, not null)
-  - due_date (date, nullable)
-  - doc_number (text, nullable) -- Invoice number from vendor
-  - amount_total (numeric, not null)
-  - balance (numeric, nullable) -- Remaining balance
-  - currency (text, default 'USD')
-  - private_note (text, nullable)
-  - ap_account_ref (text, nullable)
-  - subscription_id (uuid, FK -> subscriptions, nullable) -- Link to our vendor
-  - status (enum: open, paid, partial, voided)
-  - raw_payload (jsonb, nullable)
-  - user_id (uuid, FK -> auth.users)
-  - synced_at (timestamptz)
-  - created_at, updated_at (timestamps)
-  - UNIQUE(realm_id, qbo_bill_id)
-```
-
-**qbo_bill_lines** (Bill line items)
-```
-qbo_bill_lines
-  - id (uuid, PK)
-  - qbo_bill_id (uuid, FK -> qbo_bills.id)
-  - line_num (integer)
+  - name (text) -- "Shopify Orders", "Stripe Webhooks"
+  - slug (text, unique) -- URL-safe identifier
+  - secret_key (text) -- for signature verification
+  - is_active (boolean, default true)
   - description (text, nullable)
-  - amount (numeric, not null)
-  - detail_type (text) -- AccountBasedExpense, ItemBasedExpense
-  - account_ref (text, nullable)
-  - account_name (text, nullable)
-  - item_ref (text, nullable)
-  - billable_status (text, nullable)
+  - allowed_object_types (text[]) -- ['person', 'influencer', 'subscription', etc.]
+  - default_entity_table (text, nullable) -- default entity type
+  - created_by (uuid)
+  - created_at, updated_at (timestamps)
+```
+
+**webhook_events** (incoming webhook payloads - similar to email_messages)
+```text
+webhook_events
+  - id (uuid, PK)
+  - endpoint_id (FK -> webhook_endpoints)
+  - external_id (text, nullable) -- external system's ID
+  - event_type (text) -- "contact.created", "order.completed"
+  - payload (jsonb) -- raw webhook data
+  - status (enum: pending, processing, processed, failed)
+  - entity_table (text, nullable) -- classified entity type
+  - is_person (boolean, nullable) -- person vs automated sender
+  - person_id (FK -> people, nullable)
+  - entity_id (uuid, nullable) -- linked entity record
+  - ai_confidence (numeric, nullable)
+  - error_message (text, nullable)
+  - processed_at (timestamptz, nullable)
+  - user_id (uuid)
   - created_at (timestamp)
+```
+
+**webhook_event_logs** (processing history)
+```text
+webhook_event_logs
+  - id (uuid, PK)
+  - webhook_event_id (FK -> webhook_events)
+  - action_type (text) -- "create_person", "create_entity", "apply_tag", etc.
+  - action_config (jsonb)
+  - success (boolean)
+  - error_message (text, nullable)
+  - processed_at (timestamp)
 ```
 
 ### 1.2 New Enums
 
 ```sql
-CREATE TYPE qbo_bill_status AS ENUM ('open', 'paid', 'partial', 'voided');
+CREATE TYPE webhook_event_status AS ENUM ('pending', 'processing', 'processed', 'failed');
 ```
 
 ### 1.3 RLS Policies
 
-All tables will use user-based access:
-- Users can only see/manage their own QBO data
-- Admins can view all QBO data
+- Users can manage their own webhook events
+- Admins can manage all endpoints and events
+- Service role access for webhook ingestion
 
 ---
 
 ## Phase 2: Edge Functions
 
-### 2.1 `qbo-auth` (OAuth Flow)
+### 2.1 `webhook-ingest` (Public Endpoint)
 
-Similar pattern to `ms-auth`:
+**Purpose**: Receive incoming webhooks from external systems
 
-**Actions:**
-- `authorize` - Generate QBO OAuth authorization URL
-- `callback` - Exchange code for tokens, store in `qbo_tokens`
-- `disconnect` - Revoke and delete tokens
+**Features**:
+- Validate webhook signature using endpoint secret
+- Store raw payload in `webhook_events`
+- Optionally auto-classify entity type using AI
+- Set initial status to `pending`
 
-**OAuth Configuration:**
-- Authorization endpoint: `https://appcenter.intuit.com/connect/oauth2`
-- Token endpoint: `https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer`
-- Scopes: `com.intuit.quickbooks.accounting`
+**Endpoint**: `POST /functions/v1/webhook-ingest/{endpoint_slug}`
 
-**Required Secrets:**
-- `QBO_CLIENT_ID`
-- `QBO_CLIENT_SECRET`
-- `QBO_ENVIRONMENT` (sandbox or production)
+**Request Flow**:
+```text
+External System -> webhook-ingest -> webhook_events (status: pending)
+```
 
-### 2.2 `qbo-api` (Generic QBO API Proxy)
+### 2.2 `classify-webhook-event` (AI Classification)
 
-Similar pattern to `graph-api`:
+**Purpose**: Use AI to determine entity type and person status
 
-**Actions:**
-- `get-company-info` - Get connected company details
-- `list-vendors` - Fetch all vendors
-- `list-bills` - Fetch bills with optional filters
-- `get-bill` - Get single bill details
-- `query` - Execute custom QBO query
+**Similar to**: `classify-email` function
 
-**Token Management:**
-- Auto-refresh expired tokens (1-hour lifetime)
-- Store updated tokens after refresh
-- Handle refresh token expiration (100 days)
+**Determines**:
+- Which entity table the object belongs to (influencer, subscription, etc.)
+- Whether it's a person or automated/system record
+- Confidence score
 
-### 2.3 `sync-qbo-data` (Sync Orchestrator)
+### 2.3 `prepare-webhook-for-rules`
 
-**Responsibilities:**
-- Sync vendors from QBO to `qbo_vendors`
-- Sync bills from QBO to `qbo_bills` with line items
-- Track last sync timestamp
-- Incremental sync support via QBO change data capture
+**Purpose**: Create Person/Sender and Entity records before rule processing
+
+**Similar to**: `prepare-for-rules` function
+
+**Actions**:
+1. Find or create Person record (if is_person = true)
+2. Find or create Entity record in target table
+3. Link Person to Entity via `people_entities`
+4. Update webhook_event with person_id and entity_id
+
+### 2.4 `process-webhook-rules`
+
+**Purpose**: Apply entity automation rules to the webhook event
+
+**Similar to**: `process-entity-rules` function
+
+**Actions**:
+- Fetch active rules for the entity_table
+- Apply each rule action (tag, extract_invoice, etc.)
+- Log results to `webhook_event_logs`
+- Mark event as `processed`
 
 ---
 
 ## Phase 3: Frontend Components
 
-### 3.1 Settings Page Enhancement
+### 3.1 Webhook Endpoints Management (`/settings` or `/webhook-endpoints`)
 
-Add "QuickBooks" section to Settings:
-- Connect/disconnect QBO account button
-- Show connected company name and realm ID
-- Last sync timestamp
-- Manual sync trigger button
+**Features**:
+- List all registered webhook endpoints
+- Create/edit/delete endpoints
+- Generate and rotate secret keys
+- View endpoint URL for external configuration
 
-### 3.2 New Page: QBO Bills (`/qbo-bills`)
+### 3.2 Webhook Processing Queue (`/webhook-processing-queue`)
 
-**Features:**
-- List all synced bills with search/filter
-- Display vendor, amount, status, due date
-- Show matching status (linked to email/invoice)
-- Drill-down to bill details with line items
+**Similar to**: Rules Processing Queue
 
-### 3.3 Sidebar Update
+**Features**:
+- List pending webhook events
+- Show source endpoint, event type, entity classification
+- Override entity type before processing
+- Toggle is_person flag
+- Batch process selected events
+- View payload details
 
-Add "QuickBooks Bills" to Workspace section in `CRMSidebar.tsx`
+### 3.3 Webhook Processing Log (`/webhook-log`)
+
+**Features**:
+- View processed webhook events
+- Show actions applied and results
+- Filter by endpoint, status, entity type
+- Reprocess failed events
+
+### 3.4 Sidebar Updates
+
+Add to Workspace section:
+- "Webhook Queue" with pending count badge
+- "Webhook Log"
 
 ---
 
-## Phase 4: Vendor Matching
+## Phase 4: Automation Rules Extension
 
-### 4.1 Auto-Link Logic
+The existing `entity_automation_rules` and `entity_rule_actions` tables work for both email and webhook processing. No schema changes needed.
 
-When bills are synced:
-1. Check if `qbo_vendor_id` already linked to a subscription
-2. If not, attempt to match by:
-   - Email address match
-   - Company name similarity
-   - Domain matching
-3. Create `match_candidates` for review if not confident
+### 4.1 Action Compatibility
 
-### 4.2 Manual Linking
+Existing actions that work with webhooks:
+- **tag** - Apply tags (may need generic tag storage)
+- **extract_invoice** - Extract from payload if applicable
+- **assign_role** - Assign entity role
 
-UI to manually link a QBO vendor to a Subscription entity.
+### 4.2 New Webhook-Specific Actions (Optional)
+
+Consider adding:
+- **send_notification** - Notify user of new record
+- **call_webhook** - Chain to another webhook
+
+---
+
+## Phase 5: Data Flow Architecture
+
+```text
+                                    +-----------------------+
+                                    |   External Systems    |
+                                    | (Shopify, Stripe, etc)|
+                                    +-----------+-----------+
+                                                |
+                                                v
++---------------------------+    +-----------------------+
+|    webhook-ingest         |<---|   POST /webhook/{slug}|
+|  (validate & store)       |    +-----------------------+
++------------+--------------+
+             |
+             v
++---------------------------+
+|     webhook_events        |
+|   (status: pending)       |
++------------+--------------+
+             |
+             v (optional auto-classify)
++---------------------------+
+|  classify-webhook-event   |
+|   (AI entity detection)   |
++------------+--------------+
+             |
+             v
++---------------------------+
+|   Webhook Queue UI        |
+| (review & approve)        |
++------------+--------------+
+             |
+             v (user clicks "Process")
++---------------------------+
+| prepare-webhook-for-rules |
+| (create Person/Entity)    |
++------------+--------------+
+             |
+             v
++---------------------------+
+|  process-webhook-rules    |
+| (apply entity rules)      |
++------------+--------------+
+             |
+             v
++---------------------------+
+|     webhook_events        |
+|  (status: processed)      |
++---------------------------+
+```
 
 ---
 
 ## Technical Details
 
-### QBO API Endpoints Used
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v3/company/{realmId}/companyinfo/{realmId}` | GET | Get company info |
-| `/v3/company/{realmId}/query` | GET | Query vendors/bills |
-| `/v3/company/{realmId}/vendor/{vendorId}` | GET | Get vendor details |
-| `/v3/company/{realmId}/bill/{billId}` | GET | Get bill details |
-
-### QBO Bill Object Structure (Key Fields)
-
-```json
-{
-  "Id": "123",
-  "VendorRef": { "value": "456", "name": "Acme Corp" },
-  "TxnDate": "2026-01-15",
-  "DueDate": "2026-02-15",
-  "DocNumber": "INV-001",
-  "TotalAmt": 1500.00,
-  "Balance": 1500.00,
-  "CurrencyRef": { "value": "USD" },
-  "APAccountRef": { "value": "789", "name": "Accounts Payable" },
-  "Line": [
-    {
-      "LineNum": 1,
-      "Amount": 1500.00,
-      "DetailType": "AccountBasedExpenseLineDetail",
-      "AccountBasedExpenseLineDetail": {
-        "AccountRef": { "value": "100", "name": "Office Expenses" }
-      }
-    }
-  ]
-}
-```
-
----
-
-## Files to Create
+### Files to Create
 
 | File | Purpose |
 |------|---------|
-| `supabase/functions/qbo-auth/index.ts` | OAuth flow handler |
-| `supabase/functions/qbo-api/index.ts` | QBO API proxy |
-| `supabase/functions/sync-qbo-data/index.ts` | Sync orchestrator |
-| `src/hooks/use-qbo-auth.ts` | OAuth hook |
-| `src/hooks/use-qbo-bills.ts` | Bills data hook |
-| `src/hooks/use-qbo-vendors.ts` | Vendors data hook |
-| `src/pages/QBOBills.tsx` | Bills list page |
-| `src/components/settings/QBOConnection.tsx` | Settings component |
+| `supabase/functions/webhook-ingest/index.ts` | Public webhook receiver |
+| `supabase/functions/classify-webhook-event/index.ts` | AI classification |
+| `supabase/functions/prepare-webhook-for-rules/index.ts` | Record creation |
+| `supabase/functions/process-webhook-rules/index.ts` | Rule execution |
+| `src/pages/WebhookProcessingQueue.tsx` | Queue UI |
+| `src/pages/WebhookLog.tsx` | Processing log |
+| `src/pages/WebhookEndpoints.tsx` | Endpoint management |
+| `src/hooks/use-webhook-events.ts` | Data hooks |
+| `src/hooks/use-webhook-endpoints.ts` | Endpoint hooks |
+| `src/types/webhooks.ts` | TypeScript types |
+| `src/components/webhook/WebhookQueueTable.tsx` | Queue table component |
 
-## Files to Modify
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/Settings.tsx` | Add QBO connection section |
-| `src/components/layout/CRMSidebar.tsx` | Add QBO Bills nav item |
-| `src/App.tsx` | Add QBO Bills route |
-| `supabase/config.toml` | Add new function configs |
+| `src/components/layout/CRMSidebar.tsx` | Add Webhook Queue nav item |
+| `src/App.tsx` | Add webhook routes |
+| `src/pages/Settings.tsx` | Add Webhook Endpoints section |
+| `supabase/config.toml` | Add function configs with `verify_jwt = false` for public endpoint |
+
+### Payload Schema (Recommended)
+
+External systems should send:
+```json
+{
+  "external_id": "cust_123",
+  "event_type": "contact.created",
+  "data": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "company": "Acme Inc",
+    "metadata": {}
+  }
+}
+```
+
+### Security Considerations
+
+1. **Signature Verification**: HMAC-SHA256 validation
+2. **Rate Limiting**: Per-endpoint rate limits
+3. **Payload Size**: Max 1MB payload
+4. **RLS**: User isolation for webhook events
 
 ---
 
-## Implementation Checklist
+## Implementation Order
 
-### Phase 1: Database Schema
-- [ ] Add secrets (`QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`)
-- [ ] Create `qbo_bill_status` enum
-- [ ] Create `qbo_tokens` table with RLS
-- [ ] Create `qbo_vendors` table with RLS
-- [ ] Create `qbo_bills` table with RLS
-- [ ] Create `qbo_bill_lines` table with RLS
-
-### Phase 2: Edge Functions
-- [ ] Create `qbo-auth` function (OAuth flow)
-- [ ] Create `qbo-api` function (API proxy)
-- [ ] Create `sync-qbo-data` function (sync orchestrator)
-
-### Phase 3: Frontend
-- [ ] Create `use-qbo-auth.ts` hook
-- [ ] Create `QBOConnection.tsx` settings component
-- [ ] Add QBO section to Settings page
-- [ ] Create `use-qbo-bills.ts` hook
-- [ ] Create `use-qbo-vendors.ts` hook
-- [ ] Create `QBOBills.tsx` page
-- [ ] Add route in `App.tsx`
-- [ ] Add sidebar navigation item
-
-### Phase 4: Vendor Matching
-- [ ] Implement auto-link logic in sync function
-- [ ] Add manual linking UI for vendors
-- [ ] Add matching status display on bills
+1. **Database migrations** - Create tables and enums
+2. **webhook-ingest function** - Public receiver with signature validation
+3. **Webhook Endpoints UI** - Settings page for endpoint management
+4. **Webhook Queue page** - View pending events
+5. **prepare-webhook-for-rules** - Record creation logic
+6. **process-webhook-rules** - Rule execution (reuse entity automation)
+7. **classify-webhook-event** - Optional AI classification
+8. **Webhook Log page** - Processing history
 
 ---
 
-## Security Considerations
+## Comparison: Email vs Webhook Flow
 
-- All QBO tokens encrypted at rest via Supabase
-- RLS policies ensure user isolation
-- Edge functions validate JWT before any QBO calls
-- Refresh tokens rotated on each use
-- Support for sandbox vs production environments
+| Step | Email Flow | Webhook Flow |
+|------|------------|--------------|
+| Ingestion | `sync-emails` | `webhook-ingest` |
+| Storage | `email_messages` | `webhook_events` |
+| Classification | `classify-email` | `classify-webhook-event` |
+| Review Queue | Classification Queue | Webhook Queue |
+| Record Creation | `prepare-for-rules` | `prepare-webhook-for-rules` |
+| Rules Queue | Rules Processing Queue | (combined in Webhook Queue) |
+| Rule Execution | `process-entity-rules` | `process-webhook-rules` |
+| Logging | `email_rule_logs` | `webhook_event_logs` |
+
