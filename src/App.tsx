@@ -30,6 +30,10 @@ import RulesProcessingQueue from "./pages/RulesProcessingQueue";
 import ClassificationProcessingQueue from "./pages/ClassificationProcessingQueue";
 import RulesLog from "./pages/RulesLog";
 import EmailAutomation from "./pages/EmailAutomation";
+import EmailAutomationHub from "./pages/EmailAutomationHub";
+import SequenceBuilder from "./pages/SequenceBuilder";
+import TriggerEditor from "./pages/TriggerEditor";
+import TemplateEditor from "./pages/TemplateEditor";
 import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
@@ -82,6 +86,10 @@ const App = () => (
               <Route path="/rules-processing-queue" element={<RulesProcessingQueue />} />
               <Route path="/rules-log" element={<RulesLog />} />
               <Route path="/email-automation" element={<EmailAutomation />} />
+              <Route path="/email-automation-hub" element={<EmailAutomationHub />} />
+              <Route path="/email-automation/sequences/:sequenceId" element={<SequenceBuilder />} />
+              <Route path="/email-automation/triggers/:triggerId" element={<TriggerEditor />} />
+              <Route path="/email-automation/templates/:templateId" element={<TemplateEditor />} />
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/opportunities" element={<Opportunities />} />

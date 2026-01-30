@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_send_log: {
+        Row: {
+          automation_id: string
+          automation_type: string
+          contact_email: string
+          contact_id: string
+          contact_type: string
+          created_at: string
+          enrollment_id: string | null
+          error_message: string | null
+          id: string
+          microsoft_message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["automation_send_status"]
+          subject: string
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          automation_id: string
+          automation_type: string
+          contact_email: string
+          contact_id: string
+          contact_type: string
+          created_at?: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          microsoft_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["automation_send_status"]
+          subject: string
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          automation_id?: string
+          automation_type?: string
+          contact_email?: string
+          contact_id?: string
+          contact_type?: string
+          created_at?: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          microsoft_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["automation_send_status"]
+          subject?: string
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_send_log_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_send_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corporate_management: {
         Row: {
           avatar_url: string | null
@@ -796,6 +865,39 @@ export type Database = {
           },
         ]
       }
+      email_sequences: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          entity_table: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          entity_table?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          entity_table?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_subscriptions: {
         Row: {
           assigned_at: string
@@ -858,6 +960,98 @@ export type Database = {
           outlook_category?: string | null
         }
         Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          merge_fields: Json | null
+          name: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          merge_fields?: Json | null
+          name: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          merge_fields?: Json | null
+          name?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_triggers: {
+        Row: {
+          conditions: Json | null
+          created_at: string
+          created_by: string
+          delay_minutes: number
+          description: string | null
+          entity_table: string
+          id: string
+          is_active: boolean
+          name: string
+          template_id: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string
+          created_by: string
+          delay_minutes?: number
+          description?: string | null
+          entity_table: string
+          id?: string
+          is_active?: boolean
+          name: string
+          template_id: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string
+          delay_minutes?: number
+          description?: string | null
+          entity_table?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_id?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_triggers_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_visibility_group_members: {
         Row: {
@@ -1931,6 +2125,104 @@ export type Database = {
         }
         Relationships: []
       }
+      sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          contact_email: string
+          contact_id: string
+          contact_type: string
+          current_step: number
+          enrolled_at: string
+          enrolled_by: string
+          id: string
+          next_send_at: string | null
+          sequence_id: string
+          status: Database["public"]["Enums"]["enrollment_status"]
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_email: string
+          contact_id: string
+          contact_type: string
+          current_step?: number
+          enrolled_at?: string
+          enrolled_by: string
+          id?: string
+          next_send_at?: string | null
+          sequence_id: string
+          status?: Database["public"]["Enums"]["enrollment_status"]
+        }
+        Update: {
+          completed_at?: string | null
+          contact_email?: string
+          contact_id?: string
+          contact_type?: string
+          current_step?: number
+          enrolled_at?: string
+          enrolled_by?: string
+          id?: string
+          next_send_at?: string | null
+          sequence_id?: string
+          status?: Database["public"]["Enums"]["enrollment_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_steps: {
+        Row: {
+          created_at: string
+          delay_days: number
+          delay_hours: number
+          id: string
+          is_active: boolean
+          sequence_id: string
+          step_order: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          delay_days?: number
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          sequence_id: string
+          step_order?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          delay_days?: number
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          sequence_id?: string
+          step_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           avatar_url: string | null
@@ -2291,6 +2583,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member"
+      automation_send_status: "pending" | "sent" | "failed" | "bounced"
+      enrollment_status:
+        | "active"
+        | "completed"
+        | "paused"
+        | "unsubscribed"
+        | "failed"
       entity_field_type:
         | "text"
         | "number"
@@ -2451,6 +2750,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      automation_send_status: ["pending", "sent", "failed", "bounced"],
+      enrollment_status: [
+        "active",
+        "completed",
+        "paused",
+        "unsubscribed",
+        "failed",
+      ],
       entity_field_type: [
         "text",
         "number",

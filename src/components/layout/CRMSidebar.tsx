@@ -78,7 +78,8 @@ const emailItems: MenuItem[] = [
   { title: "Classification Queue", url: "/classification-processing-queue", icon: Brain, badgeKey: "classification" },
   { title: "Rules Queue", url: "/rules-processing-queue", icon: ClipboardList, badgeKey: "rules" },
   { title: "Processing Log", url: "/rules-log", icon: ScrollText },
-  { title: "Email Automation", url: "/email-automation", icon: Zap },
+  { title: "Email Rules", url: "/email-automation", icon: Zap },
+  { title: "Send Automation", url: "/email-automation-hub", icon: Send },
 ];
 
 const importItems: MenuItem[] = [
