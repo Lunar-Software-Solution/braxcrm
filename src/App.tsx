@@ -30,6 +30,7 @@ import EmailAutomation from "./pages/EmailAutomation";
 import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
+import Senders from "./pages/Senders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/opportunities" element={<Opportunities />} />
+              <Route path="/senders" element={<Senders />} />
               
             </Route>
 
