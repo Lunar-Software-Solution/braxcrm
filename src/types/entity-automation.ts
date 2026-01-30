@@ -34,16 +34,16 @@ export const INVOICE_CAPABLE_ENTITIES = [
 
 // Available actions per entity type
 export const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
-  influencers: ["visibility", "tag", "mark_priority", "assign_role"],
-  resellers: ["visibility", "tag", "mark_priority", "assign_role"],
-  product_suppliers: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
-  expense_suppliers: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
-  corporate_management: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
+  influencers: ["visibility", "tag", "mark_priority"],
+  resellers: ["visibility", "tag", "mark_priority"],
+  product_suppliers: ["visibility", "tag", "mark_priority", "extract_invoice"],
+  expense_suppliers: ["visibility", "tag", "mark_priority", "extract_invoice"],
+  corporate_management: ["visibility", "tag", "mark_priority", "extract_invoice"],
   personal_contacts: ["visibility", "tag"],
   subscriptions: ["visibility", "tag", "mark_priority", "extract_invoice"],
   marketing_sources: ["visibility", "tag"],
-  merchant_accounts: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
-  logistic_suppliers: ["visibility", "tag", "mark_priority", "assign_role"],
+  merchant_accounts: ["visibility", "tag", "mark_priority", "extract_invoice"],
+  logistic_suppliers: ["visibility", "tag", "mark_priority"],
 };
 
 // Entity display config with icons and colors matching CRMSidebar
