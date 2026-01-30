@@ -172,6 +172,7 @@ export function useClassificationProcessingQueue() {
       const results = {
         classified: 0,
         errors: [] as string[],
+        suggestions: new Map<string, string>(), // email_id -> suggested entity_table
       };
 
       // Get email details for classification
@@ -200,6 +201,10 @@ export function useClassificationProcessingQueue() {
             results.errors.push(`${email.subject || email.id}: ${response.error.message}`);
           } else {
             results.classified++;
+            // Capture the AI's suggested entity_table
+            if (response.data?.entity_table) {
+              results.suggestions.set(email.id, response.data.entity_table);
+            }
           }
         } catch (error) {
           results.errors.push(`${email.subject || email.id}: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -213,6 +218,7 @@ export function useClassificationProcessingQueue() {
       queryClient.invalidateQueries({ queryKey: ["pending-classification-count"] });
       queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
       queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
+      queryClient.invalidateQueries({ queryKey: ["classification-log"] });
       toast({
         title: "Classification complete",
         description: `${results.classified} email(s) classified. ${results.errors.length > 0 ? `${results.errors.length} error(s).` : ""}`,
@@ -231,7 +237,8 @@ export function useClassificationProcessingQueue() {
     pendingEmails,
     isLoadingEmails,
     refetchEmails,
-    classifyEmails: classifyEmailsMutation.mutate,
+    classifyEmails: classifyEmailsMutation.mutateAsync,
+    classificationResults: classifyEmailsMutation.data,
     isClassifying: classifyEmailsMutation.isPending,
     updateIsPerson: updateIsPersonMutation.mutate,
     isUpdatingIsPerson: updateIsPersonMutation.isPending,
