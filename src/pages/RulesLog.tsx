@@ -74,6 +74,12 @@ interface RuleLog {
   } | null;
 }
 
+interface EmailTag {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
 interface ClassificationLog {
   id: string;
   email_id: string;
@@ -182,6 +188,23 @@ export default function RulesLog() {
       return data as unknown as RuleLog[];
     },
   });
+
+  // Fetch all tags for displaying tag names in the log
+  const { data: allTags } = useQuery({
+    queryKey: ["email-tags-for-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("email_tags")
+        .select("id, name, color");
+
+      if (error) throw error;
+      return data as EmailTag[];
+    },
+  });
+
+  // Create a map of tag IDs to tag info for quick lookup
+  const tagMap = new Map<string, EmailTag>();
+  allTags?.forEach((tag) => tagMap.set(tag.id, tag));
 
   const { data: classificationLogs, isLoading: classificationLoading } = useQuery({
     queryKey: ["classification-log"],
@@ -619,9 +642,33 @@ export default function RulesLog() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {actionIcons[log.action_type] || <Layers className="h-4 w-4" />}
-                            <span>{actionLabels[log.action_type] || log.action_type}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              {actionIcons[log.action_type] || <Layers className="h-4 w-4" />}
+                              <span>{actionLabels[log.action_type] || log.action_type}</span>
+                            </div>
+                            {/* Show tag names if action is 'tag' */}
+                            {log.action_type === "tag" && log.action_config?.tag_ids && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {(log.action_config.tag_ids as string[]).map((tagId) => {
+                                  const tag = tagMap.get(tagId);
+                                  return tag ? (
+                                    <Badge
+                                      key={tagId}
+                                      variant="secondary"
+                                      className="text-xs px-1.5 py-0"
+                                      style={{
+                                        backgroundColor: tag.color ? `${tag.color}20` : undefined,
+                                        color: tag.color || undefined,
+                                        borderColor: tag.color || undefined,
+                                      }}
+                                    >
+                                      {tag.name}
+                                    </Badge>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
