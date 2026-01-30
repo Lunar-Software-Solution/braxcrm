@@ -27,6 +27,7 @@ export default function ClassificationProcessingQueue() {
     refetchEmails,
     classifyEmails,
     isClassifying,
+    updateIsPerson,
   } = useClassificationProcessingQueue();
 
   // Filter emails by search query
@@ -140,6 +141,7 @@ export default function ClassificationProcessingQueue() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             isClassifying={isClassifying}
+            onUpdateIsPerson={(emailId, isPerson) => updateIsPerson({ emailId, isPerson })}
           />
         )}
       </div>

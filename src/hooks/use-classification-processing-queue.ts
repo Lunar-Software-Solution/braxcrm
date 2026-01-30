@@ -13,6 +13,8 @@ export interface ClassificationQueueEmail {
   microsoft_message_id: string;
   sender_email: string | null;
   sender_name: string | null;
+  is_person: boolean | null;
+  ai_confidence: number | null;
   person?: {
     id: string;
     name: string;
@@ -50,6 +52,8 @@ export function useClassificationProcessingQueue() {
           sender_email,
           sender_name,
           microsoft_message_id,
+          is_person,
+          ai_confidence,
           person:people(id, name, email),
           sender:senders(id, email, display_name)
         `)
@@ -60,6 +64,32 @@ export function useClassificationProcessingQueue() {
       return data as unknown as ClassificationQueueEmail[];
     },
     enabled: !!user,
+  });
+
+  // Update is_person for an email
+  const updateIsPersonMutation = useMutation({
+    mutationFn: async ({ emailId, isPerson }: { emailId: string; isPerson: boolean | null }) => {
+      const { error } = await supabase
+        .from("email_messages")
+        .update({ is_person: isPerson })
+        .eq("id", emailId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
+      toast({
+        title: "Sender type updated",
+        description: "The sender type has been changed.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating sender type",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Classify selected emails
@@ -129,6 +159,8 @@ export function useClassificationProcessingQueue() {
     refetchEmails,
     classifyEmails: classifyEmailsMutation.mutate,
     isClassifying: classifyEmailsMutation.isPending,
+    updateIsPerson: updateIsPersonMutation.mutate,
+    isUpdatingIsPerson: updateIsPersonMutation.isPending,
   };
 }
 
