@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AuthCallback from "./pages/AuthCallback";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Objects from "./pages/Objects";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/marketing-sources" element={<MarketingSources />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/classification-processing-queue" element={<ClassificationProcessingQueue />} />
               <Route path="/rules-processing-queue" element={<RulesProcessingQueue />} />
