@@ -669,6 +669,15 @@ async function processAction(
             const tagNames = (tags as Array<{ name: string; outlook_category: string | null }>)
               .map((t) => t.outlook_category || t.name);
             
+            // Get the email owner's user_id for Microsoft token lookup
+            const { data: emailData } = await supabase
+              .from("email_messages")
+              .select("user_id")
+              .eq("id", emailId)
+              .single();
+            
+            const emailOwnerId = emailData?.user_id || userId;
+            
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/sync-outlook-tags`, {
               method: "POST",
               headers: {
@@ -678,6 +687,7 @@ async function processAction(
               body: JSON.stringify({
                 microsoft_message_id: microsoftMessageId,
                 tag_names: tagNames,
+                user_id: emailOwnerId,
               }),
             });
           }

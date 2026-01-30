@@ -10,7 +10,7 @@ const corsHeaders = {
 interface SyncTagsRequest {
   microsoft_message_id: string;
   tag_names: string[];
-  workspace_id: string;
+  user_id?: string; // Optional: use this user's token instead of the authenticated user
 }
 
 serve(async (req) => {
@@ -36,23 +36,33 @@ serve(async (req) => {
     if (claimsError || !claimsData?.claims) {
       throw new Error("Unauthorized");
     }
-    const userId = claimsData.claims.sub as string;
+    const authenticatedUserId = claimsData.claims.sub as string;
 
-    const { microsoft_message_id, tag_names }: SyncTagsRequest = await req.json();
+    const { microsoft_message_id, tag_names, user_id }: SyncTagsRequest = await req.json();
+    
+    // Use provided user_id (for email owner) or fall back to authenticated user
+    const targetUserId = user_id || authenticatedUserId;
 
     if (!microsoft_message_id || !tag_names || tag_names.length === 0) {
       throw new Error("Missing required fields");
     }
 
-    // Get the user's Microsoft token
-    const { data: tokenData, error: tokenError } = await supabase
+    // Use service client to get the target user's Microsoft token
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Get the target user's Microsoft token
+    const { data: tokenData, error: tokenError } = await serviceClient
       .from("microsoft_tokens")
       .select("access_token, refresh_token, expires_at")
-      .eq("user_id", userId)
+      .eq("user_id", targetUserId)
       .eq("is_primary", true)
       .single();
 
     if (tokenError || !tokenData) {
+      console.error("No Microsoft token found for user:", targetUserId);
       throw new Error("No Microsoft token found");
     }
 
@@ -80,15 +90,15 @@ serve(async (req) => {
       const refreshData = await refreshResponse.json();
       accessToken = refreshData.access_token;
 
-      // Update the stored token
-      await supabase
+      // Update the stored token using service client
+      await serviceClient
         .from("microsoft_tokens")
         .update({
           access_token: refreshData.access_token,
           refresh_token: refreshData.refresh_token || tokenData.refresh_token,
           expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
         })
-        .eq("user_id", userId)
+        .eq("user_id", targetUserId)
         .eq("is_primary", true);
     }
 
