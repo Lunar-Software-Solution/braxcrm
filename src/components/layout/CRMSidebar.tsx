@@ -68,7 +68,7 @@ const entityItems = [
   { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },
   { title: "Marketing Sources", url: "/marketing-sources", icon: Megaphone, color: "#64748b" },
   { title: "Merchant Accounts", url: "/merchant-accounts", icon: Landmark, color: "#10b981" },
-  { title: "Carriers", url: "/carriers", icon: Truck, color: "#06b6d4" },
+  { title: "Logistic Suppliers", url: "/logistic-suppliers", icon: Truck, color: "#06b6d4" },
 ];
 
 const futureItems = [

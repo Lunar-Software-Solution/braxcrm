@@ -36,7 +36,7 @@ const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
   subscriptions: { table: "email_subscriptions", idField: "subscription_id" },
   marketing_sources: { table: "email_marketing_sources", idField: "marketing_source_id" },
   merchant_accounts: { table: "email_merchant_accounts", idField: "merchant_account_id" },
-  carriers: { table: "email_carriers", idField: "carrier_id" },
+  logistic_suppliers: { table: "email_logistic_suppliers", idField: "logistic_supplier_id" },
 };
 
 serve(async (req) => {

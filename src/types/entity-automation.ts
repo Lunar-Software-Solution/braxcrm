@@ -43,7 +43,7 @@ export const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
   subscriptions: ["visibility", "tag", "mark_priority", "extract_invoice"],
   marketing_sources: ["visibility", "tag"],
   merchant_accounts: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
-  carriers: ["visibility", "tag", "mark_priority", "assign_role"],
+  logistic_suppliers: ["visibility", "tag", "mark_priority", "assign_role"],
 };
 
 // Entity display config with icons and colors matching CRMSidebar
@@ -57,7 +57,7 @@ export const ENTITY_AUTOMATION_CONFIG: Record<string, { icon: string; color: str
   subscriptions: { icon: "CreditCard", color: "#f59e0b", label: "Subscriptions" },
   marketing_sources: { icon: "Megaphone", color: "#64748b", label: "Marketing Sources" },
   merchant_accounts: { icon: "Landmark", color: "#10b981", label: "Merchant Accounts" },
-  carriers: { icon: "Truck", color: "#06b6d4", label: "Carriers" },
+  logistic_suppliers: { icon: "Truck", color: "#06b6d4", label: "Logistic Suppliers" },
 };
 
 // All entity tables in order
@@ -71,7 +71,7 @@ export const ENTITY_TABLES = [
   "subscriptions",
   "marketing_sources",
   "merchant_accounts",
-  "carriers",
+  "logistic_suppliers",
 ] as const;
 
 export type EntityTable = (typeof ENTITY_TABLES)[number];

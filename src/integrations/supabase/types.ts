@@ -14,42 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      carriers: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          created_by: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       corporate_management: {
         Row: {
           avatar_url: string | null
@@ -85,42 +49,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      email_carriers: {
-        Row: {
-          assigned_at: string
-          carrier_id: string
-          email_id: string
-          id: string
-        }
-        Insert: {
-          assigned_at?: string
-          carrier_id: string
-          email_id: string
-          id?: string
-        }
-        Update: {
-          assigned_at?: string
-          carrier_id?: string
-          email_id?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_carriers_carrier_id_fkey"
-            columns: ["carrier_id"]
-            isOneToOne: false
-            referencedRelation: "carriers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_carriers_email_id_fkey"
-            columns: ["email_id"]
-            isOneToOne: false
-            referencedRelation: "email_messages"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       email_categories: {
         Row: {
@@ -306,6 +234,42 @@ export type Database = {
             columns: ["influencer_id"]
             isOneToOne: false
             referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_logistic_suppliers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          logistic_supplier_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          logistic_supplier_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          logistic_supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_carriers_carrier_id_fkey"
+            columns: ["logistic_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "logistic_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_carriers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -1338,6 +1302,42 @@ export type Database = {
           invited_by?: string
           name?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      logistic_suppliers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
