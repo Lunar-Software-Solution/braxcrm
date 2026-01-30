@@ -79,7 +79,11 @@ export function WebflowSyncPanel() {
       setAvailableForms([]);
       fetchForms.mutateAsync(formData.site_id)
         .then((forms) => {
-          setAvailableForms(forms);
+          // Deduplicate forms by ID
+          const uniqueForms = forms.filter(
+            (form, index, self) => self.findIndex(f => f.id === form.id) === index
+          );
+          setAvailableForms(uniqueForms);
         })
         .catch((err) => {
           console.error("Failed to fetch forms:", err);
@@ -90,6 +94,7 @@ export function WebflowSyncPanel() {
     } else {
       setAvailableForms([]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.site_id]);
 
   const handleSubmit = async () => {
