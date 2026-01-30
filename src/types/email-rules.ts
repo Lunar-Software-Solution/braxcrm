@@ -8,7 +8,6 @@ export type RuleActionType =
   | 'move_folder'
   | 'mark_priority'
   | 'assign_object_type'
-  | 'assign_entity'
   | 'assign_role';
 
 export type EntityType = 'influencer' | 'reseller' | 'supplier' | 'corporate_management';
@@ -84,10 +83,7 @@ export interface AssignObjectTypeConfig {
   assign_to_email: boolean;
 }
 
-export interface AssignEntityConfig {
-  entity_type: EntityType;
-  create_if_not_exists: boolean;
-}
+// AssignEntityConfig removed - entity linking now handled by prepare-for-rules
 
 export interface AssignRoleConfig {
   entity_role_id: string;
@@ -103,7 +99,6 @@ export type RuleActionConfig =
   | MoveFolderConfig
   | MarkPriorityConfig
   | AssignObjectTypeConfig
-  | AssignEntityConfig
   | AssignRoleConfig
   | Record<string, unknown>;
 
