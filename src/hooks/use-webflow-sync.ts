@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import type { WebflowSyncConfig, WebflowSyncResult } from "@/types/imports";
 import { useToast } from "@/hooks/use-toast";
 
+export interface WebflowSite {
+  id: string;
+  displayName: string;
+  shortName: string;
+  previewUrl?: string;
+}
+
+export interface WebflowForm {
+  id: string;
+  displayName: string;
+  siteName?: string;
+}
+
 export function useWebflowSync() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -20,6 +33,33 @@ export function useWebflowSync() {
 
       if (error) throw error;
       return data as unknown as WebflowSyncConfig[];
+    },
+  });
+
+  // Fetch available Webflow sites
+  const { data: sites, isLoading: sitesLoading, refetch: refetchSites } = useQuery({
+    queryKey: ["webflow-sites"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("webflow-list-sites", {
+        body: { action: "list-sites" },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      return (data.sites || []) as WebflowSite[];
+    },
+  });
+
+  // Create a mutation to fetch forms for a specific site
+  const fetchForms = useMutation({
+    mutationFn: async (siteId: string) => {
+      const { data, error } = await supabase.functions.invoke("webflow-list-sites", {
+        body: { action: "list-forms", site_id: siteId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      return (data.forms || []) as WebflowForm[];
     },
   });
 
@@ -140,6 +180,10 @@ export function useWebflowSync() {
     configs,
     isLoading,
     error,
+    sites,
+    sitesLoading,
+    refetchSites,
+    fetchForms,
     createConfig,
     updateConfig,
     deleteConfig,
