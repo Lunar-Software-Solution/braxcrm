@@ -11,7 +11,7 @@ import {
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Brain, Loader2, User, Bot, HelpCircle } from "lucide-react";
+import { Brain, Loader2, User, Bot, HelpCircle, ArrowRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+
+// Entity table options matching the CRM structure
+const ENTITY_TABLE_OPTIONS = [
+  { value: "subscriptions", label: "Subscriptions" },
+  { value: "expense_suppliers", label: "Expense Suppliers" },
+  { value: "product_suppliers", label: "Product Suppliers" },
+  { value: "influencers", label: "Influencers" },
+  { value: "resellers", label: "Resellers" },
+  { value: "corporate_management", label: "Corporate Management" },
+  { value: "personal_contacts", label: "Personal Contacts" },
+  { value: "marketing_sources", label: "Marketing Sources" },
+];
 
 interface ClassificationProcessingQueueTableProps {
   emails: ClassificationQueueEmail[];
@@ -26,6 +39,11 @@ interface ClassificationProcessingQueueTableProps {
   onSelectionChange: (ids: Set<string>) => void;
   isClassifying: boolean;
   onUpdateIsPerson?: (emailId: string, isPerson: boolean | null) => void;
+  onSendToRules?: (emailIds: string[], entityTable: string) => void;
+  isSendingToRules?: boolean;
+  // Track selected entity types per email (managed by parent)
+  selectedEntityTypes?: Map<string, string>;
+  onEntityTypeChange?: (emailId: string, entityTable: string | null) => void;
 }
 
 export function ClassificationProcessingQueueTable({
@@ -34,6 +52,10 @@ export function ClassificationProcessingQueueTable({
   onSelectionChange,
   isClassifying,
   onUpdateIsPerson,
+  onSendToRules,
+  isSendingToRules,
+  selectedEntityTypes = new Map(),
+  onEntityTypeChange,
 }: ClassificationProcessingQueueTableProps) {
   const safeSelectedIds = selectedIds ?? new Set<string>();
   const allSelected = emails.length > 0 && safeSelectedIds.size === emails.length;
@@ -127,13 +149,17 @@ export function ClassificationProcessingQueueTable({
             <TableHead>Sender</TableHead>
             <TableHead className="min-w-[200px]">Subject</TableHead>
             <TableHead>Sender Type</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Entity Type</TableHead>
+            <TableHead className="w-[80px]">Ready</TableHead>
             <TableHead className="w-[100px]">Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {emails.map((email) => {
             const senderDisplay = getSenderDisplay(email);
+            const selectedEntityType = selectedEntityTypes.get(email.id) || "";
+            const isReady = !!selectedEntityType;
+            
             return (
               <TableRow
                 key={email.id}
@@ -230,17 +256,36 @@ export function ClassificationProcessingQueueTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  {isClassifying && safeSelectedIds.has(email.id) ? (
-                    <Badge variant="secondary" className="gap-1.5 text-primary">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Classifying...
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="gap-1.5 text-muted-foreground">
-                      <Brain className="h-3 w-3" />
-                      Awaiting Classification
-                    </Badge>
-                  )}
+                  <Select
+                    value={selectedEntityType}
+                    onValueChange={(value) => onEntityTypeChange?.(email.id, value)}
+                    disabled={isClassifying || isSendingToRules}
+                  >
+                    <SelectTrigger className="w-[160px] h-8">
+                      <SelectValue placeholder="Select type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENTITY_TABLE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={isReady}
+                    onCheckedChange={(checked) => {
+                      if (checked && selectedEntityType) {
+                        onSendToRules?.([email.id], selectedEntityType);
+                      } else if (!checked) {
+                        onEntityTypeChange?.(email.id, null);
+                      }
+                    }}
+                    disabled={!selectedEntityType || isClassifying || isSendingToRules}
+                    aria-label="Ready for rules processing"
+                  />
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">

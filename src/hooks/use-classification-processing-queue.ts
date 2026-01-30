@@ -92,6 +92,65 @@ export function useClassificationProcessingQueue() {
     },
   });
 
+  // Send emails to rules processing queue by setting entity_table
+  const sendToRulesMutation = useMutation({
+    mutationFn: async ({ emailIds, entityTable }: { emailIds: string[]; entityTable: string }) => {
+      const { error } = await supabase
+        .from("email_messages")
+        .update({ entity_table: entityTable })
+        .in("id", emailIds);
+
+      if (error) throw error;
+      return emailIds.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-classification-count"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
+      toast({
+        title: "Sent to rules processing",
+        description: `${count} email(s) queued for rule processing.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error sending to rules",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove from rules processing queue by clearing entity_table
+  const removeFromRulesMutation = useMutation({
+    mutationFn: async (emailId: string) => {
+      const { error } = await supabase
+        .from("email_messages")
+        .update({ entity_table: null })
+        .eq("id", emailId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-classification-count"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
+      toast({
+        title: "Removed from rules queue",
+        description: "Email moved back to classification queue.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error removing from rules",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Classify selected emails
   const classifyEmailsMutation = useMutation({
     mutationFn: async (emailIds: string[]) => {
@@ -161,6 +220,10 @@ export function useClassificationProcessingQueue() {
     isClassifying: classifyEmailsMutation.isPending,
     updateIsPerson: updateIsPersonMutation.mutate,
     isUpdatingIsPerson: updateIsPersonMutation.isPending,
+    sendToRules: sendToRulesMutation.mutate,
+    isSendingToRules: sendToRulesMutation.isPending,
+    removeFromRules: removeFromRulesMutation.mutate,
+    isRemovingFromRules: removeFromRulesMutation.isPending,
   };
 }
 
