@@ -1,88 +1,98 @@
 
-# Plan: Auto-Create Person/Sender and Entity Records During Rules Processing
+
+# Plan: Create Entity Records When Sending to Rules Queue
 
 ## Overview
-Currently, Person/Sender and Entity records are only created when an Entity Automation Rule with a `link_entity` action is configured. This means if rules are missing or don't include this action, emails get processed but no CRM records are created.
-
-This plan modifies the `process-entity-rules` edge function to **always** create the necessary Person/Sender and Entity records when processing emails, regardless of whether a `link_entity` action exists in the rules.
+Move the automatic Person/Sender and Entity record creation from the `process-entity-rules` edge function to the point when users click "Send to Rules" in the Classification Queue. This ensures records are created and linked immediately when an entity type is assigned, not later during rule execution.
 
 ---
 
-## Current Behavior
-1. Classification determines `is_person` and suggests `entity_table`
-2. User sends email to Rules Processing Queue (setting `entity_table`)
-3. Processing invokes `process-entity-rules` edge function
-4. Records are ONLY created if rules contain a `link_entity` action
-5. If no rules or no `link_entity` action, email is marked processed without creating records
+## Current Flow
+```text
+Classification Queue → [Send to Rules] → Rules Queue → [Process] → Create records
+                              ↓
+                     Just sets entity_table
+```
 
-## Proposed Behavior
-1. Same classification and queue steps
-2. When processing, BEFORE running any rule actions:
-   - If `is_person = true`: Create Person record (if not exists) and Entity record (if not exists), link them
-   - If `is_person = false`: Create Sender record (if not exists) and Entity record (if not exists), link them
-3. Then run any configured rule actions normally
-4. Existing `link_entity` action becomes optional (for backward compatibility)
+## Proposed Flow  
+```text
+Classification Queue → [Send to Rules] → Create records → Rules Queue → [Process] → Run actions only
+                              ↓
+                     Sets entity_table + creates Person/Sender + Entity
+```
+
+---
+
+## Implementation Approach
+
+There are two options for where to put this logic:
+
+**Option A: Frontend Hook (Simpler)**
+- Modify `sendToRulesMutation` in `use-classification-processing-queue.ts`
+- Call a new edge function or inline logic to create records before setting `entity_table`
+
+**Option B: Backend Edge Function (Recommended)**
+- Create a new edge function `prepare-for-rules` that:
+  1. Creates Person or Sender record if needed
+  2. Creates Entity record in the target table if needed
+  3. Links them together
+  4. Sets `entity_table` on the email
+- The frontend just calls this function instead of directly updating the database
+
+I recommend **Option B** because it keeps the complex logic server-side and uses `service_role` key for cross-table operations.
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Create Missing Email Link Tables
-**Type:** Database Migration
+### Step 1: Create New Edge Function
+**File:** `supabase/functions/prepare-for-rules/index.ts`
 
-Create the missing link tables for entity types that don't have them:
+A new edge function that:
+1. Accepts `email_ids[]` and `entity_table`
+2. For each email, determines if it's a person or non-person sender
+3. Creates Person or Sender record if needed (updates `email_messages.person_id` or `sender_id`)
+4. Creates Entity record in the target table if needed
+5. Links Person→Entity (via `people_entities`) or Sender→Entity (via `senders.entity_id`)
+6. Links Email→Entity (via `email_[entity_type]` table)
+7. Sets `entity_table` on the email to move it to Rules Queue
 
-```text
-+------------------------+
-| email_subscriptions    |
-+------------------------+
-| id (uuid, PK)          |
-| email_id (uuid, FK)    |
-| subscription_id (uuid) |
-| assigned_at (timestamptz) |
-+------------------------+
+### Step 2: Update Frontend Hook
+**File:** `src/hooks/use-classification-processing-queue.ts`
 
-+------------------------+
-| email_personal_contacts|
-+------------------------+
-| id (uuid, PK)          |
-| email_id (uuid, FK)    |
-| personal_contact_id    |
-| assigned_at (timestamptz) |
-+------------------------+
-```
-
-Add appropriate RLS policies matching the existing patterns.
-
-### Step 2: Update Edge Function Entity Mapping
-**File:** `supabase/functions/process-entity-rules/index.ts`
-
-Update `ENTITY_LINK_TABLES` to include all 8 entity types:
-```typescript
-const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
-  influencers: { table: "email_influencers", idField: "influencer_id" },
-  resellers: { table: "email_resellers", idField: "reseller_id" },
-  product_suppliers: { table: "email_product_suppliers", idField: "product_supplier_id" },
-  expense_suppliers: { table: "email_expense_suppliers", idField: "expense_supplier_id" },
-  corporate_management: { table: "email_corporate_management", idField: "corporate_management_id" },
-  personal_contacts: { table: "email_personal_contacts", idField: "personal_contact_id" },
-  subscriptions: { table: "email_subscriptions", idField: "subscription_id" },
-  marketing_sources: { table: "email_marketing_sources", idField: "marketing_source_id" },
-};
-```
-
-### Step 3: Add Auto-Creation Logic Before Rule Processing
-**File:** `supabase/functions/process-entity-rules/index.ts`
-
-Add a new function `ensureRecordsExist()` that runs before any rule actions:
+Modify `sendToRulesMutation` to call the new edge function instead of directly updating `entity_table`:
 
 ```typescript
-async function ensureRecordsExist(
+const sendToRulesMutation = useMutation({
+  mutationFn: async ({ emailIds, entityTable }) => {
+    const response = await supabase.functions.invoke("prepare-for-rules", {
+      body: { email_ids: emailIds, entity_table: entityTable },
+    });
+    if (response.error) throw new Error(response.error.message);
+    return response.data;
+  },
+  // ... same success/error handling
+});
+```
+
+### Step 3: Simplify process-entity-rules
+**File:** `supabase/functions/process-entity-rules/index.ts`
+
+Remove or make optional the `ensureRecordsExist()` call since records will already exist when emails reach the Rules Queue. Keep it as a fallback for edge cases.
+
+---
+
+## Edge Function Logic Detail
+
+```typescript
+// supabase/functions/prepare-for-rules/index.ts
+
+async function prepareEmailForRules(
   supabase: SupabaseClient,
   emailId: string,
   entityTable: string,
   userId: string
-): Promise<{ personId?: string; senderId?: string; entityId?: string }> {
+): Promise<void> {
   // 1. Get email details
   const { data: email } = await supabase
     .from("email_messages")
@@ -91,58 +101,41 @@ async function ensureRecordsExist(
     .single();
 
   const isPerson = email?.is_person ?? true;
-  
+
   if (isPerson) {
-    // 2a. Create Person if needed
-    let personId = email?.person_id;
-    if (!personId && email?.sender_email) {
+    // 2a. Find or create Person
+    let personId = email.person_id;
+    if (!personId && email.sender_email) {
       personId = await findOrCreatePerson(supabase, email.sender_email, email.sender_name, userId);
-      // Update email with person_id
       await supabase.from("email_messages").update({ person_id: personId }).eq("id", emailId);
     }
     
-    // 3a. Create Entity if needed and link to person
+    // 3a. Find or create Entity, link to Person
     if (personId) {
       const entityId = await findOrCreateEntityForPerson(supabase, personId, entityTable, userId);
-      // Link email to entity
       await linkEmailToEntity(supabase, emailId, entityTable, entityId);
-      return { personId, entityId };
     }
   } else {
-    // 2b. Create Sender if needed
-    let senderId = email?.sender_id;
-    if (!senderId && email?.sender_email) {
-      senderId = await createSenderFromEmail(supabase, email.sender_email, email.sender_name, userId);
+    // 2b. Find or create Sender
+    let senderId = email.sender_id;
+    if (!senderId && email.sender_email) {
+      senderId = await createSender(supabase, email.sender_email, email.sender_name, userId);
       await supabase.from("email_messages").update({ sender_id: senderId }).eq("id", emailId);
     }
     
-    // 3b. Create Entity if needed and link to sender
+    // 3b. Find or create Entity, link to Sender
     if (senderId) {
       const entityId = await findOrCreateEntityForSender(supabase, senderId, entityTable, userId);
-      // Link email to entity
       await linkEmailToEntity(supabase, emailId, entityTable, entityId);
-      return { senderId, entityId };
     }
   }
-  
-  return {};
+
+  // 4. Set entity_table to move email to Rules Queue
+  await supabase.from("email_messages")
+    .update({ entity_table: entityTable })
+    .eq("id", emailId);
 }
 ```
-
-### Step 4: Integrate Auto-Creation into Main Handler
-**File:** `supabase/functions/process-entity-rules/index.ts`
-
-Modify the main `serve()` handler to call `ensureRecordsExist()` before processing rules:
-
-```typescript
-// After validating request parameters and before fetching rules:
-await ensureRecordsExist(supabase, email_id, entity_table, userId);
-
-// Then continue with existing rule fetching and processing logic
-```
-
-### Step 5: Make link_entity Action Optional
-The existing `link_entity` action in rules becomes redundant for basic linking but can remain for advanced scenarios (e.g., linking to different entity types, custom logic).
 
 ---
 
@@ -150,15 +143,27 @@ The existing `link_entity` action in rules becomes redundant for basic linking b
 
 | File | Change |
 |------|--------|
-| Database Migration | Create `email_subscriptions` and `email_personal_contacts` tables |
-| `supabase/functions/process-entity-rules/index.ts` | Add auto-creation logic before rule processing |
+| `supabase/functions/prepare-for-rules/index.ts` | New edge function for record creation |
+| `src/hooks/use-classification-processing-queue.ts` | Update `sendToRulesMutation` to call new function |
+| `supabase/functions/process-entity-rules/index.ts` | Remove/simplify `ensureRecordsExist()` (optional) |
+| `supabase/config.toml` | Add config for new function (if needed) |
+
+---
+
+## Benefits
+
+1. **Immediate Record Creation**: Person/Sender and Entity records exist as soon as user assigns an entity type
+2. **Visible in CRM**: New entities appear immediately in entity list pages
+3. **Cleaner Rules Processing**: Rules just run actions, don't need to create base records
+4. **Better User Feedback**: User sees the records created before processing rules
 
 ---
 
 ## Summary
-After this change:
-- Every processed email automatically gets a Person OR Sender record
-- Every processed email automatically gets an Entity record in the target table
-- Records are properly linked (Person-to-Entity via `people_entities`, Sender-to-Entity via `senders.entity_id`)
-- Email is linked to Entity via the appropriate link table
-- Existing rules continue to work, but `link_entity` action is no longer required for basic functionality
+
+When a user clicks "Send to Rules" with an entity type selected:
+- Person or Sender record is created/found based on `is_person` flag
+- Entity record is created in the target table (e.g., `subscriptions`)
+- All linkages are established (Person↔Entity, Email↔Entity)
+- Email moves to Rules Processing Queue with everything ready
+
