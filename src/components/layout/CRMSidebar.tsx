@@ -21,6 +21,7 @@ import {
   Zap,
   Brain,
   Megaphone,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,7 @@ import { usePendingClassificationCount } from "@/hooks/use-classification-proces
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
+  { title: "Senders", url: "/senders", icon: Send },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Inbox", url: "/inbox", icon: Mail },
