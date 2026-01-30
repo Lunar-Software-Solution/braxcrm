@@ -106,7 +106,7 @@ export interface MerchantAccount {
   updated_at: string;
 }
 
-export interface Carrier {
+export interface LogisticSupplier {
   id: string;
   name: string;
   email: string | null;
@@ -118,6 +118,6 @@ export interface Carrier {
   updated_at: string;
 }
 
-export type EntityType = "influencers" | "resellers" | "product_suppliers" | "expense_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions" | "marketing_sources" | "merchant_accounts" | "carriers";
+export type EntityType = "influencers" | "resellers" | "product_suppliers" | "expense_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions" | "marketing_sources" | "merchant_accounts" | "logistic_suppliers";
 
-export type Entity = Influencer | Reseller | ProductSupplier | ExpenseSupplier | CorporateManagement | PersonalContact | Subscription | MarketingSource | MerchantAccount | Carrier;
+export type Entity = Influencer | Reseller | ProductSupplier | ExpenseSupplier | CorporateManagement | PersonalContact | Subscription | MarketingSource | MerchantAccount | LogisticSupplier;
