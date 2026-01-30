@@ -362,14 +362,14 @@ export default function ImportEndpoints() {
             <div className="space-y-2">
               <Label htmlFor="default_entity">Default Entity Type</Label>
               <Select
-                value={formData.default_entity_table}
-                onValueChange={(value) => setFormData({ ...formData, default_entity_table: value })}
+                value={formData.default_entity_table || "none"}
+                onValueChange={(value) => setFormData({ ...formData, default_entity_table: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Use AI Classification" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Use AI Classification</SelectItem>
+                  <SelectItem value="none">Use AI Classification</SelectItem>
                   {ENTITY_TABLES.map((table) => (
                     <SelectItem key={table.value} value={table.value}>
                       {table.label}
