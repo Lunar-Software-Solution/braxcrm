@@ -207,25 +207,47 @@ export function EmailLayout() {
   const handleEmailSelect = async (email: Email) => {
     setSelectedEmail(email);
     setEmailLoading(true);
+    setFullEmail(null); // Clear previous email while loading
+    
+    // Retry logic for transient network failures
+    const fetchWithRetry = async (retries = 2): Promise<Email | null> => {
+      try {
+        return await getMessage(email.id);
+      } catch (error) {
+        if (retries > 0 && error instanceof Error && error.message.includes("fetch")) {
+          // Wait briefly and retry for network errors
+          await new Promise(r => setTimeout(r, 500));
+          return fetchWithRetry(retries - 1);
+        }
+        throw error;
+      }
+    };
     
     try {
-      // Fetch full email content
-      const full = await getMessage(email.id);
-      setFullEmail(full);
-      
-      // Mark as read if unread
-      if (!email.isRead) {
-        await markAsRead(email.id, true);
-        // Update local state
-        setEmails(prev => prev.map(e => 
-          e.id === email.id ? { ...e, isRead: true } : e
-        ));
+      // Fetch full email content with retry
+      const full = await fetchWithRetry();
+      if (full) {
+        setFullEmail(full);
+        
+        // Mark as read if unread
+        if (!email.isRead) {
+          try {
+            await markAsRead(email.id, true);
+            // Update local state
+            setEmails(prev => prev.map(e => 
+              e.id === email.id ? { ...e, isRead: true } : e
+            ));
+          } catch (markError) {
+            // Non-critical error, don't show toast
+            console.warn("Failed to mark as read:", markError);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to load email:", error);
       toast({
         title: "Failed to load email",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: "Please try again",
         variant: "destructive",
       });
     } finally {
