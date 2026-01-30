@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.admin-update-password]
 verify_jwt = false
+
+[functions.sync-webflow-forms]
+verify_jwt = false
