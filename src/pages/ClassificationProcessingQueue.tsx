@@ -1,5 +1,5 @@
 import { Search, RefreshCw, Brain, Play } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function ClassificationProcessingQueue() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedEntityTypes, setSelectedEntityTypes] = useState<Map<string, string>>(new Map());
 
   const {
     pendingEmails,
@@ -28,6 +29,8 @@ export default function ClassificationProcessingQueue() {
     classifyEmails,
     isClassifying,
     updateIsPerson,
+    sendToRules,
+    isSendingToRules,
   } = useClassificationProcessingQueue();
 
   // Filter emails by search query
@@ -53,6 +56,55 @@ export default function ClassificationProcessingQueue() {
     classifyEmails(allIds);
     setSelectedIds(new Set());
   };
+
+  const handleEntityTypeChange = useCallback((emailId: string, entityTable: string | null) => {
+    setSelectedEntityTypes((prev) => {
+      const next = new Map(prev);
+      if (entityTable) {
+        next.set(emailId, entityTable);
+      } else {
+        next.delete(emailId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSendToRulesSelected = () => {
+    // Get emails that are both selected AND have an entity type chosen
+    const emailsToSend: Map<string, string[]> = new Map();
+    
+    selectedIds.forEach((id) => {
+      const entityType = selectedEntityTypes.get(id);
+      if (entityType) {
+        const existing = emailsToSend.get(entityType) || [];
+        existing.push(id);
+        emailsToSend.set(entityType, existing);
+      }
+    });
+
+    // Send each group by entity type
+    emailsToSend.forEach((emailIds, entityTable) => {
+      sendToRules({ emailIds, entityTable });
+    });
+
+    // Clear selections for sent emails
+    const sentIds = new Set(Array.from(emailsToSend.values()).flat());
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      sentIds.forEach((id) => next.delete(id));
+      return next;
+    });
+    setSelectedEntityTypes((prev) => {
+      const next = new Map(prev);
+      sentIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+
+  // Count selected emails that have an entity type assigned
+  const readyToSendCount = Array.from(selectedIds).filter(
+    (id) => selectedEntityTypes.has(id)
+  ).length;
 
   return (
     <div className="flex flex-col h-full">
@@ -96,6 +148,15 @@ export default function ClassificationProcessingQueue() {
             >
               <Brain className="h-4 w-4 mr-2" />
               Classify Selected ({selectedIds.size})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendToRulesSelected}
+              disabled={readyToSendCount === 0 || isSendingToRules}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Send to Rules ({readyToSendCount})
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -142,6 +203,10 @@ export default function ClassificationProcessingQueue() {
             onSelectionChange={setSelectedIds}
             isClassifying={isClassifying}
             onUpdateIsPerson={(emailId, isPerson) => updateIsPerson({ emailId, isPerson })}
+            onSendToRules={(emailIds, entityTable) => sendToRules({ emailIds, entityTable })}
+            isSendingToRules={isSendingToRules}
+            selectedEntityTypes={selectedEntityTypes}
+            onEntityTypeChange={handleEntityTypeChange}
           />
         )}
       </div>
@@ -150,6 +215,7 @@ export default function ClassificationProcessingQueue() {
       <div className="border-t px-6 py-3 text-sm text-muted-foreground">
         Showing {filteredEmails.length} email{filteredEmails.length !== 1 ? "s" : ""} awaiting classification
         {isClassifying && " • Classifying..."}
+        {isSendingToRules && " • Sending to rules..."}
       </div>
     </div>
   );
