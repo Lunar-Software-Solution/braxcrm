@@ -24,5 +24,8 @@ verify_jwt = false
 [functions.sync-emails]
 verify_jwt = false
 
+[functions.prepare-for-rules]
+verify_jwt = false
+
 [functions.send-invite]
 verify_jwt = false
