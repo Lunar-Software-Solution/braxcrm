@@ -489,6 +489,42 @@ export type Database = {
           },
         ]
       }
+      email_personal_contacts: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          personal_contact_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          personal_contact_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          personal_contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_personal_contacts_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_personal_contacts_personal_contact_id_fkey"
+            columns: ["personal_contact_id"]
+            isOneToOne: false
+            referencedRelation: "personal_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_product_suppliers: {
         Row: {
           assigned_at: string
@@ -684,6 +720,42 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "email_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_subscriptions: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          subscription_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          subscription_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_subscriptions_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
