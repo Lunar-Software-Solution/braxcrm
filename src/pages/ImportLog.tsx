@@ -1,4 +1,4 @@
-import { useWebhookEvents, useWebhookEventLogs } from "@/hooks/use-webhook-events";
+import { useImportEvents, useImportEventLogs } from "@/hooks/use-import-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,27 +26,27 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { RefreshCw, Eye, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
-import type { WebhookEvent, WebhookEventStatus } from "@/types/webhooks";
+import type { ImportEvent, ImportEventStatus } from "@/types/imports";
 
-const statusConfig: Record<WebhookEventStatus, { label: string; color: string; icon: React.ReactNode }> = {
+const statusConfig: Record<ImportEventStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800", icon: <Clock className="h-3 w-3" /> },
   processing: { label: "Processing", color: "bg-blue-100 text-blue-800", icon: <RefreshCw className="h-3 w-3 animate-spin" /> },
   processed: { label: "Processed", color: "bg-green-100 text-green-800", icon: <CheckCircle className="h-3 w-3" /> },
   failed: { label: "Failed", color: "bg-red-100 text-red-800", icon: <XCircle className="h-3 w-3" /> },
 };
 
-export default function WebhookLog() {
-  const [statusFilter, setStatusFilter] = useState<WebhookEventStatus | "all">("all");
-  const { events, isLoading, refetch } = useWebhookEvents(statusFilter === "all" ? undefined : statusFilter);
-  const [viewingEvent, setViewingEvent] = useState<WebhookEvent | null>(null);
+export default function ImportLog() {
+  const [statusFilter, setStatusFilter] = useState<ImportEventStatus | "all">("all");
+  const { events, isLoading, refetch } = useImportEvents(statusFilter === "all" ? undefined : statusFilter);
+  const [viewingEvent, setViewingEvent] = useState<ImportEvent | null>(null);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Webhook Processing Log</h1>
+          <h1 className="text-2xl font-bold">Import Processing Log</h1>
           <p className="text-muted-foreground">
-            View all webhook events and their processing history
+            View all import events and their processing history
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -166,8 +166,8 @@ export default function WebhookLog() {
   );
 }
 
-function EventDetailsDialog({ event, onClose }: { event: WebhookEvent | null; onClose: () => void }) {
-  const { logs, isLoading } = useWebhookEventLogs(event?.id || "");
+function EventDetailsDialog({ event, onClose }: { event: ImportEvent | null; onClose: () => void }) {
+  const { logs, isLoading } = useImportEventLogs(event?.id || "");
 
   if (!event) return null;
 

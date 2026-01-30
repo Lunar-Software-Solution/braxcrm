@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { WebhookEndpoint } from "@/types/webhooks";
+import type { ImportEndpoint } from "@/types/imports";
 import { useToast } from "@/hooks/use-toast";
 
-export function useWebhookEndpoints() {
+export function useImportEndpoints() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: endpoints, isLoading, error } = useQuery({
-    queryKey: ["webhook-endpoints"],
+    queryKey: ["import-endpoints"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("webhook_endpoints")
@@ -16,12 +16,12 @@ export function useWebhookEndpoints() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as WebhookEndpoint[];
+      return data as ImportEndpoint[];
     },
   });
 
   const createEndpoint = useMutation({
-    mutationFn: async (endpoint: Omit<WebhookEndpoint, "id" | "created_at" | "updated_at" | "created_by" | "secret_key">) => {
+    mutationFn: async (endpoint: Omit<ImportEndpoint, "id" | "created_at" | "updated_at" | "created_by" | "secret_key">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -39,10 +39,10 @@ export function useWebhookEndpoints() {
         .single();
 
       if (error) throw error;
-      return data as WebhookEndpoint;
+      return data as ImportEndpoint;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-endpoints"] });
+      queryClient.invalidateQueries({ queryKey: ["import-endpoints"] });
       toast({ title: "Endpoint created successfully" });
     },
     onError: (error) => {
@@ -55,7 +55,7 @@ export function useWebhookEndpoints() {
   });
 
   const updateEndpoint = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<WebhookEndpoint> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<ImportEndpoint> & { id: string }) => {
       const { data, error } = await supabase
         .from("webhook_endpoints")
         .update(updates)
@@ -64,10 +64,10 @@ export function useWebhookEndpoints() {
         .single();
 
       if (error) throw error;
-      return data as WebhookEndpoint;
+      return data as ImportEndpoint;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-endpoints"] });
+      queryClient.invalidateQueries({ queryKey: ["import-endpoints"] });
       toast({ title: "Endpoint updated successfully" });
     },
     onError: (error) => {
@@ -89,7 +89,7 @@ export function useWebhookEndpoints() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-endpoints"] });
+      queryClient.invalidateQueries({ queryKey: ["import-endpoints"] });
       toast({ title: "Endpoint deleted successfully" });
     },
     onError: (error) => {
@@ -113,10 +113,10 @@ export function useWebhookEndpoints() {
         .single();
 
       if (error) throw error;
-      return data as WebhookEndpoint;
+      return data as ImportEndpoint;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-endpoints"] });
+      queryClient.invalidateQueries({ queryKey: ["import-endpoints"] });
       toast({ title: "Secret key rotated successfully" });
     },
     onError: (error) => {

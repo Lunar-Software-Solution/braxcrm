@@ -1,8 +1,8 @@
-// Webhook Types
+// Import Types (for external data ingestion)
 
-export type WebhookEventStatus = 'pending' | 'processing' | 'processed' | 'failed';
+export type ImportEventStatus = 'pending' | 'processing' | 'processed' | 'failed';
 
-export interface WebhookEndpoint {
+export interface ImportEndpoint {
   id: string;
   name: string;
   slug: string;
@@ -16,13 +16,13 @@ export interface WebhookEndpoint {
   updated_at: string;
 }
 
-export interface WebhookEvent {
+export interface ImportEvent {
   id: string;
   endpoint_id: string;
   external_id: string | null;
   event_type: string;
   payload: Record<string, unknown>;
-  status: WebhookEventStatus;
+  status: ImportEventStatus;
   entity_table: string | null;
   is_person: boolean | null;
   person_id: string | null;
@@ -33,7 +33,7 @@ export interface WebhookEvent {
   user_id: string;
   created_at: string;
   // Joined data
-  endpoint?: WebhookEndpoint;
+  endpoint?: ImportEndpoint;
   person?: {
     id: string;
     name: string;
@@ -41,7 +41,7 @@ export interface WebhookEvent {
   };
 }
 
-export interface WebhookEventLog {
+export interface ImportEventLog {
   id: string;
   webhook_event_id: string;
   action_type: string;
@@ -51,8 +51,8 @@ export interface WebhookEventLog {
   processed_at: string;
 }
 
-// Incoming webhook payload structure (recommended)
-export interface WebhookPayload {
+// Incoming import payload structure (recommended)
+export interface ImportPayload {
   external_id?: string;
   event_type: string;
   data: {
@@ -66,14 +66,14 @@ export interface WebhookPayload {
 }
 
 // API response types
-export interface WebhookIngestResponse {
+export interface ImportIngestResponse {
   success: boolean;
   event_id?: string;
   message?: string;
   error?: string;
 }
 
-export interface PrepareWebhookResult {
+export interface PrepareImportResult {
   event_id: string;
   success: boolean;
   person_id?: string;
@@ -83,7 +83,7 @@ export interface PrepareWebhookResult {
   error?: string;
 }
 
-export interface ProcessWebhookRulesResult {
+export interface ProcessImportRulesResult {
   event_id: string;
   actions_applied: Array<{
     action_type: string;

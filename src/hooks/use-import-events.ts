@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { WebhookEvent, WebhookEventStatus } from "@/types/webhooks";
+import type { ImportEvent, ImportEventStatus } from "@/types/imports";
 import { useToast } from "@/hooks/use-toast";
 
-export function useWebhookEvents(status?: WebhookEventStatus) {
+export function useImportEvents(status?: ImportEventStatus) {
   const { data: events, isLoading, error, refetch } = useQuery({
-    queryKey: ["webhook-events", status],
+    queryKey: ["import-events", status],
     queryFn: async () => {
       let query = supabase
         .from("webhook_events")
@@ -22,16 +22,16 @@ export function useWebhookEvents(status?: WebhookEventStatus) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as WebhookEvent[];
+      return data as ImportEvent[];
     },
   });
 
   return { events, isLoading, error, refetch };
 }
 
-export function usePendingWebhookCount() {
+export function usePendingImportCount() {
   const { data: count = 0 } = useQuery({
-    queryKey: ["webhook-events-pending-count"],
+    queryKey: ["import-events-pending-count"],
     queryFn: async () => {
       const { count, error } = await supabase
         .from("webhook_events")
@@ -41,13 +41,13 @@ export function usePendingWebhookCount() {
       if (error) throw error;
       return count || 0;
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   return count;
 }
 
-export function useWebhookEventMutations() {
+export function useImportEventMutations() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,7 +56,7 @@ export function useWebhookEventMutations() {
       id: string; 
       entity_table?: string; 
       is_person?: boolean; 
-      status?: WebhookEventStatus;
+      status?: ImportEventStatus;
     }) => {
       const updates: Record<string, unknown> = {};
       if (entity_table !== undefined) updates.entity_table = entity_table;
@@ -74,7 +74,7 @@ export function useWebhookEventMutations() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-events"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events"] });
     },
     onError: (error) => {
       toast({ 
@@ -98,8 +98,8 @@ export function useWebhookEventMutations() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-events"] });
-      queryClient.invalidateQueries({ queryKey: ["webhook-events-pending-count"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events-pending-count"] });
       toast({ 
         title: "Events prepared", 
         description: `${data.successful}/${data.total} events prepared for rules`
@@ -127,8 +127,8 @@ export function useWebhookEventMutations() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-events"] });
-      queryClient.invalidateQueries({ queryKey: ["webhook-events-pending-count"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events-pending-count"] });
       toast({ title: "Rules processed successfully" });
     },
     onError: (error) => {
@@ -150,8 +150,8 @@ export function useWebhookEventMutations() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["webhook-events"] });
-      queryClient.invalidateQueries({ queryKey: ["webhook-events-pending-count"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events"] });
+      queryClient.invalidateQueries({ queryKey: ["import-events-pending-count"] });
       toast({ title: "Event deleted" });
     },
     onError: (error) => {
@@ -171,9 +171,9 @@ export function useWebhookEventMutations() {
   };
 }
 
-export function useWebhookEventLogs(eventId: string) {
+export function useImportEventLogs(eventId: string) {
   const { data: logs, isLoading, error } = useQuery({
-    queryKey: ["webhook-event-logs", eventId],
+    queryKey: ["import-event-logs", eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("webhook_event_logs")
