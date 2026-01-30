@@ -2065,6 +2065,155 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_endpoints: {
+        Row: {
+          allowed_object_types: string[] | null
+          created_at: string
+          created_by: string
+          default_entity_table: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          secret_key: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_object_types?: string[] | null
+          created_at?: string
+          created_by: string
+          default_entity_table?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          secret_key: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_object_types?: string[] | null
+          created_at?: string
+          created_by?: string
+          default_entity_table?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          secret_key?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      webhook_event_logs: {
+        Row: {
+          action_config: Json | null
+          action_type: string
+          error_message: string | null
+          id: string
+          processed_at: string
+          success: boolean
+          webhook_event_id: string
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string
+          success?: boolean
+          webhook_event_id: string
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string
+          success?: boolean
+          webhook_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_event_logs_webhook_event_id_fkey"
+            columns: ["webhook_event_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_events: {
+        Row: {
+          ai_confidence: number | null
+          created_at: string
+          endpoint_id: string
+          entity_id: string | null
+          entity_table: string | null
+          error_message: string | null
+          event_type: string
+          external_id: string | null
+          id: string
+          is_person: boolean | null
+          payload: Json
+          person_id: string | null
+          processed_at: string | null
+          status: Database["public"]["Enums"]["webhook_event_status"]
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          created_at?: string
+          endpoint_id: string
+          entity_id?: string | null
+          entity_table?: string | null
+          error_message?: string | null
+          event_type: string
+          external_id?: string | null
+          id?: string
+          is_person?: boolean | null
+          payload?: Json
+          person_id?: string | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["webhook_event_status"]
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          created_at?: string
+          endpoint_id?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          error_message?: string | null
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          is_person?: boolean | null
+          payload?: Json
+          person_id?: string | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["webhook_event_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2123,6 +2272,7 @@ export type Database = {
       sender_type: "automated" | "newsletter" | "shared_inbox" | "system"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "completed" | "cancelled"
+      webhook_event_status: "pending" | "processing" | "processed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2285,6 +2435,7 @@ export const Constants = {
       sender_type: ["automated", "newsletter", "shared_inbox", "system"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "completed", "cancelled"],
+      webhook_event_status: ["pending", "processing", "processed", "failed"],
     },
   },
 } as const
