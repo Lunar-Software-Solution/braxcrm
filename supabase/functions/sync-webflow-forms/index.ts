@@ -59,10 +59,14 @@ async function fetchFormSubmissions(
   const limit = 100;
   let hasMore = true;
 
+  console.log(`Fetching submissions for form ${formId}, sinceDate: ${sinceDate || 'none (fetching all)'}`);
+
   while (hasMore) {
     const url = new URL(`https://api.webflow.com/v2/forms/${formId}/submissions`);
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
+
+    console.log(`Fetching: ${url.toString()}`);
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -74,20 +78,27 @@ async function fetchFormSubmissions(
     if (!response.ok) {
       const error = await response.text();
       console.error(`Webflow API error for form ${formId}:`, error);
-      throw new Error(`Webflow API error: ${response.status}`);
+      throw new Error(`Webflow API error: ${response.status} - ${error}`);
     }
 
-    const data: WebflowFormResponse = await response.json();
+    const data = await response.json();
+    console.log(`Webflow API full response:`, JSON.stringify(data, null, 2));
+    
+    // The API may return "formSubmissions" or "submissions"
+    const rawSubmissions = data.formSubmissions || data.submissions || [];
+    console.log(`Raw submissions count: ${rawSubmissions.length}, pagination: ${JSON.stringify(data.pagination)}`);
     
     // Filter by date if sinceDate is provided
     const filtered = sinceDate
-      ? data.formSubmissions.filter((s) => new Date(s.submittedAt) > new Date(sinceDate))
-      : data.formSubmissions;
+      ? rawSubmissions.filter((s: WebflowSubmission) => new Date(s.submittedAt) > new Date(sinceDate))
+      : rawSubmissions;
     
+    console.log(`After date filter: ${filtered.length} submissions`);
     submissions.push(...filtered);
 
     // Check if we need to fetch more
-    if (data.formSubmissions.length < limit || (sinceDate && filtered.length < data.formSubmissions.length)) {
+    const totalFromApi = data.pagination?.total || 0;
+    if (rawSubmissions.length < limit || offset + limit >= totalFromApi) {
       hasMore = false;
     } else {
       offset += limit;
@@ -99,6 +110,7 @@ async function fetchFormSubmissions(
     }
   }
 
+  console.log(`Total submissions fetched: ${submissions.length}`);
   return submissions;
 }
 
