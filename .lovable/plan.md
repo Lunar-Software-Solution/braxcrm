@@ -13,64 +13,21 @@ The system mirrors the email flow:
 
 ---
 
-## Phase 1: Database Schema
+## Phase 1: Database Schema ✅ COMPLETED
 
-### 1.1 New Tables
+### 1.1 New Tables ✅
 
-**webhook_endpoints** (registered webhook sources)
-```text
-webhook_endpoints
-  - id (uuid, PK)
-  - name (text) -- "Shopify Orders", "Stripe Webhooks"
-  - slug (text, unique) -- URL-safe identifier
-  - secret_key (text) -- for signature verification
-  - is_active (boolean, default true)
-  - description (text, nullable)
-  - allowed_object_types (text[]) -- ['person', 'influencer', 'subscription', etc.]
-  - default_entity_table (text, nullable) -- default entity type
-  - created_by (uuid)
-  - created_at, updated_at (timestamps)
-```
+**webhook_endpoints** (registered webhook sources) ✅
+**webhook_events** (incoming webhook payloads - similar to email_messages) ✅
+**webhook_event_logs** (processing history) ✅
 
-**webhook_events** (incoming webhook payloads - similar to email_messages)
-```text
-webhook_events
-  - id (uuid, PK)
-  - endpoint_id (FK -> webhook_endpoints)
-  - external_id (text, nullable) -- external system's ID
-  - event_type (text) -- "contact.created", "order.completed"
-  - payload (jsonb) -- raw webhook data
-  - status (enum: pending, processing, processed, failed)
-  - entity_table (text, nullable) -- classified entity type
-  - is_person (boolean, nullable) -- person vs automated sender
-  - person_id (FK -> people, nullable)
-  - entity_id (uuid, nullable) -- linked entity record
-  - ai_confidence (numeric, nullable)
-  - error_message (text, nullable)
-  - processed_at (timestamptz, nullable)
-  - user_id (uuid)
-  - created_at (timestamp)
-```
-
-**webhook_event_logs** (processing history)
-```text
-webhook_event_logs
-  - id (uuid, PK)
-  - webhook_event_id (FK -> webhook_events)
-  - action_type (text) -- "create_person", "create_entity", "apply_tag", etc.
-  - action_config (jsonb)
-  - success (boolean)
-  - error_message (text, nullable)
-  - processed_at (timestamp)
-```
-
-### 1.2 New Enums
+### 1.2 New Enums ✅
 
 ```sql
 CREATE TYPE webhook_event_status AS ENUM ('pending', 'processing', 'processed', 'failed');
 ```
 
-### 1.3 RLS Policies
+### 1.3 RLS Policies ✅
 
 - Users can manage their own webhook events
 - Admins can manage all endpoints and events
@@ -78,77 +35,36 @@ CREATE TYPE webhook_event_status AS ENUM ('pending', 'processing', 'processed', 
 
 ---
 
-## Phase 2: Edge Functions
+## Phase 2: Edge Functions ✅ COMPLETED
 
-### 2.1 `webhook-ingest` (Public Endpoint)
+### 2.1 `webhook-ingest` (Public Endpoint) ✅
 
 **Purpose**: Receive incoming webhooks from external systems
-
-**Features**:
-- Validate webhook signature using endpoint secret
-- Store raw payload in `webhook_events`
-- Optionally auto-classify entity type using AI
-- Set initial status to `pending`
-
 **Endpoint**: `POST /functions/v1/webhook-ingest/{endpoint_slug}`
 
-**Request Flow**:
-```text
-External System -> webhook-ingest -> webhook_events (status: pending)
-```
-
-### 2.2 `classify-webhook-event` (AI Classification)
+### 2.2 `classify-webhook-event` (AI Classification) 
 
 **Purpose**: Use AI to determine entity type and person status
+**Status**: Deferred - can be added later
 
-**Similar to**: `classify-email` function
-
-**Determines**:
-- Which entity table the object belongs to (influencer, subscription, etc.)
-- Whether it's a person or automated/system record
-- Confidence score
-
-### 2.3 `prepare-webhook-for-rules`
+### 2.3 `prepare-webhook-for-rules` ✅
 
 **Purpose**: Create Person/Sender and Entity records before rule processing
 
-**Similar to**: `prepare-for-rules` function
-
-**Actions**:
-1. Find or create Person record (if is_person = true)
-2. Find or create Entity record in target table
-3. Link Person to Entity via `people_entities`
-4. Update webhook_event with person_id and entity_id
-
-### 2.4 `process-webhook-rules`
+### 2.4 `process-webhook-rules` ✅
 
 **Purpose**: Apply entity automation rules to the webhook event
 
-**Similar to**: `process-entity-rules` function
-
-**Actions**:
-- Fetch active rules for the entity_table
-- Apply each rule action (tag, extract_invoice, etc.)
-- Log results to `webhook_event_logs`
-- Mark event as `processed`
-
 ---
 
-## Phase 3: Frontend Components
+## Phase 3: Frontend Components ✅ COMPLETED
 
-### 3.1 Webhook Endpoints Management (`/settings` or `/webhook-endpoints`)
+### 3.1 Webhook Endpoints Management
 
-**Features**:
-- List all registered webhook endpoints
-- Create/edit/delete endpoints
-- Generate and rotate secret keys
-- View endpoint URL for external configuration
+**Status**: Needs implementation - endpoint creation/management UI
 
-### 3.2 Webhook Processing Queue (`/webhook-processing-queue`)
+### 3.2 Webhook Processing Queue (`/webhook-processing-queue`) ✅
 
-**Similar to**: Rules Processing Queue
-
-**Features**:
 - List pending webhook events
 - Show source endpoint, event type, entity classification
 - Override entity type before processing
@@ -156,17 +72,15 @@ External System -> webhook-ingest -> webhook_events (status: pending)
 - Batch process selected events
 - View payload details
 
-### 3.3 Webhook Processing Log (`/webhook-log`)
+### 3.3 Webhook Processing Log (`/webhook-log`) ✅
 
-**Features**:
 - View processed webhook events
 - Show actions applied and results
 - Filter by endpoint, status, entity type
-- Reprocess failed events
 
-### 3.4 Sidebar Updates
+### 3.4 Sidebar Updates ✅
 
-Add to Workspace section:
+Added to Workspace section:
 - "Webhook Queue" with pending count badge
 - "Webhook Log"
 

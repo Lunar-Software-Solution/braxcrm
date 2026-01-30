@@ -24,6 +24,8 @@ import {
   Send,
   Landmark,
   Truck,
+  Webhook,
+  History,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +46,7 @@ import { UserMenu } from "@/components/email/UserMenu";
 import { Badge } from "@/components/ui/badge";
 import { usePendingEmailCount } from "@/hooks/use-rules-processing-queue";
 import { usePendingClassificationCount } from "@/hooks/use-classification-processing-queue";
+import { usePendingWebhookCount } from "@/hooks/use-webhook-events";
 
 const workspaceItems = [
   { title: "People", url: "/people", icon: Users },
@@ -54,6 +57,8 @@ const workspaceItems = [
   { title: "Classification Queue", url: "/classification-processing-queue", icon: Brain },
   { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
   { title: "Processing Log", url: "/rules-log", icon: ScrollText },
+  { title: "Webhook Queue", url: "/webhook-processing-queue", icon: Webhook },
+  { title: "Webhook Log", url: "/webhook-log", icon: History },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
@@ -81,6 +86,7 @@ export function CRMSidebar() {
   const location = useLocation();
   const pendingRulesCount = usePendingEmailCount();
   const pendingClassificationCount = usePendingClassificationCount();
+  const pendingWebhookCount = usePendingWebhookCount();
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
@@ -144,6 +150,11 @@ export function CRMSidebar() {
                       {!collapsed && item.title === "Rules Processing Queue" && pendingRulesCount > 0 && (
                         <Badge variant="secondary" className="ml-auto text-xs">
                           {pendingRulesCount}
+                        </Badge>
+                      )}
+                      {!collapsed && item.title === "Webhook Queue" && pendingWebhookCount > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-xs">
+                          {pendingWebhookCount}
                         </Badge>
                       )}
                     </NavLink>
