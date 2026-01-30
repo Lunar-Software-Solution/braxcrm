@@ -53,7 +53,10 @@ async function logClassification(
   source: string,
   success: boolean,
   errorMessage: string | null,
-  processingTimeMs: number
+  processingTimeMs: number,
+  aiPrompt: string | null = null,
+  aiResponse: string | null = null,
+  aiModel: string | null = null
 ) {
   try {
     // Use service client for logging to bypass RLS
@@ -71,6 +74,9 @@ async function logClassification(
       success,
       error_message: errorMessage,
       processing_time_ms: processingTimeMs,
+      ai_prompt: aiPrompt,
+      ai_response: aiResponse,
+      ai_model: aiModel,
     });
   } catch (e) {
     console.error("Failed to log classification:", e);
@@ -491,7 +497,7 @@ Only respond with the JSON object, no other text.`;
       }
     }
 
-    // Log successful classification
+    // Log successful classification with AI prompt/response
     const processingTime = Date.now() - startTime;
     await logClassification(
       supabase,
@@ -502,7 +508,10 @@ Only respond with the JSON object, no other text.`;
       "ai",
       true,
       null,
-      processingTime
+      processingTime,
+      prompt,
+      aiContent,
+      "google/gemini-3-flash-preview"
     );
 
     return new Response(JSON.stringify(result), {

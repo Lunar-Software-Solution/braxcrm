@@ -27,6 +27,21 @@ export interface ClassificationQueueEmail {
   };
 }
 
+export interface ClassificationLog {
+  id: string;
+  email_id: string;
+  entity_table: string | null;
+  confidence: number | null;
+  source: string;
+  success: boolean;
+  error_message: string | null;
+  processing_time_ms: number | null;
+  ai_prompt: string | null;
+  ai_response: string | null;
+  ai_model: string | null;
+  created_at: string;
+}
+
 export function useClassificationProcessingQueue() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -225,6 +240,30 @@ export function useClassificationProcessingQueue() {
     removeFromRules: removeFromRulesMutation.mutate,
     isRemovingFromRules: removeFromRulesMutation.isPending,
   };
+}
+
+// Hook to get classification log for a specific email
+export function useClassificationLog(emailId: string | null) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["classification-log", emailId],
+    queryFn: async () => {
+      if (!emailId) return null;
+      
+      const { data, error } = await supabase
+        .from("email_classification_logs")
+        .select("*")
+        .eq("email_id", emailId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as ClassificationLog | null;
+    },
+    enabled: !!user && !!emailId,
+  });
 }
 
 // Hook to get pending classification count for sidebar badge

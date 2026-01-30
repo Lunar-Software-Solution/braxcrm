@@ -91,6 +91,9 @@ export type Database = {
       }
       email_classification_logs: {
         Row: {
+          ai_model: string | null
+          ai_prompt: string | null
+          ai_response: string | null
           confidence: number | null
           created_at: string
           email_id: string
@@ -103,6 +106,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_model?: string | null
+          ai_prompt?: string | null
+          ai_response?: string | null
           confidence?: number | null
           created_at?: string
           email_id: string
@@ -115,6 +121,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_model?: string | null
+          ai_prompt?: string | null
+          ai_response?: string | null
           confidence?: number | null
           created_at?: string
           email_id?: string

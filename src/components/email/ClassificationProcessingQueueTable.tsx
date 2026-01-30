@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -11,7 +12,7 @@ import {
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Brain, Loader2, User, Bot, HelpCircle, ArrowRight } from "lucide-react";
+import { Brain, Loader2, User, Bot, HelpCircle, Eye } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { ClassificationLogDialog } from "./ClassificationLogDialog";
 
 // Entity table options matching the CRM structure
 const ENTITY_TABLE_OPTIONS = [
@@ -57,6 +60,8 @@ export function ClassificationProcessingQueueTable({
   selectedEntityTypes = new Map(),
   onEntityTypeChange,
 }: ClassificationProcessingQueueTableProps) {
+  const [selectedEmailForLog, setSelectedEmailForLog] = useState<{ id: string; subject: string | null } | null>(null);
+  
   const safeSelectedIds = selectedIds ?? new Set<string>();
   const allSelected = emails.length > 0 && safeSelectedIds.size === emails.length;
   const someSelected = safeSelectedIds.size > 0 && safeSelectedIds.size < emails.length;
@@ -250,9 +255,15 @@ export function ClassificationProcessingQueueTable({
                     </SelectContent>
                   </Select>
                   {email.ai_confidence !== null && (
-                    <span className="text-xs text-muted-foreground mt-1 block">
-                      {Math.round(email.ai_confidence * 100)}% confidence
-                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground mt-1"
+                      onClick={() => setSelectedEmailForLog({ id: email.id, subject: email.subject })}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      {Math.round(email.ai_confidence * 100)}%
+                    </Button>
                   )}
                 </TableCell>
                 <TableCell>
@@ -297,6 +308,13 @@ export function ClassificationProcessingQueueTable({
           })}
         </TableBody>
       </Table>
+      
+      <ClassificationLogDialog
+        emailId={selectedEmailForLog?.id || null}
+        emailSubject={selectedEmailForLog?.subject || null}
+        open={!!selectedEmailForLog}
+        onOpenChange={(open) => !open && setSelectedEmailForLog(null)}
+      />
     </div>
   );
 }
