@@ -272,16 +272,16 @@ export default function Senders() {
               <div className="space-y-2">
                 <Label htmlFor="entity_table">Entity Type</Label>
                 <Select
-                  value={formData.entity_table}
+                  value={formData.entity_table || "__none__"}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, entity_table: value })
+                    setFormData({ ...formData, entity_table: value === "__none__" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select entity type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {ENTITY_TABLES.map((entity) => (
                       <SelectItem key={entity.value} value={entity.value}>
                         {entity.label}
