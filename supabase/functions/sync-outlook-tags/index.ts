@@ -54,11 +54,13 @@ serve(async (req) => {
     );
 
     // Get the target user's Microsoft token
+    // Get the user's Microsoft token - prioritize primary but fall back to any available
     const { data: tokenData, error: tokenError } = await serviceClient
       .from("microsoft_tokens")
       .select("access_token, refresh_token, expires_at")
       .eq("user_id", targetUserId)
-      .eq("is_primary", true)
+      .order("is_primary", { ascending: false })
+      .limit(1)
       .single();
 
     if (tokenError || !tokenData) {
@@ -90,7 +92,7 @@ serve(async (req) => {
       const refreshData = await refreshResponse.json();
       accessToken = refreshData.access_token;
 
-      // Update the stored token using service client
+      // Update the stored token using service client - match by user_id only
       await serviceClient
         .from("microsoft_tokens")
         .update({
@@ -98,8 +100,7 @@ serve(async (req) => {
           refresh_token: refreshData.refresh_token || tokenData.refresh_token,
           expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
         })
-        .eq("user_id", targetUserId)
-        .eq("is_primary", true);
+        .eq("user_id", targetUserId);
     }
 
     // Get the message's current categories from Outlook
