@@ -53,6 +53,7 @@ const workspaceItems = [
   { title: "Rules Processing Queue", url: "/rules-processing-queue", icon: ClipboardList },
   { title: "Processing Log", url: "/rules-log", icon: ScrollText },
   { title: "Email Automation", url: "/email-automation", icon: Zap },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 const entityItems = [

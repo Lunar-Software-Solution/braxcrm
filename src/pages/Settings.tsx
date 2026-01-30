@@ -1,14 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useMicrosoftAuth } from "@/hooks/use-microsoft-auth";
-import { useUserRoles } from "@/hooks/use-user-roles";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
@@ -21,373 +15,241 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  ArrowLeft,
-  Mail,
-  Plus,
-  Trash2,
-  Star,
-  Loader2,
-  User,
-  Shield,
-  Bell,
-  Building2,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Tag, Plus, Trash2, Loader2, Pencil, X, Check, Settings as SettingsIcon } from "lucide-react";
+import { useEmailTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/hooks/use-email-rules";
 
-
-
-interface MicrosoftAccount {
-  id: string;
-  microsoft_email: string | null;
-  display_name: string | null;
-  is_primary: boolean;
-  created_at: string;
-}
+const TAG_COLORS = [
+  "#6366f1", "#ec4899", "#22c55e", "#f97316", "#3b82f6", 
+  "#8b5cf6", "#f59e0b", "#0891b2", "#64748b", "#ef4444"
+];
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
-  const { initiateLogin } = useMicrosoftAuth();
-  const { isAdmin, entityRoles, isLoading: isRolesLoading } = useUserRoles();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
-  const [accounts, setAccounts] = useState<MicrosoftAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { data: tags = [], isLoading } = useEmailTags();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("");
 
-  const loadAccounts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("microsoft_tokens")
-        .select("id, microsoft_email, display_name, is_primary, created_at")
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setAccounts(data || []);
-    } catch (error) {
-      console.error("Failed to load accounts:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    await createTag.mutateAsync({ name: newTagName.trim(), color: newTagColor });
+    setNewTagName("");
+    setNewTagColor(TAG_COLORS[0]);
+    setIsCreating(false);
   };
 
-  const handleConnectAccount = async () => {
-    setConnecting(true);
-    try {
-      await initiateLogin();
-    } catch (error) {
-      toast({
-        title: "Connection failed",
-        description: error instanceof Error ? error.message : "Could not connect to Microsoft",
-        variant: "destructive",
-      });
-      setConnecting(false);
-    }
+  const handleUpdateTag = async (id: string) => {
+    if (!editName.trim()) return;
+    await updateTag.mutateAsync({ id, name: editName.trim(), color: editColor });
+    setEditingId(null);
   };
 
-  const handleSetPrimary = async (accountId: string) => {
-    try {
-      // First, set all accounts to non-primary
-      await supabase
-        .from("microsoft_tokens")
-        .update({ is_primary: false })
-        .eq("user_id", user?.id);
-
-      // Then set the selected account as primary
-      const { error } = await supabase
-        .from("microsoft_tokens")
-        .update({ is_primary: true })
-        .eq("id", accountId);
-
-      if (error) throw error;
-
-      setAccounts(prev => prev.map(acc => ({
-        ...acc,
-        is_primary: acc.id === accountId,
-      })));
-
-      toast({ title: "Primary account updated" });
-    } catch (error) {
-      toast({
-        title: "Failed to update primary account",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteAccount = async (accountId: string) => {
-    setDeletingId(accountId);
-    try {
-      const { error } = await supabase
-        .from("microsoft_tokens")
-        .delete()
-        .eq("id", accountId);
-
-      if (error) throw error;
-
-      setAccounts(prev => prev.filter(acc => acc.id !== accountId));
-      toast({ title: "Account disconnected" });
-    } catch (error) {
-      toast({
-        title: "Failed to disconnect account",
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
+  const startEditing = (tag: { id: string; name: string; color: string }) => {
+    setEditingId(tag.id);
+    setEditName(tag.name);
+    setEditColor(tag.color || TAG_COLORS[0]);
   };
 
   return (
     <div className="h-full bg-muted/30">
-
       <ScrollArea className="h-full">
         <div className="container max-w-4xl mx-auto px-4 py-6 space-y-6">
-          <h1 className="text-2xl font-semibold">Settings</h1>
-          {/* Profile Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Profile</CardTitle>
-              </div>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
-                    {user?.email?.slice(0, 2).toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{user?.user_metadata?.full_name || "User"}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-              </div>
-              
-              {/* Role Badges */}
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground mb-2">Your Roles</p>
-                <div className="flex flex-wrap gap-2">
-                  {isRolesLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Badge variant={isAdmin ? "default" : "secondary"} className="gap-1">
-                        <Shield className="h-3 w-3" />
-                        {isAdmin ? "Admin" : "Member"}
-                      </Badge>
-                      {entityRoles.map((role) => (
-                        <Badge key={role.id} variant="outline" className="gap-1">
-                          <Building2 className="h-3 w-3" />
-                          {role.entity_role?.name}
-                        </Badge>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3">
+            <SettingsIcon className="h-6 w-6 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold">Settings</h1>
+          </div>
 
-          {/* Email Accounts Section */}
+          {/* Tags Management */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <Tag className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <CardTitle>Email Accounts</CardTitle>
-                    <CardDescription>Connect your Microsoft accounts to access emails</CardDescription>
+                    <CardTitle>Email Tags</CardTitle>
+                    <CardDescription>Create and manage tags for email organization</CardDescription>
                   </div>
                 </div>
-                <Button onClick={handleConnectAccount} disabled={connecting} className="gap-2">
-                  {connecting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
+                {!isCreating && (
+                  <Button onClick={() => setIsCreating(true)} className="gap-2">
                     <Plus className="h-4 w-4" />
-                  )}
-                  Add Account
-                </Button>
+                    Add Tag
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {/* Create Tag Form */}
+              {isCreating && (
+                <div className="mb-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Input
+                      placeholder="Tag name..."
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      className="flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateTag();
+                        if (e.key === "Escape") setIsCreating(false);
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleCreateTag}
+                      disabled={!newTagName.trim() || createTag.isPending}
+                    >
+                      {createTag.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsCreating(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Color:</span>
+                    <div className="flex gap-1">
+                      {TAG_COLORS.map((color) => (
+                        <button
+                          key={color}
+                          className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                            newTagColor === color ? "border-foreground scale-110" : "border-transparent"
+                          }`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setNewTagColor(color)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tags List */}
+              {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : accounts.length === 0 ? (
+              ) : tags.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <div className="rounded-full bg-muted p-4 mb-4">
-                    <Mail className="h-8 w-8 text-muted-foreground" />
+                    <Tag className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    No email accounts connected yet
+                    No tags created yet
                   </p>
-                  <Button onClick={handleConnectAccount} disabled={connecting} variant="outline" className="gap-2">
-                    <svg className="h-4 w-4" viewBox="0 0 21 21">
-                      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                    </svg>
-                    Connect Microsoft Account
-                  </Button>
+                  {!isCreating && (
+                    <Button onClick={() => setIsCreating(true)} variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Create your first tag
+                    </Button>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {accounts.map((account) => (
+                <div className="space-y-2">
+                  {tags.map((tag) => (
                     <div
-                      key={account.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30"
+                      key={tag.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:bg-muted/30 transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background border border-border">
-                          <svg className="h-5 w-5" viewBox="0 0 21 21">
-                            <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                            <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                            <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                          </svg>
+                      {editingId === tag.id ? (
+                        <div className="flex items-center gap-3 flex-1">
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="flex-1 max-w-xs"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleUpdateTag(tag.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                          />
+                          <div className="flex gap-1">
+                            {TAG_COLORS.map((color) => (
+                              <button
+                                key={color}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                                  editColor === color ? "border-foreground scale-110" : "border-transparent"
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => setEditColor(color)}
+                              />
+                            ))}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateTag(tag.id)}
+                            disabled={!editName.trim() || updateTag.isPending}
+                          >
+                            {updateTag.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">
-                              {account.display_name || account.microsoft_email || "Microsoft Account"}
-                            </p>
-                            {account.is_primary && (
-                              <Badge variant="secondary" className="text-xs">Primary</Badge>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <Badge
+                              style={{ backgroundColor: tag.color || "#6366f1" }}
+                              className="text-white"
+                            >
+                              {tag.name}
+                            </Badge>
+                            {tag.outlook_category && (
+                              <span className="text-xs text-muted-foreground">
+                                Outlook: {tag.outlook_category}
+                              </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {account.microsoft_email || "Email not available"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {!account.is_primary && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSetPrimary(account.id)}
-                            className="gap-1"
-                          >
-                            <Star className="h-4 w-4" />
-                            Set Primary
-                          </Button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                          <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive"
-                              disabled={deletingId === account.id}
+                              className="h-8 w-8"
+                              onClick={() => startEditing(tag)}
                             >
-                              {deletingId === account.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Disconnect account?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will remove access to {account.microsoft_email || "this Microsoft account"}. 
-                                You can reconnect it anytime.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteAccount(account.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Disconnect
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete tag?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will remove the "{tag.name}" tag. Emails with this tag will no longer have it applied.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteTag.mutate(tag.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Entity Roles Section */}
-          {entityRoles.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <CardTitle>Entity Access</CardTitle>
-                    <CardDescription>Your assigned entity management roles</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {entityRoles.map((role) => (
-                    <div
-                      key={role.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                          <Building2 className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{role.entity_role?.name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {role.entity_role?.entity_table?.replace(/_/g, ' ')}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">Active</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Security Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Security</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full justify-start">
-                Change Password
-              </Button>
-              <Separator />
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
             </CardContent>
           </Card>
         </div>
