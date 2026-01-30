@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useWebhookEvents, useWebhookEventMutations, usePendingWebhookCount } from "@/hooks/use-webhook-events";
+import { useImportEvents, useImportEventMutations, usePendingImportCount } from "@/hooks/use-import-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,7 +27,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RefreshCw, Eye, Play, Trash2, User, Bot } from "lucide-react";
 import { format } from "date-fns";
-import type { WebhookEvent } from "@/types/webhooks";
+import type { ImportEvent } from "@/types/imports";
 
 const ENTITY_TABLES = [
   { value: "influencers", label: "Influencers" },
@@ -42,13 +42,13 @@ const ENTITY_TABLES = [
   { value: "logistic_suppliers", label: "Logistic Suppliers" },
 ];
 
-export default function WebhookProcessingQueue() {
-  const { events, isLoading, refetch } = useWebhookEvents("pending");
-  const { updateEvent, prepareForRules, processRules, deleteEvent } = useWebhookEventMutations();
-  const pendingCount = usePendingWebhookCount();
+export default function ImportProcessingQueue() {
+  const { events, isLoading, refetch } = useImportEvents("pending");
+  const { updateEvent, prepareForRules, processRules, deleteEvent } = useImportEventMutations();
+  const pendingCount = usePendingImportCount();
   
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [viewingEvent, setViewingEvent] = useState<WebhookEvent | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<ImportEvent | null>(null);
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -95,7 +95,7 @@ export default function WebhookProcessingQueue() {
     setSelectedIds(new Set());
   };
 
-  const handleProcessSingle = async (event: WebhookEvent) => {
+  const handleProcessSingle = async (event: ImportEvent) => {
     const entityTable = event.entity_table || "subscriptions";
     
     // First prepare, then process rules
@@ -107,9 +107,9 @@ export default function WebhookProcessingQueue() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Webhook Processing Queue</h1>
+          <h1 className="text-2xl font-bold">Import Processing Queue</h1>
           <p className="text-muted-foreground">
-            {pendingCount} pending webhook events
+            {pendingCount} pending import events
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function WebhookProcessingQueue() {
             ) : events?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No pending webhook events
+                  No pending import events
                 </TableCell>
               </TableRow>
             ) : (
@@ -244,7 +244,7 @@ export default function WebhookProcessingQueue() {
       <Dialog open={!!viewingEvent} onOpenChange={() => setViewingEvent(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Webhook Payload</DialogTitle>
+            <DialogTitle>Import Payload</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
             <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWebhookEndpoints } from "@/hooks/use-webhook-endpoints";
+import { useImportEndpoints } from "@/hooks/use-import-endpoints";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Copy, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import type { WebhookEndpoint } from "@/types/webhooks";
+import type { ImportEndpoint } from "@/types/imports";
 
 const ENTITY_TABLES = [
   { value: "influencers", label: "Influencers" },
@@ -62,16 +62,16 @@ const initialFormData: EndpointFormData = {
   is_active: true,
 };
 
-export default function WebhookEndpoints() {
-  const { endpoints, isLoading, createEndpoint, updateEndpoint, deleteEndpoint, rotateSecret } = useWebhookEndpoints();
+export default function ImportEndpoints() {
+  const { endpoints, isLoading, createEndpoint, updateEndpoint, deleteEndpoint, rotateSecret } = useImportEndpoints();
   const queryClient = useQueryClient();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEndpoint, setEditingEndpoint] = useState<WebhookEndpoint | null>(null);
+  const [editingEndpoint, setEditingEndpoint] = useState<ImportEndpoint | null>(null);
   const [formData, setFormData] = useState<EndpointFormData>(initialFormData);
   const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set());
 
-  const webhookBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-ingest`;
+  const importBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-ingest`;
 
   const openCreateDialog = () => {
     setEditingEndpoint(null);
@@ -79,7 +79,7 @@ export default function WebhookEndpoints() {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (endpoint: WebhookEndpoint) => {
+  const openEditDialog = (endpoint: ImportEndpoint) => {
     setEditingEndpoint(endpoint);
     setFormData({
       name: endpoint.name,
@@ -150,13 +150,13 @@ export default function WebhookEndpoints() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Webhook Endpoints</h1>
+          <h1 className="text-2xl font-bold">Import Endpoints</h1>
           <p className="text-muted-foreground">
             Configure endpoints for external systems to send data
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["webhook-endpoints"] })}>
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["import-endpoints"] })}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -206,13 +206,13 @@ export default function WebhookEndpoints() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
-                        {webhookBaseUrl}/{endpoint.slug}
+                        {importBaseUrl}/{endpoint.slug}
                       </code>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => copyToClipboard(`${webhookBaseUrl}/${endpoint.slug}`, "URL")}
+                        onClick={() => copyToClipboard(`${importBaseUrl}/${endpoint.slug}`, "URL")}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -328,7 +328,7 @@ export default function WebhookEndpoints() {
                 placeholder="shopify-orders"
               />
               <p className="text-xs text-muted-foreground">
-                Webhook URL: {webhookBaseUrl}/{formData.slug || "your-slug"}
+                Import URL: {importBaseUrl}/{formData.slug || "your-slug"}
               </p>
             </div>
 
