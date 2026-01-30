@@ -2065,6 +2065,56 @@ export type Database = {
         }
         Relationships: []
       }
+      webflow_sync_config: {
+        Row: {
+          created_at: string
+          created_by: string
+          endpoint_id: string | null
+          form_id: string | null
+          form_name: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          site_id: string
+          sync_interval_hours: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          endpoint_id?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          site_id: string
+          sync_interval_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          endpoint_id?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          site_id?: string
+          sync_interval_hours?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webflow_sync_config_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_endpoints: {
         Row: {
           allowed_object_types: string[] | null
