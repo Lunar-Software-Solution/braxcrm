@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Zap, Plus, Tag, ChevronDown, ChevronRight, Eye, FileText, AlertTriangle, 
   Users, Loader2, Sparkles, Store, Package, Receipt, Building2, Contact, CreditCard, Trash2,
-  Brain, Save
+  Brain, Save, Megaphone, Landmark, Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?:
   Building2,
   Contact,
   CreditCard,
+  Megaphone,
+  Landmark,
+  Truck,
 };
 
 const ACTION_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {

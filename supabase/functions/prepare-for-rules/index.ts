@@ -25,7 +25,7 @@ interface PrepareResult {
   error?: string;
 }
 
-// Mapping from entity_table to link table and ID field - all 8 entity types
+// Mapping from entity_table to link table and ID field - all 10 entity types
 const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
   influencers: { table: "email_influencers", idField: "influencer_id" },
   resellers: { table: "email_resellers", idField: "reseller_id" },
@@ -35,6 +35,8 @@ const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
   personal_contacts: { table: "email_personal_contacts", idField: "personal_contact_id" },
   subscriptions: { table: "email_subscriptions", idField: "subscription_id" },
   marketing_sources: { table: "email_marketing_sources", idField: "marketing_source_id" },
+  merchant_accounts: { table: "email_merchant_accounts", idField: "merchant_account_id" },
+  carriers: { table: "email_carriers", idField: "carrier_id" },
 };
 
 serve(async (req) => {

@@ -23,6 +23,8 @@ import ExpenseSuppliers from "./pages/ExpenseSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
+import MerchantAccounts from "./pages/MerchantAccounts";
+import Carriers from "./pages/Carriers";
 import MarketingSources from "./pages/MarketingSources";
 import RulesProcessingQueue from "./pages/RulesProcessingQueue";
 import ClassificationProcessingQueue from "./pages/ClassificationProcessingQueue";
@@ -68,6 +70,8 @@ const App = () => (
               <Route path="/personal-contacts" element={<PersonalContacts />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/marketing-sources" element={<MarketingSources />} />
+              <Route path="/merchant-accounts" element={<MerchantAccounts />} />
+              <Route path="/carriers" element={<Carriers />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />

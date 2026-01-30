@@ -22,6 +22,8 @@ import {
   Brain,
   Megaphone,
   Send,
+  Landmark,
+  Truck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -65,6 +67,8 @@ const entityItems = [
   { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
   { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },
   { title: "Marketing Sources", url: "/marketing-sources", icon: Megaphone, color: "#64748b" },
+  { title: "Merchant Accounts", url: "/merchant-accounts", icon: Landmark, color: "#10b981" },
+  { title: "Carriers", url: "/carriers", icon: Truck, color: "#06b6d4" },
 ];
 
 const futureItems = [
