@@ -464,14 +464,13 @@ Only respond with the JSON object, no other text.`;
     };
 
     // Update the email_messages table with the classification
+    // NOTE: We only set is_person and ai_confidence here
+    // entity_table is NOT set automatically - user must manually "Send to Rules" 
+    // to move emails from Classification Queue to Rules Processing Queue
     const updateData: Record<string, unknown> = {
       is_person: result.is_person,
+      ai_confidence: result.confidence,
     };
-    
-    if (result.entity_table) {
-      updateData.entity_table = result.entity_table;
-      updateData.ai_confidence = result.confidence;
-    }
 
     await supabase
       .from("email_messages")
