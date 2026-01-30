@@ -45,15 +45,35 @@ export default function ClassificationProcessingQueue() {
     );
   });
 
-  const handleClassifySelected = () => {
+  const handleClassifySelected = async () => {
     if (selectedIds.size === 0) return;
-    classifyEmails(Array.from(selectedIds));
+    try {
+      const results = await classifyEmails(Array.from(selectedIds));
+      // Auto-populate entity type dropdowns with AI suggestions
+      if (results?.suggestions) {
+        results.suggestions.forEach((entityTable, emailId) => {
+          handleEntityTypeChange(emailId, entityTable);
+        });
+      }
+    } catch (error) {
+      // Error already handled by mutation
+    }
     setSelectedIds(new Set());
   };
 
-  const handleClassifyAll = () => {
+  const handleClassifyAll = async () => {
     const allIds = filteredEmails.map((e) => e.id);
-    classifyEmails(allIds);
+    try {
+      const results = await classifyEmails(allIds);
+      // Auto-populate entity type dropdowns with AI suggestions
+      if (results?.suggestions) {
+        results.suggestions.forEach((entityTable, emailId) => {
+          handleEntityTypeChange(emailId, entityTable);
+        });
+      }
+    } catch (error) {
+      // Error already handled by mutation
+    }
     setSelectedIds(new Set());
   };
 
@@ -207,7 +227,18 @@ export default function ClassificationProcessingQueue() {
             isSendingToRules={isSendingToRules}
             selectedEntityTypes={selectedEntityTypes}
             onEntityTypeChange={handleEntityTypeChange}
-            onRetryClassification={(emailId) => classifyEmails([emailId])}
+            onRetryClassification={async (emailId) => {
+              try {
+                const results = await classifyEmails([emailId]);
+                if (results?.suggestions) {
+                  results.suggestions.forEach((entityTable, id) => {
+                    handleEntityTypeChange(id, entityTable);
+                  });
+                }
+              } catch (error) {
+                // Error handled by mutation
+              }
+            }}
           />
         )}
       </div>
