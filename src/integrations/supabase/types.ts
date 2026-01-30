@@ -2407,6 +2407,36 @@ export type Database = {
           },
         ]
       }
+      webflow_tokens: {
+        Row: {
+          api_token: string
+          created_at: string
+          created_by: string
+          id: string
+          site_id: string
+          site_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_token: string
+          created_at?: string
+          created_by: string
+          id?: string
+          site_id: string
+          site_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_token?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          site_id?: string
+          site_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       webhook_endpoints: {
         Row: {
           allowed_object_types: string[] | null
