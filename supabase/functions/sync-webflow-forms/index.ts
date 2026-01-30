@@ -8,9 +8,12 @@ const corsHeaders = {
 };
 
 interface WebflowSubmission {
-  _id: string;
-  submittedAt: string;
-  displayData: Record<string, string>;
+  _id?: string;
+  id?: string;
+  submittedAt?: string;
+  dateSubmitted?: string;
+  displayData?: Record<string, string>;
+  formResponse?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -50,6 +53,7 @@ async function getApiTokenForSite(
 
 // Fetch form submissions from Webflow API
 async function fetchFormSubmissions(
+  siteId: string,
   formId: string,
   apiToken: string,
   sinceDate?: string
@@ -59,10 +63,11 @@ async function fetchFormSubmissions(
   const limit = 100;
   let hasMore = true;
 
-  console.log(`Fetching submissions for form ${formId}, sinceDate: ${sinceDate || 'none (fetching all)'}`);
+  console.log(`Fetching submissions for site ${siteId}, form ${formId}, sinceDate: ${sinceDate || 'none (fetching all)'}`);
 
   while (hasMore) {
-    const url = new URL(`https://api.webflow.com/v2/forms/${formId}/submissions`);
+    // IMPORTANT: The v2 API requires site_id in the path
+    const url = new URL(`https://api.webflow.com/v2/sites/${siteId}/forms/${formId}/submissions`);
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
@@ -82,15 +87,18 @@ async function fetchFormSubmissions(
     }
 
     const data = await response.json();
-    console.log(`Webflow API full response:`, JSON.stringify(data, null, 2));
+    console.log(`Webflow API response: ${JSON.stringify(data, null, 2)}`);
     
-    // The API may return "formSubmissions" or "submissions"
-    const rawSubmissions = data.formSubmissions || data.submissions || [];
+    // The API returns "formSubmissions" array
+    const rawSubmissions = data.formSubmissions || [];
     console.log(`Raw submissions count: ${rawSubmissions.length}, pagination: ${JSON.stringify(data.pagination)}`);
     
-    // Filter by date if sinceDate is provided
+    // Filter by date if sinceDate is provided - use dateSubmitted field
     const filtered = sinceDate
-      ? rawSubmissions.filter((s: WebflowSubmission) => new Date(s.submittedAt) > new Date(sinceDate))
+      ? rawSubmissions.filter((s: WebflowSubmission) => {
+          const submittedDate = s.dateSubmitted || s.submittedAt;
+          return submittedDate && new Date(submittedDate as string) > new Date(sinceDate);
+        })
       : rawSubmissions;
     
     console.log(`After date filter: ${filtered.length} submissions`);
@@ -217,36 +225,48 @@ serve(async (req) => {
         for (const formId of formIds) {
           try {
             const submissions = await fetchFormSubmissions(
+              config.site_id,
               formId,
               apiToken,
-              config.last_synced_at || undefined
+              config.last_synced_at ?? undefined
             );
 
             console.log(`Found ${submissions.length} new submissions for form ${formId}`);
 
             for (const submission of submissions) {
+              // Use 'id' or '_id' depending on API version
+              const submissionId = submission.id || submission._id;
+              if (!submissionId) {
+                console.log('Skipping submission without ID');
+                continue;
+              }
+
               // Check for duplicates using external_id
               const { data: existing } = await serviceClient
                 .from("webhook_events")
                 .select("id")
-                .eq("external_id", submission._id)
-                .single();
+                .eq("external_id", submissionId)
+                .maybeSingle();
 
               if (existing) {
-                console.log(`Skipping duplicate submission: ${submission._id}`);
+                console.log(`Skipping duplicate submission: ${submissionId}`);
                 continue;
               }
 
+              // Use formResponse or displayData depending on API version
+              const formData = submission.formResponse || submission.displayData || {};
+              const submittedAt = submission.dateSubmitted || submission.submittedAt;
+
               // Transform submission to webhook event format
               const payload = {
-                external_id: submission._id,
+                external_id: submissionId,
                 event_type: "webflow.form_submission",
                 source: "webflow",
                 data: {
-                  ...submission.displayData,
+                  ...formData,
                   _webflow_form_id: formId,
                   _webflow_site_id: config.site_id,
-                  _submitted_at: submission.submittedAt,
+                  _submitted_at: submittedAt,
                 },
               };
 
@@ -266,7 +286,7 @@ serve(async (req) => {
                 .from("webhook_events")
                 .insert({
                   endpoint_id: config.endpoint_id,
-                  external_id: submission._id,
+                  external_id: submissionId,
                   event_type: "webflow.form_submission",
                   payload: payload,
                   status: "pending",
@@ -275,8 +295,8 @@ serve(async (req) => {
                 });
 
               if (insertError) {
-                console.error(`Error inserting submission ${submission._id}:`, insertError);
-                configResult.errors.push(`Failed to insert ${submission._id}`);
+                console.error(`Error inserting submission ${submissionId}:`, insertError);
+                configResult.errors.push(`Failed to insert ${submissionId}`);
               } else {
                 configResult.submissions_imported++;
               }
