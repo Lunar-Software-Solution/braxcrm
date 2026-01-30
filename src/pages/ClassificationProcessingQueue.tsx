@@ -51,7 +51,7 @@ export default function ClassificationProcessingQueue() {
       const results = await classifyEmails(Array.from(selectedIds));
       // Auto-populate entity type dropdowns with AI suggestions
       if (results?.suggestions) {
-        results.suggestions.forEach((entityTable, emailId) => {
+        Object.entries(results.suggestions).forEach(([emailId, entityTable]) => {
           handleEntityTypeChange(emailId, entityTable);
         });
       }
@@ -67,7 +67,7 @@ export default function ClassificationProcessingQueue() {
       const results = await classifyEmails(allIds);
       // Auto-populate entity type dropdowns with AI suggestions
       if (results?.suggestions) {
-        results.suggestions.forEach((entityTable, emailId) => {
+        Object.entries(results.suggestions).forEach(([emailId, entityTable]) => {
           handleEntityTypeChange(emailId, entityTable);
         });
       }
@@ -231,7 +231,7 @@ export default function ClassificationProcessingQueue() {
               try {
                 const results = await classifyEmails([emailId]);
                 if (results?.suggestions) {
-                  results.suggestions.forEach((entityTable, id) => {
+                  Object.entries(results.suggestions).forEach(([id, entityTable]) => {
                     handleEntityTypeChange(id, entityTable);
                   });
                 }
