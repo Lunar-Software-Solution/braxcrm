@@ -1,188 +1,164 @@
 
-
-# Manual Send to Rules Processing
+# Plan: Auto-Create Person/Sender and Entity Records During Rules Processing
 
 ## Overview
+Currently, Person/Sender and Entity records are only created when an Entity Automation Rule with a `link_entity` action is configured. This means if rules are missing or don't include this action, emails get processed but no CRM records are created.
 
-Add a checkbox/switch to the Classification Processing Queue that allows users to manually control when classified emails are sent to the Rules Processing Queue. This separates classification from queue movement, giving users a review step.
+This plan modifies the `process-entity-rules` edge function to **always** create the necessary Person/Sender and Entity records when processing emails, regardless of whether a `link_entity` action exists in the rules.
 
 ---
 
-## Current Flow
+## Current Behavior
+1. Classification determines `is_person` and suggests `entity_table`
+2. User sends email to Rules Processing Queue (setting `entity_table`)
+3. Processing invokes `process-entity-rules` edge function
+4. Records are ONLY created if rules contain a `link_entity` action
+5. If no rules or no `link_entity` action, email is marked processed without creating records
+
+## Proposed Behavior
+1. Same classification and queue steps
+2. When processing, BEFORE running any rule actions:
+   - If `is_person = true`: Create Person record (if not exists) and Entity record (if not exists), link them
+   - If `is_person = false`: Create Sender record (if not exists) and Entity record (if not exists), link them
+3. Then run any configured rule actions normally
+4. Existing `link_entity` action becomes optional (for backward compatibility)
+
+---
+
+## Implementation Steps
+
+### Step 1: Create Missing Email Link Tables
+**Type:** Database Migration
+
+Create the missing link tables for entity types that don't have them:
 
 ```text
-Classification Queue                   Rules Processing Queue
-─────────────────────                  ─────────────────────────
-entity_table IS NULL     ──AI sets──>  entity_table IS NOT NULL
-                         entity_table  is_processed = false
++------------------------+
+| email_subscriptions    |
++------------------------+
+| id (uuid, PK)          |
+| email_id (uuid, FK)    |
+| subscription_id (uuid) |
+| assigned_at (timestamptz) |
++------------------------+
+
++------------------------+
+| email_personal_contacts|
++------------------------+
+| id (uuid, PK)          |
+| email_id (uuid, FK)    |
+| personal_contact_id    |
+| assigned_at (timestamptz) |
++------------------------+
 ```
 
-When AI classification runs, it sets `entity_table` which automatically moves the email to Rules Processing Queue.
+Add appropriate RLS policies matching the existing patterns.
 
----
+### Step 2: Update Edge Function Entity Mapping
+**File:** `supabase/functions/process-entity-rules/index.ts`
 
-## New Flow
-
-```text
-Classification Queue                          Rules Processing Queue
-─────────────────────                        ─────────────────────────
-entity_table IS NULL                         entity_table IS NOT NULL
-                                             is_processed = false
-                         ──User clicks──>    ready_for_rules = true
-                         "Send to Rules"     
+Update `ENTITY_LINK_TABLES` to include all 8 entity types:
+```typescript
+const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
+  influencers: { table: "email_influencers", idField: "influencer_id" },
+  resellers: { table: "email_resellers", idField: "reseller_id" },
+  product_suppliers: { table: "email_product_suppliers", idField: "product_supplier_id" },
+  expense_suppliers: { table: "email_expense_suppliers", idField: "expense_supplier_id" },
+  corporate_management: { table: "email_corporate_management", idField: "corporate_management_id" },
+  personal_contacts: { table: "email_personal_contacts", idField: "personal_contact_id" },
+  subscriptions: { table: "email_subscriptions", idField: "subscription_id" },
+  marketing_sources: { table: "email_marketing_sources", idField: "marketing_source_id" },
+};
 ```
 
-We have two options:
+### Step 3: Add Auto-Creation Logic Before Rule Processing
+**File:** `supabase/functions/process-entity-rules/index.ts`
 
-### Option A: Use existing `entity_table` field (Recommended)
-- Classification stays in queue until user manually sets/confirms `entity_table`
-- AI can suggest `entity_table` in a separate field, user confirms by clicking checkbox
-
-### Option B: Add a new flag `ready_for_rules`
-- Would require database migration
-- More explicit control but additional complexity
-
-**Recommendation**: Option A - Allow manual entity type selection with a "Send to Rules" action on selected emails.
-
----
-
-## Implementation
-
-### 1. UI Changes - Classification Queue Table
-
-Add a new column with a switch or checkbox to manually trigger sending to rules:
-
-```tsx
-// New column: "Ready for Rules" or "Send to Rules"
-<TableHead className="w-[120px]">Ready</TableHead>
-
-// Per row: Switch to mark as ready
-<Switch 
-  checked={email.entity_table !== null}
-  onCheckedChange={(checked) => 
-    checked 
-      ? onSendToRules(email.id, selectedEntityType) 
-      : onRemoveFromRules(email.id)
-  }
-/>
-```
-
-### 2. UI Changes - Toolbar
-
-Add "Send to Rules" button for selected emails:
-
-```tsx
-<Button
-  variant="outline"
-  size="sm"
-  onClick={handleSendToRulesSelected}
-  disabled={selectedIds.size === 0 || isSending}
->
-  <Play className="h-4 w-4 mr-2" />
-  Send to Rules ({selectedIds.size})
-</Button>
-```
-
-### 3. Entity Type Selector
-
-Since emails need an `entity_table` to be in Rules Processing Queue, add entity type selector in the Classification Queue:
-
-```tsx
-// Add entity type column with dropdown
-<Select
-  value={email.suggested_entity_table || ""}
-  onValueChange={(value) => onUpdateEntityType(email.id, value)}
->
-  <SelectTrigger>
-    <SelectValue placeholder="Select type..." />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="subscriptions">Subscriptions</SelectItem>
-    <SelectItem value="expense_suppliers">Expense Suppliers</SelectItem>
-    <SelectItem value="influencers">Influencers</SelectItem>
-    {/* ... other entity types */}
-  </SelectContent>
-</Select>
-```
-
-### 4. Hook Changes
-
-Add mutation for sending emails to rules processing:
+Add a new function `ensureRecordsExist()` that runs before any rule actions:
 
 ```typescript
-// In use-classification-processing-queue.ts
-const sendToRulesMutation = useMutation({
-  mutationFn: async ({ 
-    emailIds, 
-    entityTable 
-  }: { 
-    emailIds: string[]; 
-    entityTable: string;
-  }) => {
-    const { error } = await supabase
-      .from("email_messages")
-      .update({ entity_table: entityTable })
-      .in("id", emailIds);
+async function ensureRecordsExist(
+  supabase: SupabaseClient,
+  emailId: string,
+  entityTable: string,
+  userId: string
+): Promise<{ personId?: string; senderId?: string; entityId?: string }> {
+  // 1. Get email details
+  const { data: email } = await supabase
+    .from("email_messages")
+    .select("person_id, sender_id, sender_email, sender_name, is_person")
+    .eq("id", emailId)
+    .single();
+
+  const isPerson = email?.is_person ?? true;
+  
+  if (isPerson) {
+    // 2a. Create Person if needed
+    let personId = email?.person_id;
+    if (!personId && email?.sender_email) {
+      personId = await findOrCreatePerson(supabase, email.sender_email, email.sender_name, userId);
+      // Update email with person_id
+      await supabase.from("email_messages").update({ person_id: personId }).eq("id", emailId);
+    }
     
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
-    queryClient.invalidateQueries({ queryKey: ["rules-processing-queue"] });
-    queryClient.invalidateQueries({ queryKey: ["pending-classification-count"] });
-    queryClient.invalidateQueries({ queryKey: ["pending-email-count"] });
-    toast({
-      title: "Sent to rules processing",
-      description: "Emails have been queued for rule processing.",
-    });
-  },
-});
+    // 3a. Create Entity if needed and link to person
+    if (personId) {
+      const entityId = await findOrCreateEntityForPerson(supabase, personId, entityTable, userId);
+      // Link email to entity
+      await linkEmailToEntity(supabase, emailId, entityTable, entityId);
+      return { personId, entityId };
+    }
+  } else {
+    // 2b. Create Sender if needed
+    let senderId = email?.sender_id;
+    if (!senderId && email?.sender_email) {
+      senderId = await createSenderFromEmail(supabase, email.sender_email, email.sender_name, userId);
+      await supabase.from("email_messages").update({ sender_id: senderId }).eq("id", emailId);
+    }
+    
+    // 3b. Create Entity if needed and link to sender
+    if (senderId) {
+      const entityId = await findOrCreateEntityForSender(supabase, senderId, entityTable, userId);
+      // Link email to entity
+      await linkEmailToEntity(supabase, emailId, entityTable, entityId);
+      return { senderId, entityId };
+    }
+  }
+  
+  return {};
+}
 ```
 
----
+### Step 4: Integrate Auto-Creation into Main Handler
+**File:** `supabase/functions/process-entity-rules/index.ts`
 
-## Detailed Component Changes
+Modify the main `serve()` handler to call `ensureRecordsExist()` before processing rules:
 
-### Classification Queue Table - New Columns
+```typescript
+// After validating request parameters and before fetching rules:
+await ensureRecordsExist(supabase, email_id, entity_table, userId);
 
-| Checkbox | Sender | Subject | Sender Type | Entity Type | Ready | Status | Date |
-|----------|--------|---------|-------------|-------------|-------|--------|------|
-
-- **Entity Type**: Dropdown to select/confirm entity (populated from AI suggestion)
-- **Ready**: Switch to mark email as ready for rules processing
-
-### Toolbar Updates
-
-```text
-[Search...]  |  [Refresh]  [Classify Selected (3)]  [Send to Rules (3)]  [Classify All]
+// Then continue with existing rule fetching and processing logic
 ```
 
----
-
-## Files to Modify
-
-1. **`src/hooks/use-classification-processing-queue.ts`**
-   - Add `sendToRules` mutation
-   - Add `removeFromRules` mutation (sets `entity_table` back to null)
-
-2. **`src/components/email/ClassificationProcessingQueueTable.tsx`**
-   - Add Entity Type column with dropdown selector
-   - Add Ready/Send switch per row
-   - Pass entity table options from parent
-
-3. **`src/pages/ClassificationProcessingQueue.tsx`**
-   - Add "Send to Rules Selected" button to toolbar
-   - Handle bulk send to rules action
-   - Fetch available entity types
+### Step 5: Make link_entity Action Optional
+The existing `link_entity` action in rules becomes redundant for basic linking but can remain for advanced scenarios (e.g., linking to different entity types, custom logic).
 
 ---
 
-## Workflow After Implementation
+## Files Changed
 
-1. User syncs emails (arrive in Classification Queue)
-2. User runs AI classification on selected emails
-3. AI determines `is_person` and suggests entity type (stored temporarily or shown in UI)
-4. User reviews and adjusts sender type and entity type as needed
-5. User checks "Ready" or clicks "Send to Rules" to move to Rules Processing Queue
-6. Email now appears in Rules Processing Queue with confirmed entity type
+| File | Change |
+|------|--------|
+| Database Migration | Create `email_subscriptions` and `email_personal_contacts` tables |
+| `supabase/functions/process-entity-rules/index.ts` | Add auto-creation logic before rule processing |
 
+---
+
+## Summary
+After this change:
+- Every processed email automatically gets a Person OR Sender record
+- Every processed email automatically gets an Entity record in the target table
+- Records are properly linked (Person-to-Entity via `people_entities`, Sender-to-Entity via `senders.entity_id`)
+- Email is linked to Entity via the appropriate link table
+- Existing rules continue to work, but `link_entity` action is no longer required for basic functionality
