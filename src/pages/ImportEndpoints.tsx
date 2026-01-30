@@ -29,9 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, Copy, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import type { ImportEndpoint } from "@/types/imports";
+import { WebflowSyncPanel } from "@/components/import/WebflowSyncPanel";
 
 const ENTITY_TABLES = [
   { value: "influencers", label: "Influencers" },
@@ -152,146 +154,160 @@ export default function ImportEndpoints() {
         <div>
           <h1 className="text-2xl font-bold">Import Endpoints</h1>
           <p className="text-muted-foreground">
-            Configure endpoints for external systems to send data
+            Configure endpoints and integrations for external data
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["import-endpoints"] })}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Endpoint
-          </Button>
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Webhook URL</TableHead>
-              <TableHead>Secret Key</TableHead>
-              <TableHead>Default Entity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-32">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : endpoints?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No webhook endpoints configured
-                </TableCell>
-              </TableRow>
-            ) : (
-              endpoints?.map((endpoint) => (
-                <TableRow key={endpoint.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{endpoint.name}</div>
-                      {endpoint.description && (
-                        <div className="text-sm text-muted-foreground">{endpoint.description}</div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
-                        {importBaseUrl}/{endpoint.slug}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => copyToClipboard(`${importBaseUrl}/${endpoint.slug}`, "URL")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded max-w-[120px] truncate">
-                        {visibleSecrets.has(endpoint.id) 
-                          ? endpoint.secret_key 
-                          : "••••••••••••"}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => toggleSecretVisibility(endpoint.id)}
-                      >
-                        {visibleSecrets.has(endpoint.id) ? (
-                          <EyeOff className="h-3 w-3" />
-                        ) : (
-                          <Eye className="h-3 w-3" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => copyToClipboard(endpoint.secret_key, "Secret")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {endpoint.default_entity_table ? (
-                      <Badge variant="secondary">
-                        {ENTITY_TABLES.find(t => t.value === endpoint.default_entity_table)?.label || endpoint.default_entity_table}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">AI Classification</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={endpoint.is_active ? "default" : "secondary"}>
-                      {endpoint.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(endpoint)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRegenerateSecret(endpoint.id)}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(endpoint.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <Tabs defaultValue="endpoints" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="endpoints">Webhook Endpoints</TabsTrigger>
+          <TabsTrigger value="webflow">Webflow</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="endpoints" className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["import-endpoints"] })}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={openCreateDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Endpoint
+            </Button>
+          </div>
+
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Webhook URL</TableHead>
+                  <TableHead>Secret Key</TableHead>
+                  <TableHead>Default Entity</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : endpoints?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No webhook endpoints configured
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  endpoints?.map((endpoint) => (
+                    <TableRow key={endpoint.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{endpoint.name}</div>
+                          {endpoint.description && (
+                            <div className="text-sm text-muted-foreground">{endpoint.description}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
+                            {importBaseUrl}/{endpoint.slug}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyToClipboard(`${importBaseUrl}/${endpoint.slug}`, "URL")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[120px] truncate">
+                            {visibleSecrets.has(endpoint.id) 
+                              ? endpoint.secret_key 
+                              : "••••••••••••"}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => toggleSecretVisibility(endpoint.id)}
+                          >
+                            {visibleSecrets.has(endpoint.id) ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => copyToClipboard(endpoint.secret_key, "Secret")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {endpoint.default_entity_table ? (
+                          <Badge variant="secondary">
+                            {ENTITY_TABLES.find(t => t.value === endpoint.default_entity_table)?.label || endpoint.default_entity_table}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">AI Classification</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={endpoint.is_active ? "default" : "secondary"}>
+                          {endpoint.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(endpoint)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRegenerateSecret(endpoint.id)}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(endpoint.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="webflow">
+          <WebflowSyncPanel />
+        </TabsContent>
+      </Tabs>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
