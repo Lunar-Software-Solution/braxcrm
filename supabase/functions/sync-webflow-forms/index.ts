@@ -34,6 +34,20 @@ interface SyncConfig {
   created_by: string;
 }
 
+// Get API token for a site from database
+async function getApiTokenForSite(
+  serviceClient: any,
+  siteId: string
+): Promise<string | null> {
+  const { data } = await serviceClient
+    .from("webflow_tokens")
+    .select("api_token")
+    .eq("site_id", siteId)
+    .single();
+  
+  return data?.api_token || null;
+}
+
 // Fetch form submissions from Webflow API
 async function fetchFormSubmissions(
   formId: string,
@@ -116,11 +130,6 @@ serve(async (req) => {
   }
 
   try {
-    const webflowApiToken = Deno.env.get("WEBFLOW_API_TOKEN");
-    if (!webflowApiToken) {
-      throw new Error("WEBFLOW_API_TOKEN not configured");
-    }
-
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -173,6 +182,15 @@ serve(async (req) => {
       };
 
       try {
+        // Get API token for this site
+        const apiToken = await getApiTokenForSite(serviceClient, config.site_id);
+        if (!apiToken) {
+          console.error(`No API token found for site ${config.site_id}`);
+          configResult.errors.push(`No API token configured for site ${config.site_id}`);
+          results.push(configResult);
+          continue;
+        }
+
         let formIds: string[] = [];
         
         if (config.form_id) {
@@ -180,7 +198,7 @@ serve(async (req) => {
           formIds = [config.form_id];
         } else {
           // Fetch all forms for the site
-          const forms = await fetchSiteForms(config.site_id, webflowApiToken);
+          const forms = await fetchSiteForms(config.site_id, apiToken);
           formIds = forms.map((f) => f.id);
         }
 
@@ -188,7 +206,7 @@ serve(async (req) => {
           try {
             const submissions = await fetchFormSubmissions(
               formId,
-              webflowApiToken,
+              apiToken,
               config.last_synced_at || undefined
             );
 

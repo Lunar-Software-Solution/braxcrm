@@ -37,6 +37,7 @@ import {
 import { Plus, Trash2, RefreshCw, Play, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { WebflowTokenManager } from "./WebflowTokenManager";
 
 interface WebflowConfigFormData {
   site_id: string;
@@ -61,7 +62,7 @@ export function WebflowSyncPanel() {
     createConfig, 
     deleteConfig, 
     triggerSync,
-    sites,
+    configuredSites,
     sitesLoading,
     fetchForms,
   } = useWebflowSync();
@@ -123,46 +124,51 @@ export function WebflowSyncPanel() {
   };
 
   const getSiteName = (siteId: string) => {
-    const site = sites?.find(s => s.id === siteId);
-    return site?.displayName || site?.shortName || siteId;
+    const site = configuredSites?.find(s => s.site_id === siteId);
+    return site?.site_name || siteId;
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.927 7.715c-.963 5.363-3.99 8.79-8.513 10.27-2.39.78-5.013.587-6.912-.514-1.9-1.1-3.263-2.974-3.808-5.237-.546-2.264-.183-4.679 1.014-6.75C6.898 3.31 8.99 1.977 11.4 1.615c2.41-.362 4.926.275 7.027 1.78 2.1 1.507 3.653 3.82 4.35 6.47l.01.04c.086.34.14.67.14.81z"/>
-              </svg>
-              Webflow Form Sync
-            </CardTitle>
-            <CardDescription>
-              Automatically import form submissions from Webflow every hour
-            </CardDescription>
+    <div className="space-y-6">
+      {/* Token Manager */}
+      <WebflowTokenManager />
+      
+      {/* Sync Configurations */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.927 7.715c-.963 5.363-3.99 8.79-8.513 10.27-2.39.78-5.013.587-6.912-.514-1.9-1.1-3.263-2.974-3.808-5.237-.546-2.264-.183-4.679 1.014-6.75C6.898 3.31 8.99 1.977 11.4 1.615c2.41-.362 4.926.275 7.027 1.78 2.1 1.507 3.653 3.82 4.35 6.47l.01.04c.086.34.14.67.14.81z"/>
+                </svg>
+                Webflow Form Sync
+              </CardTitle>
+              <CardDescription>
+                Automatically import form submissions from Webflow every hour
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTriggerSync()}
+                disabled={triggerSync.isPending}
+              >
+                {triggerSync.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                Sync Now
+              </Button>
+              <Button size="sm" onClick={() => setIsDialogOpen(true)} disabled={!configuredSites?.length}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Form
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleTriggerSync()}
-              disabled={triggerSync.isPending}
-            >
-              {triggerSync.isPending ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4 mr-2" />
-              )}
-              Sync Now
-            </Button>
-            <Button size="sm" onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Form
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-4 text-muted-foreground">Loading...</div>
@@ -238,8 +244,8 @@ export function WebflowSyncPanel() {
             </TableBody>
           </Table>
         )}
-      </CardContent>
-
+        </CardContent>
+      </Card>
       {/* Add Configuration Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
@@ -248,11 +254,11 @@ export function WebflowSyncPanel() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {!sites?.length && !sitesLoading && (
-              <Alert variant="destructive">
+            {!configuredSites?.length && !sitesLoading && (
+              <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Could not load Webflow sites. Please check your WEBFLOW_API_TOKEN is configured correctly.
+                  Add a site token first to configure form syncing.
                 </AlertDescription>
               </Alert>
             )}
@@ -262,15 +268,15 @@ export function WebflowSyncPanel() {
               <Select
                 value={formData.site_id}
                 onValueChange={(value) => setFormData({ ...formData, site_id: value, form_id: "", form_name: "" })}
-                disabled={sitesLoading}
+                disabled={sitesLoading || !configuredSites?.length}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={sitesLoading ? "Loading sites..." : "Select a site"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {sites?.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.displayName || site.shortName}
+                  {configuredSites?.map((site) => (
+                    <SelectItem key={site.site_id} value={site.site_id}>
+                      {site.site_name || site.site_id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -362,6 +368,6 @@ export function WebflowSyncPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

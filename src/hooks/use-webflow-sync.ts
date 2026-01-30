@@ -16,6 +16,13 @@ export interface WebflowForm {
   siteName?: string;
 }
 
+export interface WebflowToken {
+  id: string;
+  site_id: string;
+  site_name: string | null;
+  created_at: string;
+}
+
 export function useWebflowSync() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,21 +43,89 @@ export function useWebflowSync() {
     },
   });
 
-  // Fetch available Webflow sites
-  const { data: sites, isLoading: sitesLoading, refetch: refetchSites } = useQuery({
-    queryKey: ["webflow-sites"],
+  // Fetch configured tokens/sites from database
+  const { data: configuredSites, isLoading: sitesLoading, refetch: refetchSites } = useQuery({
+    queryKey: ["webflow-tokens"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("webflow-list-sites", {
-        body: { action: "list-sites" },
+        body: { action: "list-configured-sites" },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      return (data.sites || []) as WebflowSite[];
+      return (data.sites || []) as WebflowToken[];
     },
   });
 
-  // Create a mutation to fetch forms for a specific site
+  // Validate a new token and get sites it has access to
+  const validateToken = useMutation({
+    mutationFn: async (apiToken: string) => {
+      const { data, error } = await supabase.functions.invoke("webflow-list-sites", {
+        body: { action: "validate-token", api_token: apiToken },
+      });
+
+      if (error) throw error;
+      return data as { valid: boolean; sites?: WebflowSite[]; error?: string };
+    },
+  });
+
+  // Add a new token for a site
+  const addToken = useMutation({
+    mutationFn: async ({ siteId, siteName, apiToken }: { siteId: string; siteName: string; apiToken: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("webflow_tokens" as any)
+        .insert({
+          site_id: siteId,
+          site_name: siteName,
+          api_token: apiToken,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["webflow-tokens"] });
+      toast({ title: "Webflow site token added" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add token",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete a token
+  const deleteToken = useMutation({
+    mutationFn: async (siteId: string) => {
+      const { error } = await supabase
+        .from("webflow_tokens" as any)
+        .delete()
+        .eq("site_id", siteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["webflow-tokens"] });
+      toast({ title: "Token removed" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to remove token",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch forms for a specific site
   const fetchForms = useMutation({
     mutationFn: async (siteId: string) => {
       const { data, error } = await supabase.functions.invoke("webflow-list-sites", {
@@ -180,9 +255,12 @@ export function useWebflowSync() {
     configs,
     isLoading,
     error,
-    sites,
+    configuredSites,
     sitesLoading,
     refetchSites,
+    validateToken,
+    addToken,
+    deleteToken,
     fetchForms,
     createConfig,
     updateConfig,
