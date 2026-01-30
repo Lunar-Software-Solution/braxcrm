@@ -107,16 +107,20 @@ export function useClassificationProcessingQueue() {
     },
   });
 
-  // Send emails to rules processing queue by setting entity_table
+  // Send emails to rules processing queue - creates records first, then sets entity_table
   const sendToRulesMutation = useMutation({
     mutationFn: async ({ emailIds, entityTable }: { emailIds: string[]; entityTable: string }) => {
-      const { error } = await supabase
-        .from("email_messages")
-        .update({ entity_table: entityTable })
-        .in("id", emailIds);
+      const response = await supabase.functions.invoke("prepare-for-rules", {
+        body: { email_ids: emailIds, entity_table: entityTable },
+      });
 
-      if (error) throw error;
-      return emailIds.length;
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to prepare emails for rules");
+      }
+
+      // Return the count of successfully prepared emails
+      const data = response.data as { successful?: number; total?: number };
+      return data?.successful ?? emailIds.length;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["classification-processing-queue"] });
