@@ -172,13 +172,13 @@ export function useClassificationProcessingQueue() {
       const results = {
         classified: 0,
         errors: [] as string[],
-        suggestions: new Map<string, string>(), // email_id -> suggested entity_table
+        suggestions: {} as Record<string, string>, // email_id -> suggested entity_table
       };
 
       // Get email details for classification
       const { data: emails, error: fetchError } = await supabase
         .from("email_messages")
-        .select("id, microsoft_message_id, subject, body_preview, person:people(name, email)")
+        .select("id, microsoft_message_id, subject, body_preview, sender_email, sender_name, person:people(name, email)")
         .in("id", emailIds);
 
       if (fetchError) throw fetchError;
@@ -192,8 +192,8 @@ export function useClassificationProcessingQueue() {
               microsoft_message_id: email.microsoft_message_id,
               subject: email.subject,
               body_preview: email.body_preview,
-              sender_email: email.person?.email,
-              sender_name: email.person?.name,
+              sender_email: email.person?.email || email.sender_email,
+              sender_name: email.person?.name || email.sender_name,
             },
           });
 
@@ -203,7 +203,7 @@ export function useClassificationProcessingQueue() {
             results.classified++;
             // Capture the AI's suggested entity_table
             if (response.data?.entity_table) {
-              results.suggestions.set(email.id, response.data.entity_table);
+              results.suggestions[email.id] = response.data.entity_table;
             }
           }
         } catch (error) {
