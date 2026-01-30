@@ -11,13 +11,21 @@ import {
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Brain, Loader2 } from "lucide-react";
+import { Brain, Loader2, User, Bot, HelpCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ClassificationProcessingQueueTableProps {
   emails: ClassificationQueueEmail[];
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   isClassifying: boolean;
+  onUpdateIsPerson?: (emailId: string, isPerson: boolean | null) => void;
 }
 
 export function ClassificationProcessingQueueTable({
@@ -25,6 +33,7 @@ export function ClassificationProcessingQueueTable({
   selectedIds = new Set(),
   onSelectionChange,
   isClassifying,
+  onUpdateIsPerson,
 }: ClassificationProcessingQueueTableProps) {
   const safeSelectedIds = selectedIds ?? new Set<string>();
   const allSelected = emails.length > 0 && safeSelectedIds.size === emails.length;
@@ -68,6 +77,24 @@ export function ClassificationProcessingQueueTable({
     };
   };
 
+  const getIsPersonValue = (isPerson: boolean | null): string => {
+    if (isPerson === true) return "person";
+    if (isPerson === false) return "automated";
+    return "unknown";
+  };
+
+  const handleIsPersonChange = (emailId: string, value: string) => {
+    if (!onUpdateIsPerson) return;
+    
+    if (value === "person") {
+      onUpdateIsPerson(emailId, true);
+    } else if (value === "automated") {
+      onUpdateIsPerson(emailId, false);
+    } else {
+      onUpdateIsPerson(emailId, null);
+    }
+  };
+
   if (emails.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -99,6 +126,7 @@ export function ClassificationProcessingQueueTable({
             </TableHead>
             <TableHead>Sender</TableHead>
             <TableHead className="min-w-[200px]">Subject</TableHead>
+            <TableHead>Sender Type</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[100px]">Date</TableHead>
           </TableRow>
@@ -143,6 +171,63 @@ export function ClassificationProcessingQueueTable({
                       {email.body_preview || ""}
                     </span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={getIsPersonValue(email.is_person)}
+                    onValueChange={(value) => handleIsPersonChange(email.id, value)}
+                    disabled={isClassifying}
+                  >
+                    <SelectTrigger className="w-[140px] h-8">
+                      <SelectValue>
+                        <div className="flex items-center gap-1.5">
+                          {email.is_person === true && (
+                            <>
+                              <User className="h-3.5 w-3.5 text-blue-500" />
+                              <span>Person</span>
+                            </>
+                          )}
+                          {email.is_person === false && (
+                            <>
+                              <Bot className="h-3.5 w-3.5 text-orange-500" />
+                              <span>Automated</span>
+                            </>
+                          )}
+                          {email.is_person === null && (
+                            <>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Unknown</span>
+                            </>
+                          )}
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="person">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-blue-500" />
+                          <span>Person</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="automated">
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-orange-500" />
+                          <span>Automated</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="unknown">
+                        <div className="flex items-center gap-2">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                          <span>Unknown</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {email.ai_confidence !== null && (
+                    <span className="text-xs text-muted-foreground mt-1 block">
+                      {Math.round(email.ai_confidence * 100)}% confidence
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {isClassifying && safeSelectedIds.has(email.id) ? (
