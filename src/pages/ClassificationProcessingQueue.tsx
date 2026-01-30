@@ -207,6 +207,7 @@ export default function ClassificationProcessingQueue() {
             isSendingToRules={isSendingToRules}
             selectedEntityTypes={selectedEntityTypes}
             onEntityTypeChange={handleEntityTypeChange}
+            onRetryClassification={(emailId) => classifyEmails([emailId])}
           />
         )}
       </div>
