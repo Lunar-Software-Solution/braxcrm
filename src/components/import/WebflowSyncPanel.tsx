@@ -247,14 +247,14 @@ export function WebflowSyncPanel() {
             <div className="space-y-2">
               <Label htmlFor="endpoint_id">Import Endpoint</Label>
               <Select
-                value={formData.endpoint_id}
-                onValueChange={(value) => setFormData({ ...formData, endpoint_id: value })}
+                value={formData.endpoint_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, endpoint_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Use default (AI Classification)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Use default (AI Classification)</SelectItem>
+                  <SelectItem value="none">Use default (AI Classification)</SelectItem>
                   {endpoints?.map((endpoint) => (
                     <SelectItem key={endpoint.id} value={endpoint.id}>
                       {endpoint.name}
