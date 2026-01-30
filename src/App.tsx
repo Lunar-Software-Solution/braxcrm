@@ -34,6 +34,8 @@ import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
 import Senders from "./pages/Senders";
+import WebhookProcessingQueue from "./pages/WebhookProcessingQueue";
+import WebhookLog from "./pages/WebhookLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -83,6 +85,8 @@ const App = () => (
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/senders" element={<Senders />} />
+              <Route path="/webhook-processing-queue" element={<WebhookProcessingQueue />} />
+              <Route path="/webhook-log" element={<WebhookLog />} />
               
             </Route>
 
