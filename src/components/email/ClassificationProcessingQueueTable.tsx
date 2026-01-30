@@ -12,7 +12,7 @@ import {
 import type { ClassificationQueueEmail } from "@/hooks/use-classification-processing-queue";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Brain, Loader2, User, Bot, HelpCircle, Eye } from "lucide-react";
+import { Brain, Loader2, User, Bot, HelpCircle, Eye, RotateCw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -47,6 +47,7 @@ interface ClassificationProcessingQueueTableProps {
   // Track selected entity types per email (managed by parent)
   selectedEntityTypes?: Map<string, string>;
   onEntityTypeChange?: (emailId: string, entityTable: string | null) => void;
+  onRetryClassification?: (emailId: string) => void;
 }
 
 export function ClassificationProcessingQueueTable({
@@ -59,6 +60,7 @@ export function ClassificationProcessingQueueTable({
   isSendingToRules,
   selectedEntityTypes = new Map(),
   onEntityTypeChange,
+  onRetryClassification,
 }: ClassificationProcessingQueueTableProps) {
   const [selectedEmailForLog, setSelectedEmailForLog] = useState<{ id: string; subject: string | null } | null>(null);
   
@@ -254,17 +256,29 @@ export function ClassificationProcessingQueueTable({
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {email.ai_confidence !== null && (
+                  <div className="flex items-center gap-1 mt-1">
+                    {email.ai_confidence !== null && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedEmailForLog({ id: email.id, subject: email.subject })}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        {Math.round(email.ai_confidence * 100)}%
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground mt-1"
-                      onClick={() => setSelectedEmailForLog({ id: email.id, subject: email.subject })}
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => onRetryClassification?.(email.id)}
+                      disabled={isClassifying}
+                      title="Retry AI classification"
                     >
-                      <Eye className="h-3 w-3 mr-1" />
-                      {Math.round(email.ai_confidence * 100)}%
+                      <RotateCw className={`h-3 w-3 ${isClassifying && safeSelectedIds.has(email.id) ? 'animate-spin' : ''}`} />
                     </Button>
-                  )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Select
