@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { useWebflowSync } from "@/hooks/use-webflow-sync";
+import { useState, useEffect } from "react";
+import { useWebflowSync, WebflowForm } from "@/hooks/use-webflow-sync";
 import { useImportEndpoints } from "@/hooks/use-import-endpoints";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -35,8 +34,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, Trash2, RefreshCw, Play, Clock } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Play, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WebflowConfigFormData {
   site_id: string;
@@ -47,7 +47,7 @@ interface WebflowConfigFormData {
 }
 
 const initialFormData: WebflowConfigFormData = {
-  site_id: "brax0",
+  site_id: "",
   form_id: "",
   form_name: "",
   endpoint_id: "",
@@ -55,26 +55,61 @@ const initialFormData: WebflowConfigFormData = {
 };
 
 export function WebflowSyncPanel() {
-  const { configs, isLoading, createConfig, deleteConfig, triggerSync } = useWebflowSync();
+  const { 
+    configs, 
+    isLoading, 
+    createConfig, 
+    deleteConfig, 
+    triggerSync,
+    sites,
+    sitesLoading,
+    fetchForms,
+  } = useWebflowSync();
   const { endpoints } = useImportEndpoints();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<WebflowConfigFormData>(initialFormData);
+  const [availableForms, setAvailableForms] = useState<WebflowForm[]>([]);
+  const [formsLoading, setFormsLoading] = useState(false);
+
+  // When site changes, fetch its forms
+  useEffect(() => {
+    if (formData.site_id) {
+      setFormsLoading(true);
+      setAvailableForms([]);
+      fetchForms.mutateAsync(formData.site_id)
+        .then((forms) => {
+          setAvailableForms(forms);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch forms:", err);
+        })
+        .finally(() => {
+          setFormsLoading(false);
+        });
+    } else {
+      setAvailableForms([]);
+    }
+  }, [formData.site_id]);
 
   const handleSubmit = async () => {
     if (!formData.site_id) {
       return;
     }
 
+    // Find the selected form to get its display name
+    const selectedForm = availableForms.find(f => f.id === formData.form_id);
+    
     await createConfig.mutateAsync({
       site_id: formData.site_id,
       form_id: formData.form_id || undefined,
-      form_name: formData.form_name || undefined,
+      form_name: selectedForm?.displayName || formData.form_name || undefined,
       endpoint_id: formData.endpoint_id || undefined,
       is_active: formData.is_active,
     });
 
     setIsDialogOpen(false);
     setFormData(initialFormData);
+    setAvailableForms([]);
   };
 
   const handleDelete = async (id: string) => {
@@ -85,6 +120,11 @@ export function WebflowSyncPanel() {
 
   const handleTriggerSync = async (configId?: string) => {
     await triggerSync.mutateAsync(configId);
+  };
+
+  const getSiteName = (siteId: string) => {
+    const site = sites?.find(s => s.id === siteId);
+    return site?.displayName || site?.shortName || siteId;
   };
 
   return (
@@ -146,7 +186,7 @@ export function WebflowSyncPanel() {
             <TableBody>
               {configs?.map((config) => (
                 <TableRow key={config.id}>
-                  <TableCell className="font-medium">{config.site_id}</TableCell>
+                  <TableCell className="font-medium">{getSiteName(config.site_id)}</TableCell>
                   <TableCell>
                     {config.form_name || config.form_id || (
                       <span className="text-muted-foreground">All forms</span>
@@ -208,41 +248,75 @@ export function WebflowSyncPanel() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {!sites?.length && !sitesLoading && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Could not load Webflow sites. Please check your WEBFLOW_API_TOKEN is configured correctly.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="site_id">Webflow Site ID</Label>
-              <Input
-                id="site_id"
+              <Label htmlFor="site_id">Webflow Site</Label>
+              <Select
                 value={formData.site_id}
-                onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
-                placeholder="your-site-id"
-              />
-              <p className="text-xs text-muted-foreground">
-                Found in your Webflow site URL: webflow.com/dashboard/sites/[site-id]
-              </p>
+                onValueChange={(value) => setFormData({ ...formData, site_id: value, form_id: "", form_name: "" })}
+                disabled={sitesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={sitesLoading ? "Loading sites..." : "Select a site"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites?.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.displayName || site.shortName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="form_id">Form ID (optional)</Label>
-              <Input
-                id="form_id"
-                value={formData.form_id}
-                onChange={(e) => setFormData({ ...formData, form_id: e.target.value })}
-                placeholder="Leave empty to sync all forms"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="form_name">Form Name (optional)</Label>
-              <Input
-                id="form_name"
-                value={formData.form_name}
-                onChange={(e) => setFormData({ ...formData, form_name: e.target.value })}
-                placeholder="Contact Form"
-              />
-              <p className="text-xs text-muted-foreground">
-                A friendly name to identify this form
-              </p>
-            </div>
+            {formData.site_id && (
+              <div className="space-y-2">
+                <Label htmlFor="form_id">Form</Label>
+                <Select
+                  value={formData.form_id || "all"}
+                  onValueChange={(value) => {
+                    const form = availableForms.find(f => f.id === value);
+                    setFormData({ 
+                      ...formData, 
+                      form_id: value === "all" ? "" : value,
+                      form_name: form?.displayName || ""
+                    });
+                  }}
+                  disabled={formsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formsLoading ? "Loading forms..." : "Select a form"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All forms</SelectItem>
+                    {availableForms.map((form) => (
+                      <SelectItem key={form.id} value={form.id}>
+                        {form.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formsLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading forms...
+                  </div>
+                )}
+                {!formsLoading && availableForms.length === 0 && formData.site_id && (
+                  <p className="text-xs text-muted-foreground">
+                    No forms found for this site. Forms will appear after you add one in Webflow.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="endpoint_id">Import Endpoint</Label>
@@ -282,6 +356,7 @@ export function WebflowSyncPanel() {
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={createConfig.isPending || !formData.site_id}>
+              {createConfig.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Add Configuration
             </Button>
           </DialogFooter>
