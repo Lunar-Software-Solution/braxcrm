@@ -209,10 +209,11 @@ serve(async (req) => {
       if (sender?.entity_table) {
         const processingTime = Date.now() - startTime;
         
+        // Only update is_person and ai_confidence, NOT entity_table
+        // User must manually "Send to Rules" to set entity_table
         await supabase
           .from("email_messages")
           .update({
-            entity_table: sender.entity_table,
             ai_confidence: 1.0,
             is_person: false,
           })
@@ -258,11 +259,11 @@ serve(async (req) => {
       if (existingMapping?.entity_table) {
         const processingTime = Date.now() - startTime;
         
-        // Update email_messages with the entity and mark as person
+        // Only update is_person and ai_confidence, NOT entity_table
+        // User must manually "Send to Rules" to set entity_table
         await supabase
           .from("email_messages")
           .update({
-            entity_table: existingMapping.entity_table,
             ai_confidence: 1.0,
             is_person: true,
           })
