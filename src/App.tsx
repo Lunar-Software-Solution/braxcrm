@@ -36,6 +36,7 @@ import Opportunities from "./pages/Opportunities";
 import Senders from "./pages/Senders";
 import WebhookProcessingQueue from "./pages/WebhookProcessingQueue";
 import WebhookLog from "./pages/WebhookLog";
+import WebhookEndpoints from "./pages/WebhookEndpoints";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/senders" element={<Senders />} />
               <Route path="/webhook-processing-queue" element={<WebhookProcessingQueue />} />
               <Route path="/webhook-log" element={<WebhookLog />} />
+              <Route path="/webhook-endpoints" element={<WebhookEndpoints />} />
               
             </Route>
 
