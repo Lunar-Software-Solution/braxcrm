@@ -74,26 +74,38 @@ export function WebflowSyncPanel() {
 
   // When site changes, fetch its forms
   useEffect(() => {
+    let cancelled = false;
+    
     if (formData.site_id) {
       setFormsLoading(true);
       setAvailableForms([]);
       fetchForms.mutateAsync(formData.site_id)
         .then((forms) => {
-          // Deduplicate forms by ID
-          const uniqueForms = forms.filter(
-            (form, index, self) => self.findIndex(f => f.id === form.id) === index
-          );
+          if (cancelled) return;
+          // Deduplicate forms by ID first, then by displayName as fallback
+          const seenIds = new Set<string>();
+          const seenNames = new Set<string>();
+          const uniqueForms = forms.filter((form) => {
+            if (seenIds.has(form.id) || seenNames.has(form.displayName)) {
+              return false;
+            }
+            seenIds.add(form.id);
+            seenNames.add(form.displayName);
+            return true;
+          });
           setAvailableForms(uniqueForms);
         })
         .catch((err) => {
-          console.error("Failed to fetch forms:", err);
+          if (!cancelled) console.error("Failed to fetch forms:", err);
         })
         .finally(() => {
-          setFormsLoading(false);
+          if (!cancelled) setFormsLoading(false);
         });
     } else {
       setAvailableForms([]);
     }
+    
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.site_id]);
 
