@@ -97,3 +97,30 @@ export interface ProcessImportRulesResult {
     entity_created?: boolean;
   };
 }
+
+// Webflow Sync Types
+export interface WebflowSyncConfig {
+  id: string;
+  site_id: string;
+  form_id: string | null;
+  form_name: string | null;
+  endpoint_id: string | null;
+  last_synced_at: string | null;
+  is_active: boolean;
+  sync_interval_hours: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  endpoint?: ImportEndpoint;
+}
+
+export interface WebflowSyncResult {
+  success: boolean;
+  total_imported: number;
+  results: Array<{
+    config_id: string;
+    submissions_imported: number;
+    errors: string[];
+  }>;
+}
