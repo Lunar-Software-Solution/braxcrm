@@ -9,7 +9,9 @@ export type EntityTable =
   | 'corporate_management'
   | 'personal_contacts'
   | 'subscriptions'
-  | 'marketing_sources';
+  | 'marketing_sources'
+  | 'merchant_accounts'
+  | 'carriers';
 
 export interface LinkableEntity {
   entity_table: EntityTable;
@@ -144,6 +146,8 @@ export const entityTableLabels: Record<EntityTable, string> = {
   personal_contacts: 'Personal Contacts',
   subscriptions: 'Subscriptions',
   marketing_sources: 'Marketing Sources',
+  merchant_accounts: 'Merchant Accounts',
+  carriers: 'Carriers',
 };
 
 export const taskStatusLabels: Record<TaskStatus, string> = {

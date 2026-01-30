@@ -29,6 +29,7 @@ export const INVOICE_CAPABLE_ENTITIES = [
   "expense_suppliers",
   "corporate_management",
   "subscriptions",
+  "merchant_accounts",
 ] as const;
 
 // Available actions per entity type
@@ -41,6 +42,8 @@ export const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
   personal_contacts: ["visibility", "tag"],
   subscriptions: ["visibility", "tag", "mark_priority", "extract_invoice"],
   marketing_sources: ["visibility", "tag"],
+  merchant_accounts: ["visibility", "tag", "mark_priority", "extract_invoice", "assign_role"],
+  carriers: ["visibility", "tag", "mark_priority", "assign_role"],
 };
 
 // Entity display config with icons and colors matching CRMSidebar
@@ -53,6 +56,8 @@ export const ENTITY_AUTOMATION_CONFIG: Record<string, { icon: string; color: str
   personal_contacts: { icon: "Contact", color: "#8b5cf6", label: "Personal Contacts" },
   subscriptions: { icon: "CreditCard", color: "#f59e0b", label: "Subscriptions" },
   marketing_sources: { icon: "Megaphone", color: "#64748b", label: "Marketing Sources" },
+  merchant_accounts: { icon: "Landmark", color: "#10b981", label: "Merchant Accounts" },
+  carriers: { icon: "Truck", color: "#06b6d4", label: "Carriers" },
 };
 
 // All entity tables in order
@@ -65,6 +70,8 @@ export const ENTITY_TABLES = [
   "personal_contacts",
   "subscriptions",
   "marketing_sources",
+  "merchant_accounts",
+  "carriers",
 ] as const;
 
 export type EntityTable = (typeof ENTITY_TABLES)[number];
