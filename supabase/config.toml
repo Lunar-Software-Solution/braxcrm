@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.messaging-ingest]
 verify_jwt = false
+
+[functions.messaging-people]
+verify_jwt = false
