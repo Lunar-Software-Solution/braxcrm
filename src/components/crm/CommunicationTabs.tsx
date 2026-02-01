@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { MessageSquare, Mail, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConversationList } from "@/components/crm/ConversationList";
 import { ConversationThread } from "@/components/crm/ConversationThread";
+import { PersonEmailList } from "@/components/crm/PersonEmailList";
 import { useChatConversations } from "@/hooks/use-chat-conversations";
 import type { ChatConversation, MessagingPlatform } from "@/types/messaging";
 import { PLATFORM_COLORS } from "@/types/messaging";
@@ -108,15 +108,9 @@ export function CommunicationTabs({ personId }: CommunicationTabsProps) {
             </div>
           </TabsContent>
 
-          {/* Emails - placeholder */}
-          <TabsContent value="email" className="m-0 p-4">
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Mail className="h-10 w-10 text-muted-foreground/50 mb-3" />
-              <h4 className="font-medium text-sm mb-1">Email History</h4>
-              <p className="text-xs text-muted-foreground">
-                Email conversations will appear here
-              </p>
-            </div>
+          {/* Emails - actual list */}
+          <TabsContent value="email" className="m-0 h-full">
+            <PersonEmailList personId={personId} />
           </TabsContent>
         </div>
       </Tabs>
