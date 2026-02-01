@@ -7,6 +7,7 @@ This directory contains documentation for the CRM's external APIs.
 | API | Description | Documentation |
 |-----|-------------|---------------|
 | Messaging Ingest | Import chat conversations from WhatsApp, Signal, Telegram, WeChat | [messaging-ingest.md](./messaging-ingest.md) |
+| Messaging People | Fetch People records for contact matching | [messaging-people.md](./messaging-people.md) |
 | Webhook Ingest | Receive webhook events from external systems | [webhook-ingest.md](./webhook-ingest.md) |
 
 ## Authentication
