@@ -26,6 +26,7 @@ import {
   Webhook,
   History,
   ChevronRight,
+  MessageSquare,
   LayoutDashboard,
 } from "lucide-react";
 import {
@@ -86,6 +87,7 @@ const importItems: MenuItem[] = [
   { title: "Import Queue", url: "/import-queue", icon: Webhook, badgeKey: "import" },
   { title: "Import Log", url: "/import-log", icon: History },
   { title: "Import Endpoints", url: "/import-endpoints", icon: Zap },
+  { title: "Messaging", url: "/messaging-connections", icon: MessageSquare },
 ];
 
 const settingsItems: MenuItem[] = [

@@ -41,6 +41,7 @@ import Senders from "./pages/Senders";
 import ImportProcessingQueue from "./pages/ImportProcessingQueue";
 import ImportLog from "./pages/ImportLog";
 import ImportEndpoints from "./pages/ImportEndpoints";
+import MessagingConnections from "./pages/MessagingConnections";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/import-queue" element={<ImportProcessingQueue />} />
               <Route path="/import-log" element={<ImportLog />} />
               <Route path="/import-endpoints" element={<ImportEndpoints />} />
+              <Route path="/messaging-connections" element={<MessagingConnections />} />
               
             </Route>
 
