@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.sync-webflow-forms]
 verify_jwt = false
+
+[functions.messaging-ingest]
+verify_jwt = false

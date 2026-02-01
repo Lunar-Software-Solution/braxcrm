@@ -83,6 +83,68 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_table: string | null
+          external_conversation_id: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          message_count: number
+          messages: Json
+          participant_identifier: string
+          participant_name: string | null
+          person_id: string | null
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          external_conversation_id: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          messages?: Json
+          participant_identifier: string
+          participant_name?: string | null
+          person_id?: string | null
+          platform: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          external_conversation_id?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          messages?: Json
+          participant_identifier?: string
+          participant_name?: string | null
+          person_id?: string | null
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corporate_management: {
         Row: {
           avatar_url: string | null
@@ -1604,6 +1666,51 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      messaging_connections: {
+        Row: {
+          api_secret: string | null
+          connection_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          phone_number: string | null
+          platform: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          api_secret?: string | null
+          connection_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          phone_number?: string | null
+          platform: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          api_secret?: string | null
+          connection_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          phone_number?: string | null
+          platform?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
         }
         Relationships: []
       }

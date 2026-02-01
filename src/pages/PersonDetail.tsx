@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   Mail, Phone, Send, Clock, ArrowDownLeft, ArrowUpRight,
-  Linkedin, Twitter, MapPin, Edit, Tag, Plus, X
+  Linkedin, Twitter, MapPin, Edit, Tag, Plus, X, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
+import { useChatConversations } from "@/hooks/use-chat-conversations";
+import { ConversationList } from "@/components/crm/ConversationList";
+import { ConversationThread } from "@/components/crm/ConversationThread";
+import type { ChatConversation } from "@/types/messaging";
 
 export default function PersonDetail() {
   const { personId } = useParams<{ personId: string }>();
@@ -26,6 +30,12 @@ export default function PersonDetail() {
   const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingObjectType, setAddingObjectType] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
+  
+  // Fetch messaging conversations for this person
+  const { data: conversations = [], isLoading: conversationsLoading } = useChatConversations({
+    personId: personId,
+  });
   
   const { getPerson, listEmailsByPerson, listObjectTypes, assignObjectTypeToPerson, removeObjectTypeFromPerson } = useCRM();
   const { user } = useAuth();
@@ -230,6 +240,16 @@ export default function PersonDetail() {
             >
               Files
             </TabsTrigger>
+            <TabsTrigger
+              value="messages"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Messages
+              {conversations.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{conversations.length}</Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="activity" className="flex-1 m-0 overflow-hidden">
@@ -314,6 +334,39 @@ export default function PersonDetail() {
 
           <TabsContent value="files" className="flex-1 m-0 p-6">
             <p className="text-sm text-muted-foreground">No files yet</p>
+          </TabsContent>
+
+          <TabsContent value="messages" className="flex-1 m-0 overflow-hidden">
+            {conversations.length === 0 && !conversationsLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <MessageSquare className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h4 className="font-medium mb-1">No messaging history</h4>
+                <p className="text-sm text-muted-foreground">
+                  WhatsApp, Signal, Telegram, and WeChat conversations will appear here
+                </p>
+              </div>
+            ) : selectedConversation ? (
+              <ConversationThread
+                conversation={selectedConversation}
+                onUnlinkPerson={() => setSelectedConversation(null)}
+              />
+            ) : (
+              <div className="h-full flex">
+                <div className="w-80 border-r">
+                  <ConversationList
+                    conversations={conversations}
+                    selectedId={selectedConversation?.id}
+                    onSelect={setSelectedConversation}
+                    isLoading={conversationsLoading}
+                  />
+                </div>
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  Select a conversation to view
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
