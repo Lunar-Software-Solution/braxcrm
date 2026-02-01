@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip } from "lucide-react";
+import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
 import { FilesList } from "@/components/crm/FilesList";
+import { CommunicationTabs } from "@/components/crm/CommunicationTabs";
 import { TaskDialog } from "@/components/crm/TaskDialog";
 import { NoteDialog } from "@/components/crm/NoteDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,6 +158,13 @@ export function EntityDetailPanel({
             Home
           </TabsTrigger>
           <TabsTrigger
+            value="messages"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+          >
+            <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+            Messages
+          </TabsTrigger>
+          <TabsTrigger
             value="tasks"
             className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
           >
@@ -223,6 +231,9 @@ export function EntityDetailPanel({
                 </div>
               </div>
             </div>
+          </TabsContent>
+          <TabsContent value="messages" className="m-0 h-full">
+            <CommunicationTabs personId={entity.id} />
           </TabsContent>
           <TabsContent value="tasks" className="m-0">
             <TasksList entityTable={entityType} entityId={entity.id} />
