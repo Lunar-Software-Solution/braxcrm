@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
   ClipboardCheck,
   Ticket,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,6 +78,7 @@ const coreItems: MenuItem[] = [
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Tickets", url: "/tickets", icon: Ticket, badgeKey: "tickets" },
   { title: "Opportunities", url: "/opportunities", icon: Target },
+  { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Approvals", url: "/approvals", icon: ClipboardCheck, badgeKey: "approvals" },
 ];
 

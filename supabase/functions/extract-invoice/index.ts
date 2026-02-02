@@ -8,8 +8,11 @@ const corsHeaders = {
 };
 
 interface ExtractInvoiceRequest {
-  email_id: string;
-  workspace_id: string;
+  email_id?: string;
+  workspace_id?: string;
+  entity_table?: string;
+  entity_id?: string;
+  file_id?: string;
 }
 
 interface InvoiceData {

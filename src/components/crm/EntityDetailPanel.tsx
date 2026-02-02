@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip, MessageCircle, Ticket } from "lucide-react";
+import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip, MessageCircle, Ticket, Receipt, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,8 @@ import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
 import { FilesList } from "@/components/crm/FilesList";
 import { TicketsList } from "@/components/crm/TicketsList";
+import { InvoicesList } from "@/components/crm/InvoicesList";
+import { DocumentsList } from "@/components/crm/DocumentsList";
 import { CommunicationTabs } from "@/components/crm/CommunicationTabs";
 import { TaskDialog } from "@/components/crm/TaskDialog";
 import { NoteDialog } from "@/components/crm/NoteDialog";
@@ -23,6 +25,7 @@ import { useTasks } from "@/hooks/use-tasks";
 import { useNotes } from "@/hooks/use-notes";
 import { useEntityFiles } from "@/hooks/use-entity-files";
 import { useToast } from "@/hooks/use-toast";
+import { isInvoiceCapableEntity } from "@/types/documents";
 import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate, EntityTable } from "@/types/activities";
 
 // Base entity interface for the detail panel - status fields are optional for People
@@ -65,6 +68,9 @@ export function EntityDetailPanel({
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Check if this entity type supports invoices
+  const showInvoicesTab = isInvoiceCapableEntity(entityType);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
@@ -204,6 +210,22 @@ export function EntityDetailPanel({
             <Ticket className="h-3.5 w-3.5 mr-1.5" />
             Tickets
           </TabsTrigger>
+          {showInvoicesTab && (
+            <TabsTrigger
+              value="invoices"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1.5" />
+              Invoices
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="documents"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+          >
+            <File className="h-3.5 w-3.5 mr-1.5" />
+            Documents
+          </TabsTrigger>
         </TabsList>
 
         <ScrollArea className="flex-1">
@@ -268,6 +290,14 @@ export function EntityDetailPanel({
           </TabsContent>
           <TabsContent value="tickets" className="m-0 h-full">
             <TicketsList entityTable={entityType} entityId={entity.id} />
+          </TabsContent>
+          {showInvoicesTab && (
+            <TabsContent value="invoices" className="m-0 h-full">
+              <InvoicesList entityTable={entityType} entityId={entity.id} />
+            </TabsContent>
+          )}
+          <TabsContent value="documents" className="m-0 h-full">
+            <DocumentsList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
         </ScrollArea>
       </Tabs>
