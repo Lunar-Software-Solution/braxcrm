@@ -119,6 +119,42 @@ export type Database = {
           },
         ]
       }
+      brax_distributors: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -249,6 +285,42 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_brax_distributors: {
+        Row: {
+          assigned_at: string
+          brax_distributor_id: string
+          email_id: string
+          id: string
+        }
+        Insert: {
+          assigned_at?: string
+          brax_distributor_id: string
+          email_id: string
+          id?: string
+        }
+        Update: {
+          assigned_at?: string
+          brax_distributor_id?: string
+          email_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_brax_distributors_brax_distributor_id_fkey"
+            columns: ["brax_distributor_id"]
+            isOneToOne: false
+            referencedRelation: "brax_distributors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_brax_distributors_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -779,42 +851,6 @@ export type Database = {
           },
         ]
       }
-      email_resellers: {
-        Row: {
-          assigned_at: string
-          email_id: string
-          id: string
-          reseller_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          email_id: string
-          id?: string
-          reseller_id: string
-        }
-        Update: {
-          assigned_at?: string
-          email_id?: string
-          id?: string
-          reseller_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_resellers_email_id_fkey"
-            columns: ["email_id"]
-            isOneToOne: false
-            referencedRelation: "email_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_resellers_reseller_id_fkey"
-            columns: ["reseller_id"]
-            isOneToOne: false
-            referencedRelation: "resellers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       email_rule_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["rule_action_type"]
@@ -1147,6 +1183,42 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_vigile_partners: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          vigile_partner_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          vigile_partner_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          vigile_partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_resellers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_resellers_reseller_id_fkey"
+            columns: ["vigile_partner_id"]
+            isOneToOne: false
+            referencedRelation: "vigile_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -2118,42 +2190,6 @@ export type Database = {
           },
         ]
       }
-      resellers: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          created_by: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       senders: {
         Row: {
           created_at: string
@@ -2461,6 +2497,42 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vigile_partners: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
