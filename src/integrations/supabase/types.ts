@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliates: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       automation_send_log: {
         Row: {
           automation_id: string
@@ -364,7 +400,7 @@ export type Database = {
             foreignKeyName: "email_influencers_influencer_id_fkey"
             columns: ["influencer_id"]
             isOneToOne: false
-            referencedRelation: "influencers"
+            referencedRelation: "affiliates"
             referencedColumns: ["id"]
           },
         ]
@@ -1406,42 +1442,6 @@ export type Database = {
           },
         ]
       }
-      expense_suppliers: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          created_by: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       extracted_invoices: {
         Row: {
           amount: number | null
@@ -1491,42 +1491,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      influencers: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          created_by: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
       }
       invitations: {
         Row: {
@@ -2329,6 +2293,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      services_suppliers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
