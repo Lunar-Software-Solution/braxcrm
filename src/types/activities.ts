@@ -2,10 +2,10 @@
 
 export type EntityTable = 
   | 'people'
-  | 'influencers'
+  | 'affiliates'
   | 'resellers'
   | 'product_suppliers'
-  | 'expense_suppliers'
+  | 'services_suppliers'
   | 'corporate_management'
   | 'personal_contacts'
   | 'subscriptions'
@@ -138,10 +138,10 @@ export interface OpportunityUpdate {
 // Helper to get display name for entity table
 export const entityTableLabels: Record<EntityTable, string> = {
   people: 'People',
-  influencers: 'Influencers',
+  affiliates: 'Affiliates',
   resellers: 'Resellers',
   product_suppliers: 'Product Suppliers',
-  expense_suppliers: 'Expense Suppliers',
+  services_suppliers: 'Services Suppliers',
   corporate_management: 'Corporate Management',
   personal_contacts: 'Personal Contacts',
   subscriptions: 'Subscriptions',

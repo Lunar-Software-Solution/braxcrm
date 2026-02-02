@@ -41,7 +41,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import InvitationsManager from "@/components/settings/InvitationsManager";
 
 const entityLabels: Record<string, string> = {
-  influencers: "Influencers",
+  affiliates: "Affiliates",
   resellers: "Resellers",
   suppliers: "Suppliers",
   corporate_management: "Corp Mgmt",

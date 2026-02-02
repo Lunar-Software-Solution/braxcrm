@@ -8,10 +8,10 @@ const corsHeaders = {
 };
 
 const ENTITY_TABLES = [
-  "influencers",
+  "affiliates",
   "resellers",
   "product_suppliers",
-  "expense_suppliers",
+  "services_suppliers",
   "corporate_management",
   "personal_contacts",
   "subscriptions",

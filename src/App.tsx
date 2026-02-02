@@ -16,10 +16,10 @@ import Objects from "./pages/Objects";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import Inbox from "./pages/Inbox";
-import Influencers from "./pages/Influencers";
+import Affiliates from "./pages/Affiliates";
 import Resellers from "./pages/Resellers";
 import ProductSuppliers from "./pages/ProductSuppliers";
-import ExpenseSuppliers from "./pages/ExpenseSuppliers";
+import ServicesSuppliers from "./pages/ServicesSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
 import Subscriptions from "./pages/Subscriptions";
@@ -70,10 +70,10 @@ const App = () => (
               <Route path="/people" element={<People />} />
               <Route path="/objects" element={<Objects />} />
               <Route path="/person/:personId" element={<PersonDetail />} />
-              <Route path="/influencers" element={<Influencers />} />
+              <Route path="/affiliates" element={<Affiliates />} />
               <Route path="/resellers" element={<Resellers />} />
               <Route path="/product-suppliers" element={<ProductSuppliers />} />
-              <Route path="/expense-suppliers" element={<ExpenseSuppliers />} />
+              <Route path="/services-suppliers" element={<ServicesSuppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/personal-contacts" element={<PersonalContacts />} />
               <Route path="/subscriptions" element={<Subscriptions />} />

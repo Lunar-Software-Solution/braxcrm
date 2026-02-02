@@ -141,10 +141,10 @@ const sourceIcons: Record<string, React.ReactNode> = {
 };
 
 const entityIcons: Record<string, React.ReactNode> = {
-  influencers: <Sparkles className="h-3.5 w-3.5" />,
+  affiliates: <Sparkles className="h-3.5 w-3.5" />,
   resellers: <Store className="h-3.5 w-3.5" />,
   product_suppliers: <Package className="h-3.5 w-3.5" />,
-  expense_suppliers: <Receipt className="h-3.5 w-3.5" />,
+  services_suppliers: <Receipt className="h-3.5 w-3.5" />,
   corporate_management: <Building2 className="h-3.5 w-3.5" />,
   personal_contacts: <Contact className="h-3.5 w-3.5" />,
   subscriptions: <CreditCard className="h-3.5 w-3.5" />,
@@ -152,10 +152,10 @@ const entityIcons: Record<string, React.ReactNode> = {
 };
 
 const entityLabels: Record<string, string> = {
-  influencers: "Influencer",
+  affiliates: "Affiliate",
   resellers: "Reseller",
   product_suppliers: "Product Supplier",
-  expense_suppliers: "Expense Supplier",
+  services_suppliers: "Services Supplier",
   corporate_management: "Corporate Mgmt",
   personal_contacts: "Personal Contact",
   subscriptions: "Subscription",

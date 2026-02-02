@@ -27,9 +27,9 @@ import { ClassificationLogDialog } from "./ClassificationLogDialog";
 // Entity table options matching the CRM structure
 const ENTITY_TABLE_OPTIONS = [
   { value: "subscriptions", label: "Subscriptions" },
-  { value: "expense_suppliers", label: "Expense Suppliers" },
+  { value: "services_suppliers", label: "Services Suppliers" },
   { value: "product_suppliers", label: "Product Suppliers" },
-  { value: "influencers", label: "Influencers" },
+  { value: "affiliates", label: "Affiliates" },
   { value: "resellers", label: "Resellers" },
   { value: "corporate_management", label: "Corporate Management" },
   { value: "personal_contacts", label: "Personal Contacts" },
