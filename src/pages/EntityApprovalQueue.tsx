@@ -31,7 +31,7 @@ const entityConfig: Record<EntityType, { label: string; color: string }> = {
   services_suppliers: { label: "Services Suppliers", color: "#f97316" },
   corporate_management: { label: "Corporate Management", color: "#0891b2" },
   personal_contacts: { label: "Personal Contacts", color: "#8b5cf6" },
-  subscriptions: { label: "Subscriptions", color: "#f59e0b" },
+  subscription_suppliers: { label: "Subscription Suppliers", color: "#f59e0b" },
   marketing_sources: { label: "Marketing Sources", color: "#64748b" },
   merchant_accounts: { label: "Merchant Accounts", color: "#10b981" },
   logistic_suppliers: { label: "Logistic Suppliers", color: "#06b6d4" },

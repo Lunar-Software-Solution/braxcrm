@@ -30,7 +30,7 @@ const entityConfig: Record<
   services_suppliers: { label: "Services Suppliers", icon: Receipt, color: "#f97316" },
   corporate_management: { label: "Corporate Management", icon: Building2, color: "#0891b2" },
   personal_contacts: { label: "Personal Contacts", icon: Contact, color: "#8b5cf6" },
-  subscriptions: { label: "Subscriptions", icon: CreditCard, color: "#f59e0b" },
+  subscription_suppliers: { label: "Subscription Suppliers", icon: CreditCard, color: "#f59e0b" },
   marketing_sources: { label: "Marketing Sources", icon: Megaphone, color: "#64748b" },
   merchant_accounts: { label: "Merchant Accounts", icon: Landmark, color: "#10b981" },
   logistic_suppliers: { label: "Logistic Suppliers", icon: Truck, color: "#06b6d4" },

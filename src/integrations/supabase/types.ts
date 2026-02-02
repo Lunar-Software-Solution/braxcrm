@@ -1086,24 +1086,24 @@ export type Database = {
         }
         Relationships: []
       }
-      email_subscriptions: {
+      email_subscription_suppliers: {
         Row: {
           assigned_at: string
           email_id: string
           id: string
-          subscription_id: string
+          subscription_supplier_id: string
         }
         Insert: {
           assigned_at?: string
           email_id: string
           id?: string
-          subscription_id: string
+          subscription_supplier_id: string
         }
         Update: {
           assigned_at?: string
           email_id?: string
           id?: string
-          subscription_id?: string
+          subscription_supplier_id?: string
         }
         Relationships: [
           {
@@ -1115,9 +1115,9 @@ export type Database = {
           },
           {
             foreignKeyName: "email_subscriptions_subscription_id_fkey"
-            columns: ["subscription_id"]
+            columns: ["subscription_supplier_id"]
             isOneToOne: false
-            referencedRelation: "subscriptions"
+            referencedRelation: "subscription_suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -2528,7 +2528,7 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
+      subscription_suppliers: {
         Row: {
           avatar_url: string | null
           created_at: string

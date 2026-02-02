@@ -126,7 +126,7 @@ export interface PersonalContact {
   updated_at: string;
 }
 
-export interface Subscription {
+export interface SubscriptionSupplier {
   id: string;
   name: string;
   email: string | null;
@@ -198,6 +198,6 @@ export interface LogisticSupplier {
   updated_at: string;
 }
 
-export type EntityType = "affiliates" | "vigile_partners" | "brax_distributors" | "product_suppliers" | "services_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions" | "marketing_sources" | "merchant_accounts" | "logistic_suppliers";
+export type EntityType = "affiliates" | "vigile_partners" | "brax_distributors" | "product_suppliers" | "services_suppliers" | "corporate_management" | "personal_contacts" | "subscription_suppliers" | "marketing_sources" | "merchant_accounts" | "logistic_suppliers";
 
-export type Entity = Affiliate | VigilePartner | BraxDistributor | ProductSupplier | ServicesSupplier | CorporateManagement | PersonalContact | Subscription | MarketingSource | MerchantAccount | LogisticSupplier;
+export type Entity = Affiliate | VigilePartner | BraxDistributor | ProductSupplier | ServicesSupplier | CorporateManagement | PersonalContact | SubscriptionSupplier | MarketingSource | MerchantAccount | LogisticSupplier;

@@ -105,7 +105,7 @@ const entityItems: MenuItem[] = [
   { title: "Services Suppliers", url: "/services-suppliers", icon: Receipt, color: "#f97316" },
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
   { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
-  { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },
+  { title: "Subscription Suppliers", url: "/subscription-suppliers", icon: CreditCard, color: "#f59e0b" },
   { title: "Marketing Sources", url: "/marketing-sources", icon: Megaphone, color: "#64748b" },
   { title: "Merchant Accounts", url: "/merchant-accounts", icon: Landmark, color: "#10b981" },
   { title: "Logistic Suppliers", url: "/logistic-suppliers", icon: Truck, color: "#06b6d4" },

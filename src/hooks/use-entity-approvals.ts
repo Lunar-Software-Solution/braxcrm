@@ -136,7 +136,7 @@ export function useAllEntityApprovalCounts() {
     "services_suppliers",
     "corporate_management",
     "personal_contacts",
-    "subscriptions",
+    "subscription_suppliers",
     "marketing_sources",
     "merchant_accounts",
     "logistic_suppliers",
