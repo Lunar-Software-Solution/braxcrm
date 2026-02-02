@@ -217,6 +217,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_affiliates: {
+        Row: {
+          affiliate_id: string
+          assigned_at: string
+          email_id: string
+          id: string
+        }
+        Insert: {
+          affiliate_id: string
+          assigned_at?: string
+          email_id: string
+          id?: string
+        }
+        Update: {
+          affiliate_id?: string
+          assigned_at?: string
+          email_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_influencers_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_influencers_influencer_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_categories: {
         Row: {
           color: string | null
@@ -344,63 +380,6 @@ export type Database = {
             columns: ["email_id"]
             isOneToOne: false
             referencedRelation: "email_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_expense_suppliers: {
-        Row: {
-          assigned_at: string
-          email_id: string
-          expense_supplier_id: string
-          id: string
-        }
-        Insert: {
-          assigned_at?: string
-          email_id: string
-          expense_supplier_id: string
-          id?: string
-        }
-        Update: {
-          assigned_at?: string
-          email_id?: string
-          expense_supplier_id?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      email_influencers: {
-        Row: {
-          assigned_at: string
-          email_id: string
-          id: string
-          influencer_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          email_id: string
-          id?: string
-          influencer_id: string
-        }
-        Update: {
-          assigned_at?: string
-          email_id?: string
-          id?: string
-          influencer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_influencers_email_id_fkey"
-            columns: ["email_id"]
-            isOneToOne: false
-            referencedRelation: "email_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_influencers_influencer_id_fkey"
-            columns: ["influencer_id"]
-            isOneToOne: false
-            referencedRelation: "affiliates"
             referencedColumns: ["id"]
           },
         ]
@@ -993,6 +972,27 @@ export type Database = {
           is_active?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_services_suppliers: {
+        Row: {
+          assigned_at: string
+          email_id: string
+          id: string
+          services_supplier_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          email_id: string
+          id?: string
+          services_supplier_id: string
+        }
+        Update: {
+          assigned_at?: string
+          email_id?: string
+          id?: string
+          services_supplier_id?: string
         }
         Relationships: []
       }
