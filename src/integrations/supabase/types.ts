@@ -24,6 +24,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -35,6 +41,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -46,6 +58,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -129,6 +147,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -140,6 +164,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -151,6 +181,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -227,6 +263,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -238,6 +280,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -249,6 +297,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -1607,6 +1661,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -1618,6 +1678,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -1629,6 +1695,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -1643,6 +1715,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -1654,6 +1732,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -1665,6 +1749,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -1679,6 +1769,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -1690,6 +1786,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -1701,6 +1803,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2047,6 +2155,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -2058,6 +2172,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -2069,6 +2189,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2083,6 +2209,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -2094,6 +2226,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -2105,6 +2243,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2340,6 +2484,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -2351,6 +2501,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -2362,6 +2518,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2376,6 +2538,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -2387,6 +2555,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -2398,6 +2572,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2510,6 +2690,12 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
@@ -2521,6 +2707,12 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
@@ -2532,6 +2724,12 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2809,6 +3007,12 @@ export type Database = {
         | "link"
         | "address"
         | "actor"
+      entity_status:
+        | "draft"
+        | "pending"
+        | "under_review"
+        | "approved"
+        | "rejected"
       invoice_status: "pending" | "reviewed" | "approved" | "rejected"
       opportunity_stage:
         | "lead"
@@ -2977,6 +3181,13 @@ export const Constants = {
         "link",
         "address",
         "actor",
+      ],
+      entity_status: [
+        "draft",
+        "pending",
+        "under_review",
+        "approved",
+        "rejected",
       ],
       invoice_status: ["pending", "reviewed", "approved", "rejected"],
       opportunity_stage: [

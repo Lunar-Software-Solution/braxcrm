@@ -1,3 +1,5 @@
+import type { EntityStatus } from "./approvals";
+
 export interface Affiliate {
   id: string;
   name: string;
@@ -5,6 +7,12 @@ export interface Affiliate {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -17,6 +25,12 @@ export interface VigilePartner {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -29,6 +43,12 @@ export interface BraxDistributor {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -41,6 +61,12 @@ export interface ProductSupplier {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -53,6 +79,12 @@ export interface ServicesSupplier {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -65,6 +97,12 @@ export interface CorporateManagement {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -77,6 +115,12 @@ export interface PersonalContact {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -89,6 +133,12 @@ export interface Subscription {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -101,6 +151,12 @@ export interface MarketingSource {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -113,6 +169,12 @@ export interface MerchantAccount {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -125,6 +187,12 @@ export interface LogisticSupplier {
   phone: string | null;
   notes: string | null;
   avatar_url: string | null;
+  status: EntityStatus;
+  source: string | null;
+  source_reference: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
