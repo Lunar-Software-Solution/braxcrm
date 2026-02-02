@@ -2630,6 +2630,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          entity_id: string
+          entity_table: string
+          id: string
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          ticket_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          entity_id: string
+          entity_table: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          ticket_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string
+          entity_table?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          ticket_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_entity_roles: {
         Row: {
           assigned_at: string
@@ -3034,6 +3091,8 @@ export type Database = {
       sender_type: "automated" | "newsletter" | "shared_inbox" | "system"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "completed" | "cancelled"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_status: "open" | "in_progress" | "waiting" | "resolved" | "closed"
       webhook_event_status: "pending" | "processing" | "processed" | "failed"
     }
     CompositeTypes: {
@@ -3212,6 +3271,8 @@ export const Constants = {
       sender_type: ["automated", "newsletter", "shared_inbox", "system"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "completed", "cancelled"],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_status: ["open", "in_progress", "waiting", "resolved", "closed"],
       webhook_event_status: ["pending", "processing", "processed", "failed"],
     },
   },
