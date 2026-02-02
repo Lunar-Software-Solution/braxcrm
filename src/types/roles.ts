@@ -38,11 +38,14 @@ export interface RecordRoleAssignment {
 // Map entity tables to their display names and routes
 export const ENTITY_TABLE_CONFIG: Record<string, { displayName: string; route: string; color: string }> = {
   affiliates: { displayName: 'Affiliates', route: '/affiliates', color: '#ec4899' },
-  resellers: { displayName: 'Resellers', route: '/resellers', color: '#22c55e' },
+  vigile_partners: { displayName: 'Vigile Partners', route: '/vigile-partners', color: '#22c55e' },
+  brax_distributors: { displayName: 'Brax Distributors', route: '/brax-distributors', color: '#7c3aed' },
   product_suppliers: { displayName: 'Product Suppliers', route: '/product-suppliers', color: '#3b82f6' },
   services_suppliers: { displayName: 'Services Suppliers', route: '/services-suppliers', color: '#f97316' },
   corporate_management: { displayName: 'Corporate Management', route: '/corporate-management', color: '#0891b2' },
   personal_contacts: { displayName: 'Personal Contacts', route: '/personal-contacts', color: '#8b5cf6' },
   subscriptions: { displayName: 'Subscriptions', route: '/subscriptions', color: '#f59e0b' },
   marketing_sources: { displayName: 'Marketing Sources', route: '/marketing-sources', color: '#64748b' },
+  merchant_accounts: { displayName: 'Merchant Accounts', route: '/merchant-accounts', color: '#10b981' },
+  logistic_suppliers: { displayName: 'Logistic Suppliers', route: '/logistic-suppliers', color: '#06b6d4' },
 };

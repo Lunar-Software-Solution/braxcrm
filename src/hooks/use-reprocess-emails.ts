@@ -4,7 +4,8 @@ import { toast } from "sonner";
 
 const ENTITY_JUNCTION_TABLES = [
   "email_affiliates",
-  "email_resellers",
+  "email_vigile_partners",
+  "email_brax_distributors",
   "email_product_suppliers",
   "email_services_suppliers",
   "email_corporate_management",
