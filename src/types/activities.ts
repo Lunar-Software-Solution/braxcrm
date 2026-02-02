@@ -9,7 +9,7 @@ export type EntityTable =
   | 'services_suppliers'
   | 'corporate_management'
   | 'personal_contacts'
-  | 'subscriptions'
+  | 'subscription_suppliers'
   | 'marketing_sources'
   | 'merchant_accounts'
   | 'logistic_suppliers';
@@ -146,7 +146,7 @@ export const entityTableLabels: Record<EntityTable, string> = {
   services_suppliers: 'Services Suppliers',
   corporate_management: 'Corporate Management',
   personal_contacts: 'Personal Contacts',
-  subscriptions: 'Subscriptions',
+  subscription_suppliers: 'Subscription Suppliers',
   marketing_sources: 'Marketing Sources',
   merchant_accounts: 'Merchant Accounts',
   logistic_suppliers: 'Logistic Suppliers',

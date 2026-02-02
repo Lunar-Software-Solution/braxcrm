@@ -23,7 +23,7 @@ import ProductSuppliers from "./pages/ProductSuppliers";
 import ServicesSuppliers from "./pages/ServicesSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
 import PersonalContacts from "./pages/PersonalContacts";
-import Subscriptions from "./pages/Subscriptions";
+import SubscriptionSuppliers from "./pages/SubscriptionSuppliers";
 import MerchantAccounts from "./pages/MerchantAccounts";
 import LogisticSuppliers from "./pages/LogisticSuppliers";
 import MarketingSources from "./pages/MarketingSources";
@@ -80,7 +80,7 @@ const App = () => (
               <Route path="/services-suppliers" element={<ServicesSuppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
               <Route path="/personal-contacts" element={<PersonalContacts />} />
-              <Route path="/subscriptions" element={<Subscriptions />} />
+              <Route path="/subscription-suppliers" element={<SubscriptionSuppliers />} />
               <Route path="/marketing-sources" element={<MarketingSources />} />
               <Route path="/merchant-accounts" element={<MerchantAccounts />} />
               <Route path="/logistic-suppliers" element={<LogisticSuppliers />} />

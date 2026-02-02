@@ -10,7 +10,7 @@ const ENTITY_JUNCTION_TABLES = [
   "email_services_suppliers",
   "email_corporate_management",
   "email_personal_contacts",
-  "email_subscriptions",
+  "email_subscription_suppliers",
   "email_marketing_sources",
   "email_merchant_accounts",
   "email_logistic_suppliers",
