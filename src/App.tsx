@@ -39,6 +39,7 @@ import UsersRoles from "./pages/UsersRoles";
 import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
 import Senders from "./pages/Senders";
+import Tickets from "./pages/Tickets";
 import ImportProcessingQueue from "./pages/ImportProcessingQueue";
 import ImportLog from "./pages/ImportLog";
 import ImportEndpoints from "./pages/ImportEndpoints";
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/email-automation/templates/:templateId" element={<TemplateEditor />} />
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
+              <Route path="/tickets" element={<Tickets />} />
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/senders" element={<Senders />} />
               <Route path="/import-queue" element={<ImportProcessingQueue />} />

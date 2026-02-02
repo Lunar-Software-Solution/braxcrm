@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip, MessageCircle } from "lucide-react";
+import { X, MoreHorizontal, Edit, Trash2, CheckSquare, FileText, Paperclip, MessageCircle, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { NotesList } from "@/components/crm/NotesList";
 import { TasksList } from "@/components/crm/TasksList";
 import { FilesList } from "@/components/crm/FilesList";
+import { TicketsList } from "@/components/crm/TicketsList";
 import { CommunicationTabs } from "@/components/crm/CommunicationTabs";
 import { TaskDialog } from "@/components/crm/TaskDialog";
 import { NoteDialog } from "@/components/crm/NoteDialog";
@@ -196,6 +197,13 @@ export function EntityDetailPanel({
           >
             Files
           </TabsTrigger>
+          <TabsTrigger
+            value="tickets"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+          >
+            <Ticket className="h-3.5 w-3.5 mr-1.5" />
+            Tickets
+          </TabsTrigger>
         </TabsList>
 
         <ScrollArea className="flex-1">
@@ -257,6 +265,9 @@ export function EntityDetailPanel({
           </TabsContent>
           <TabsContent value="files" className="m-0">
             <FilesList entityTable={entityType} entityId={entity.id} />
+          </TabsContent>
+          <TabsContent value="tickets" className="m-0 h-full">
+            <TicketsList entityTable={entityType} entityId={entity.id} />
           </TabsContent>
         </ScrollArea>
       </Tabs>

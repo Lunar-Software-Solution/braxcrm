@@ -29,6 +29,7 @@ import {
   MessageSquare,
   LayoutDashboard,
   ClipboardCheck,
+  Ticket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -56,6 +57,7 @@ import { usePendingEmailCount } from "@/hooks/use-rules-processing-queue";
 import { usePendingClassificationCount } from "@/hooks/use-classification-processing-queue";
 import { usePendingImportCount } from "@/hooks/use-import-events";
 import { useAllEntityApprovalCounts } from "@/hooks/use-entity-approvals";
+import { useOpenTicketCount } from "@/hooks/use-tickets";
 import { cn } from "@/lib/utils";
 
 // Menu item type
@@ -65,7 +67,7 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color?: string;
   disabled?: boolean;
-  badgeKey?: "classification" | "rules" | "import" | "approvals";
+  badgeKey?: "classification" | "rules" | "import" | "approvals" | "tickets";
 }
 
 // Group definitions
@@ -73,6 +75,7 @@ const coreItems: MenuItem[] = [
   { title: "People", url: "/people", icon: Users },
   { title: "Senders", url: "/senders", icon: Send },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { title: "Tickets", url: "/tickets", icon: Ticket, badgeKey: "tickets" },
   { title: "Opportunities", url: "/opportunities", icon: Target },
   { title: "Approvals", url: "/approvals", icon: ClipboardCheck, badgeKey: "approvals" },
 ];
@@ -132,6 +135,7 @@ interface CollapsibleMenuGroupProps {
     rules?: number;
     import?: number;
     approvals?: number;
+    tickets?: number;
   };
 }
 
@@ -235,6 +239,7 @@ export function CRMSidebar() {
   const pendingClassificationCount = usePendingClassificationCount();
   const pendingImportCount = usePendingImportCount();
   const { data: approvalCounts } = useAllEntityApprovalCounts();
+  const openTicketCount = useOpenTicketCount();
 
   // Track which groups are open
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -270,6 +275,7 @@ export function CRMSidebar() {
     rules: pendingRulesCount,
     import: pendingImportCount,
     approvals: approvalCounts?.totalPending || 0,
+    tickets: openTicketCount,
   };
 
   return (
