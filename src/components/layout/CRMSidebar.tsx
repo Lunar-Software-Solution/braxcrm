@@ -28,6 +28,7 @@ import {
   ChevronRight,
   MessageSquare,
   LayoutDashboard,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -54,6 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { usePendingEmailCount } from "@/hooks/use-rules-processing-queue";
 import { usePendingClassificationCount } from "@/hooks/use-classification-processing-queue";
 import { usePendingImportCount } from "@/hooks/use-import-events";
+import { useAllEntityApprovalCounts } from "@/hooks/use-entity-approvals";
 import { cn } from "@/lib/utils";
 
 // Menu item type
@@ -63,7 +65,7 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   color?: string;
   disabled?: boolean;
-  badgeKey?: "classification" | "rules" | "import";
+  badgeKey?: "classification" | "rules" | "import" | "approvals";
 }
 
 // Group definitions
@@ -72,6 +74,7 @@ const coreItems: MenuItem[] = [
   { title: "Senders", url: "/senders", icon: Send },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Opportunities", url: "/opportunities", icon: Target },
+  { title: "Approvals", url: "/approvals", icon: ClipboardCheck, badgeKey: "approvals" },
 ];
 
 const emailItems: MenuItem[] = [
@@ -128,6 +131,7 @@ interface CollapsibleMenuGroupProps {
     classification?: number;
     rules?: number;
     import?: number;
+    approvals?: number;
   };
 }
 
@@ -230,6 +234,7 @@ export function CRMSidebar() {
   const pendingRulesCount = usePendingEmailCount();
   const pendingClassificationCount = usePendingClassificationCount();
   const pendingImportCount = usePendingImportCount();
+  const { data: approvalCounts } = useAllEntityApprovalCounts();
 
   // Track which groups are open
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -264,6 +269,7 @@ export function CRMSidebar() {
     classification: pendingClassificationCount,
     rules: pendingRulesCount,
     import: pendingImportCount,
+    approvals: approvalCounts?.totalPending || 0,
   };
 
   return (

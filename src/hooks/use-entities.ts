@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Entity, EntityType } from "@/types/entities";
+import type { EntityStatus } from "@/types/approvals";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateEntityData {
@@ -20,17 +21,33 @@ interface UpdateEntityData {
   avatar_url?: string | null;
 }
 
-export function useEntities(entityType: EntityType) {
+interface UseEntitiesOptions {
+  status?: EntityStatus;
+  includeAllStatuses?: boolean;
+}
+
+export function useEntities(entityType: EntityType, options?: UseEntitiesOptions) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const listQuery = useQuery({
-    queryKey: [entityType],
+    queryKey: [entityType, options?.status, options?.includeAllStatuses],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from(entityType)
         .select("*")
         .order("name");
+      
+      // By default, only show approved entities unless includeAllStatuses is true
+      if (!options?.includeAllStatuses) {
+        if (options?.status) {
+          query = query.eq("status", options.status);
+        } else {
+          query = query.eq("status", "approved");
+        }
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as Entity[];
     },

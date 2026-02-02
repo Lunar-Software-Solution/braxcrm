@@ -22,11 +22,25 @@ import { useTasks } from "@/hooks/use-tasks";
 import { useNotes } from "@/hooks/use-notes";
 import { useEntityFiles } from "@/hooks/use-entity-files";
 import { useToast } from "@/hooks/use-toast";
-import type { Entity } from "@/types/entities";
 import type { TaskInsert, TaskUpdate, NoteInsert, NoteUpdate, EntityTable } from "@/types/activities";
 
+// Base entity interface for the detail panel - status fields are optional for People
+interface DetailPanelEntity {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  status?: string;
+  source?: string | null;
+}
+
 interface EntityDetailPanelProps {
-  entity: Entity;
+  entity: DetailPanelEntity;
   entityType: EntityTable;
   entityColor: string;
   onClose: () => void;
