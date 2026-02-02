@@ -393,8 +393,8 @@ export function TicketDialog({
                 <FormItem>
                   <FormLabel>Assigned To</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ''}
+                    onValueChange={(val) => field.onChange(val === '__unassigned__' ? null : val)}
+                    value={field.value || '__unassigned__'}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -402,7 +402,7 @@ export function TicketDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="__unassigned__">Unassigned</SelectItem>
                       {users.map((u) => (
                         <SelectItem key={u.user_id} value={u.user_id}>
                           {u.display_name || u.email}
