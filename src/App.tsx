@@ -40,6 +40,7 @@ import Tasks from "./pages/Tasks";
 import Opportunities from "./pages/Opportunities";
 import Senders from "./pages/Senders";
 import Tickets from "./pages/Tickets";
+import Invoices from "./pages/Invoices";
 import ImportProcessingQueue from "./pages/ImportProcessingQueue";
 import ImportLog from "./pages/ImportLog";
 import ImportEndpoints from "./pages/ImportEndpoints";
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="/users-roles" element={<UsersRoles />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/tickets" element={<Tickets />} />
+              <Route path="/invoices" element={<Invoices />} />
               <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/senders" element={<Senders />} />
               <Route path="/import-queue" element={<ImportProcessingQueue />} />

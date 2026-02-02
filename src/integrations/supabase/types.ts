@@ -307,6 +307,78 @@ export type Database = {
         }
         Relationships: []
       }
+      document_import_events: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          endpoint_id: string | null
+          entity_id: string | null
+          entity_table: string | null
+          error_message: string | null
+          external_id: string | null
+          extracted_doc_id: string | null
+          file_path: string | null
+          file_url: string | null
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          source_system: string | null
+          status: Database["public"]["Enums"]["document_import_status"]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          endpoint_id?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          extracted_doc_id?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          source_system?: string | null
+          status?: Database["public"]["Enums"]["document_import_status"]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          endpoint_id?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          extracted_doc_id?: string | null
+          file_path?: string | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          source_system?: string | null
+          status?: Database["public"]["Enums"]["document_import_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_import_events_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_import_events_extracted_doc_id_fkey"
+            columns: ["extracted_doc_id"]
+            isOneToOne: false
+            referencedRelation: "extracted_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_affiliates: {
         Row: {
           affiliate_id: string
@@ -1568,16 +1640,92 @@ export type Database = {
           },
         ]
       }
+      extracted_documents: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          document_type: Database["public"]["Enums"]["document_type"]
+          email_id: string | null
+          entity_id: string | null
+          entity_table: string | null
+          extracted_data: Json | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_file_id: string | null
+          status: Database["public"]["Enums"]["document_status"]
+          title: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"]
+          email_id?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          extracted_data?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_file_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"]
+          email_id?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          extracted_data?: Json | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_file_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_documents_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_documents_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "entity_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extracted_invoices: {
         Row: {
           amount: number | null
           created_at: string
           currency: string | null
+          document_source: string | null
           due_date: string | null
           email_id: string
+          entity_id: string | null
+          entity_table: string | null
           id: string
           invoice_number: string | null
           raw_extraction: Json | null
+          source_file_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           user_id: string | null
           vendor_name: string | null
@@ -1586,11 +1734,15 @@ export type Database = {
           amount?: number | null
           created_at?: string
           currency?: string | null
+          document_source?: string | null
           due_date?: string | null
           email_id: string
+          entity_id?: string | null
+          entity_table?: string | null
           id?: string
           invoice_number?: string | null
           raw_extraction?: Json | null
+          source_file_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           user_id?: string | null
           vendor_name?: string | null
@@ -1599,11 +1751,15 @@ export type Database = {
           amount?: number | null
           created_at?: string
           currency?: string | null
+          document_source?: string | null
           due_date?: string | null
           email_id?: string
+          entity_id?: string | null
+          entity_table?: string | null
           id?: string
           invoice_number?: string | null
           raw_extraction?: Json | null
+          source_file_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           user_id?: string | null
           vendor_name?: string | null
@@ -1614,6 +1770,13 @@ export type Database = {
             columns: ["email_id"]
             isOneToOne: false
             referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extracted_invoices_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "entity_files"
             referencedColumns: ["id"]
           },
         ]
@@ -3048,6 +3211,20 @@ export type Database = {
     Enums: {
       app_role: "admin" | "member"
       automation_send_status: "pending" | "sent" | "failed" | "bounced"
+      document_import_status:
+        | "pending"
+        | "downloading"
+        | "processing"
+        | "completed"
+        | "failed"
+      document_status: "pending" | "reviewed" | "approved" | "rejected"
+      document_type:
+        | "contract"
+        | "receipt"
+        | "statement"
+        | "invoice"
+        | "purchase_order"
+        | "other"
       enrollment_status:
         | "active"
         | "completed"
@@ -3223,6 +3400,22 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "member"],
       automation_send_status: ["pending", "sent", "failed", "bounced"],
+      document_import_status: [
+        "pending",
+        "downloading",
+        "processing",
+        "completed",
+        "failed",
+      ],
+      document_status: ["pending", "reviewed", "approved", "rejected"],
+      document_type: [
+        "contract",
+        "receipt",
+        "statement",
+        "invoice",
+        "purchase_order",
+        "other",
+      ],
       enrollment_status: [
         "active",
         "completed",
