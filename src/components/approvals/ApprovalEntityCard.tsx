@@ -10,6 +10,7 @@ interface ApprovalEntityCardProps {
   color: string;
   onClick: () => void;
   isSelected?: boolean;
+  draggable?: boolean;
 }
 
 export function ApprovalEntityCard({
@@ -17,6 +18,7 @@ export function ApprovalEntityCard({
   color,
   onClick,
   isSelected,
+  draggable,
 }: ApprovalEntityCardProps) {
   const getInitials = (name: string) =>
     name
@@ -26,12 +28,20 @@ export function ApprovalEntityCard({
       .toUpperCase()
       .slice(0, 2);
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("entityId", entity.id);
+    e.dataTransfer.setData("currentStatus", entity.status);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   return (
     <Card
       className={`cursor-pointer transition-all hover:shadow-md ${
         isSelected ? "ring-2 ring-primary" : ""
-      }`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
       onClick={onClick}
+      draggable={draggable}
+      onDragStart={handleDragStart}
     >
       <CardContent className="p-3">
         <div className="flex items-start gap-3">

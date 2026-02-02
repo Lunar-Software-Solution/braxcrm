@@ -91,6 +91,34 @@ export default function EntityApprovalQueue() {
     }
   };
 
+  const handleMoveEntity = async (entityId: string, newStatus: EntityStatus) => {
+    const entity = entities.find((e) => e.id === entityId);
+    if (!entity) return;
+    
+    try {
+      await updateStatus({
+        id: entityId,
+        status: newStatus,
+      });
+      toast({
+        title: "Status updated",
+        description: `${entity.name} moved to ${entityStatusLabels[newStatus]}`,
+      });
+      // If this entity was selected, update its status in state
+      if (selectedEntity?.id === entityId) {
+        setSelectedEntity((prev) =>
+          prev ? { ...prev, status: newStatus } : null
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to move entity",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter entities if a specific status is selected
   const filteredEntitiesByStatus =
     statusFilter === "all"
@@ -196,6 +224,7 @@ export default function EntityApprovalQueue() {
                 entityColor={config.color}
                 selectedEntityId={selectedEntity?.id || null}
                 onSelectEntity={setSelectedEntity}
+                onMoveEntity={handleMoveEntity}
               />
             </ResizablePanel>
             {selectedEntity && (
