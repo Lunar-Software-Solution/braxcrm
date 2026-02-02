@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const ENTITY_JUNCTION_TABLES = [
-  "email_influencers",
+  "email_affiliates",
   "email_resellers",
   "email_product_suppliers",
-  "email_expense_suppliers",
+  "email_services_suppliers",
   "email_corporate_management",
   "email_personal_contacts",
   "email_subscriptions",

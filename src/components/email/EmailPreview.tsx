@@ -86,7 +86,7 @@ export function EmailPreview({
   const resetProcessing = useResetEmailProcessing();
   
   const hasLinkedEntities = linkedEntities && (
-    linkedEntities.influencers.length > 0 ||
+    linkedEntities.affiliates.length > 0 ||
     linkedEntities.resellers.length > 0 ||
     linkedEntities.productSuppliers.length > 0
   );
@@ -324,15 +324,15 @@ export function EmailPreview({
                 <span>Linked Entities</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {linkedEntities.influencers.map((influencer) => (
+                {linkedEntities.affiliates.map((affiliate) => (
                   <Badge
-                    key={influencer.id}
+                    key={affiliate.id}
                     variant="secondary"
                     className="flex items-center gap-1.5 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
                   >
                     <Users className="h-3 w-3" />
-                    {influencer.name}
-                    <span className="text-xs opacity-70">Influencer</span>
+                    {affiliate.name}
+                    <span className="text-xs opacity-70">Affiliate</span>
                   </Badge>
                 ))}
                 {linkedEntities.resellers.map((reseller) => (

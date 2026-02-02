@@ -95,10 +95,10 @@ const settingsItems: MenuItem[] = [
 ];
 
 const entityItems: MenuItem[] = [
-  { title: "Influencers", url: "/influencers", icon: Sparkles, color: "#ec4899" },
+  { title: "Affiliates", url: "/affiliates", icon: Sparkles, color: "#ec4899" },
   { title: "Resellers", url: "/resellers", icon: Store, color: "#22c55e" },
   { title: "Product Suppliers", url: "/product-suppliers", icon: Package, color: "#3b82f6" },
-  { title: "Expense Suppliers", url: "/expense-suppliers", icon: Receipt, color: "#f97316" },
+  { title: "Services Suppliers", url: "/services-suppliers", icon: Receipt, color: "#f97316" },
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },
   { title: "Personal Contacts", url: "/personal-contacts", icon: Contact, color: "#8b5cf6" },
   { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, color: "#f59e0b" },

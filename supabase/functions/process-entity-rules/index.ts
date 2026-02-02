@@ -37,10 +37,10 @@ interface ActionResult {
 
 // Mapping from entity_table to link table and ID field - all 8 entity types
 const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
-  influencers: { table: "email_influencers", idField: "influencer_id" },
+  affiliates: { table: "email_affiliates", idField: "affiliate_id" },
   resellers: { table: "email_resellers", idField: "reseller_id" },
   product_suppliers: { table: "email_product_suppliers", idField: "product_supplier_id" },
-  expense_suppliers: { table: "email_expense_suppliers", idField: "expense_supplier_id" },
+  services_suppliers: { table: "email_services_suppliers", idField: "services_supplier_id" },
   corporate_management: { table: "email_corporate_management", idField: "corporate_management_id" },
   personal_contacts: { table: "email_personal_contacts", idField: "personal_contact_id" },
   subscriptions: { table: "email_subscriptions", idField: "subscription_id" },

@@ -43,10 +43,10 @@ const SENDER_TYPES: { value: SenderType; label: string; color: string }[] = [
 ];
 
 const ENTITY_TABLES = [
-  { value: "influencers", label: "Influencers" },
+  { value: "affiliates", label: "Affiliates" },
   { value: "resellers", label: "Resellers" },
   { value: "product_suppliers", label: "Product Suppliers" },
-  { value: "expense_suppliers", label: "Expense Suppliers" },
+  { value: "services_suppliers", label: "Services Suppliers" },
   { value: "corporate_management", label: "Corporate Management" },
   { value: "personal_contacts", label: "Personal Contacts" },
   { value: "subscriptions", label: "Subscriptions" },

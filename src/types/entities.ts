@@ -1,4 +1,4 @@
-export interface Influencer {
+export interface Affiliate {
   id: string;
   name: string;
   email: string | null;
@@ -34,7 +34,7 @@ export interface ProductSupplier {
   updated_at: string;
 }
 
-export interface ExpenseSupplier {
+export interface ServicesSupplier {
   id: string;
   name: string;
   email: string | null;
@@ -118,6 +118,6 @@ export interface LogisticSupplier {
   updated_at: string;
 }
 
-export type EntityType = "influencers" | "resellers" | "product_suppliers" | "expense_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions" | "marketing_sources" | "merchant_accounts" | "logistic_suppliers";
+export type EntityType = "affiliates" | "resellers" | "product_suppliers" | "services_suppliers" | "corporate_management" | "personal_contacts" | "subscriptions" | "marketing_sources" | "merchant_accounts" | "logistic_suppliers";
 
-export type Entity = Influencer | Reseller | ProductSupplier | ExpenseSupplier | CorporateManagement | PersonalContact | Subscription | MarketingSource | MerchantAccount | LogisticSupplier;
+export type Entity = Affiliate | Reseller | ProductSupplier | ServicesSupplier | CorporateManagement | PersonalContact | Subscription | MarketingSource | MerchantAccount | LogisticSupplier;

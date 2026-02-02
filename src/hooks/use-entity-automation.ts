@@ -182,10 +182,10 @@ export function useInitializeEntityRules() {
       if (!user) throw new Error("Not authenticated");
 
       const defaultRules = [
-        { entity_table: "influencers", description: "Social media influencers, content creators, KOLs", ai_prompt: "Identify influencers, content creators, brand ambassadors, or social media personalities" },
+        { entity_table: "affiliates", description: "Social media influencers, content creators, KOLs, affiliates", ai_prompt: "Identify affiliates, influencers, content creators, brand ambassadors, or social media personalities" },
         { entity_table: "resellers", description: "Distributors, retailers, resale partners", ai_prompt: "Identify resellers, distributors, retailers, or wholesale partners" },
         { entity_table: "product_suppliers", description: "Vendors selling products for resale", ai_prompt: "Identify suppliers of physical products, inventory vendors, or trade suppliers" },
-        { entity_table: "expense_suppliers", description: "Service providers and expense vendors", ai_prompt: "Identify service providers, SaaS vendors, marketing agencies, or expense-related suppliers" },
+        { entity_table: "services_suppliers", description: "Service providers and expense vendors", ai_prompt: "Identify service providers, SaaS vendors, marketing agencies, or services-related suppliers" },
         { entity_table: "corporate_management", description: "Legal, accounting, and corporate entities", ai_prompt: "Identify lawyers, accountants, banks, government agencies, or corporate management contacts" },
         { entity_table: "personal_contacts", description: "Friends, family, personal acquaintances", ai_prompt: "Identify personal contacts, friends, family members, or non-business acquaintances" },
         { entity_table: "subscriptions", description: "Recurring subscriptions and SaaS services", ai_prompt: "Identify subscription services, recurring billing, or SaaS notifications" },
