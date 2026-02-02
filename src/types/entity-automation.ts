@@ -26,7 +26,7 @@ export interface EntityRuleAction {
 // Actions that require specific entity types (invoice extraction)
 export const INVOICE_CAPABLE_ENTITIES = [
   "product_suppliers",
-  "expense_suppliers",
+  "services_suppliers",
   "corporate_management",
   "subscriptions",
   "merchant_accounts",
@@ -34,10 +34,11 @@ export const INVOICE_CAPABLE_ENTITIES = [
 
 // Available actions per entity type
 export const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
-  influencers: ["tag"],
-  resellers: ["tag"],
+  affiliates: ["tag"],
+  vigile_partners: ["tag"],
+  brax_distributors: ["tag"],
   product_suppliers: ["tag", "extract_invoice"],
-  expense_suppliers: ["tag", "extract_invoice"],
+  services_suppliers: ["tag", "extract_invoice"],
   corporate_management: ["tag", "extract_invoice"],
   personal_contacts: ["tag"],
   subscriptions: ["tag", "extract_invoice"],
@@ -48,10 +49,11 @@ export const ENTITY_ACTION_AVAILABILITY: Record<string, RuleActionType[]> = {
 
 // Entity display config with icons and colors matching CRMSidebar
 export const ENTITY_AUTOMATION_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  influencers: { icon: "Sparkles", color: "#ec4899", label: "Influencers" },
-  resellers: { icon: "Store", color: "#22c55e", label: "Resellers" },
+  affiliates: { icon: "Sparkles", color: "#ec4899", label: "Affiliates" },
+  vigile_partners: { icon: "Store", color: "#22c55e", label: "Vigile Partners" },
+  brax_distributors: { icon: "Package", color: "#7c3aed", label: "Brax Distributors" },
   product_suppliers: { icon: "Package", color: "#3b82f6", label: "Product Suppliers" },
-  expense_suppliers: { icon: "Receipt", color: "#f97316", label: "Expense Suppliers" },
+  services_suppliers: { icon: "Receipt", color: "#f97316", label: "Services Suppliers" },
   corporate_management: { icon: "Building2", color: "#0891b2", label: "Corporate Management" },
   personal_contacts: { icon: "Contact", color: "#8b5cf6", label: "Personal Contacts" },
   subscriptions: { icon: "CreditCard", color: "#f59e0b", label: "Subscriptions" },
@@ -62,10 +64,11 @@ export const ENTITY_AUTOMATION_CONFIG: Record<string, { icon: string; color: str
 
 // All entity tables in order
 export const ENTITY_TABLES = [
-  "influencers",
-  "resellers",
+  "affiliates",
+  "vigile_partners",
+  "brax_distributors",
   "product_suppliers",
-  "expense_suppliers",
+  "services_suppliers",
   "corporate_management",
   "personal_contacts",
   "subscriptions",

@@ -87,7 +87,8 @@ export function EmailPreview({
   
   const hasLinkedEntities = linkedEntities && (
     linkedEntities.affiliates.length > 0 ||
-    linkedEntities.resellers.length > 0 ||
+    linkedEntities.vigilePartners.length > 0 ||
+    linkedEntities.braxDistributors.length > 0 ||
     linkedEntities.productSuppliers.length > 0
   );
 
@@ -335,15 +336,26 @@ export function EmailPreview({
                     <span className="text-xs opacity-70">Affiliate</span>
                   </Badge>
                 ))}
-                {linkedEntities.resellers.map((reseller) => (
+                {linkedEntities.vigilePartners.map((partner) => (
                   <Badge
-                    key={reseller.id}
+                    key={partner.id}
                     variant="secondary"
-                    className="flex items-center gap-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                    className="flex items-center gap-1.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                   >
                     <Building2 className="h-3 w-3" />
-                    {reseller.name}
-                    <span className="text-xs opacity-70">Reseller</span>
+                    {partner.name}
+                    <span className="text-xs opacity-70">Vigile Partner</span>
+                  </Badge>
+                ))}
+                {linkedEntities.braxDistributors.map((distributor) => (
+                  <Badge
+                    key={distributor.id}
+                    variant="secondary"
+                    className="flex items-center gap-1.5 bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300"
+                  >
+                    <Building2 className="h-3 w-3" />
+                    {distributor.name}
+                    <span className="text-xs opacity-70">Brax Distributor</span>
                   </Badge>
                 ))}
                 {linkedEntities.productSuppliers.map((supplier) => (

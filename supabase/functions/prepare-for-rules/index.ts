@@ -28,7 +28,8 @@ interface PrepareResult {
 // Mapping from entity_table to link table and ID field - all 10 entity types
 const ENTITY_LINK_TABLES: Record<string, { table: string; idField: string }> = {
   affiliates: { table: "email_affiliates", idField: "affiliate_id" },
-  resellers: { table: "email_resellers", idField: "reseller_id" },
+  vigile_partners: { table: "email_vigile_partners", idField: "vigile_partner_id" },
+  brax_distributors: { table: "email_brax_distributors", idField: "brax_distributor_id" },
   product_suppliers: { table: "email_product_suppliers", idField: "product_supplier_id" },
   services_suppliers: { table: "email_services_suppliers", idField: "services_supplier_id" },
   corporate_management: { table: "email_corporate_management", idField: "corporate_management_id" },

@@ -3,7 +3,8 @@
 export type EntityTable = 
   | 'people'
   | 'affiliates'
-  | 'resellers'
+  | 'vigile_partners'
+  | 'brax_distributors'
   | 'product_suppliers'
   | 'services_suppliers'
   | 'corporate_management'
@@ -139,7 +140,8 @@ export interface OpportunityUpdate {
 export const entityTableLabels: Record<EntityTable, string> = {
   people: 'People',
   affiliates: 'Affiliates',
-  resellers: 'Resellers',
+  vigile_partners: 'Vigile Partners',
+  brax_distributors: 'Brax Distributors',
   product_suppliers: 'Product Suppliers',
   services_suppliers: 'Services Suppliers',
   corporate_management: 'Corporate Management',

@@ -96,7 +96,8 @@ const settingsItems: MenuItem[] = [
 
 const entityItems: MenuItem[] = [
   { title: "Affiliates", url: "/affiliates", icon: Sparkles, color: "#ec4899" },
-  { title: "Resellers", url: "/resellers", icon: Store, color: "#22c55e" },
+  { title: "Vigile Partners", url: "/vigile-partners", icon: Store, color: "#22c55e" },
+  { title: "Brax Distributors", url: "/brax-distributors", icon: Package, color: "#7c3aed" },
   { title: "Product Suppliers", url: "/product-suppliers", icon: Package, color: "#3b82f6" },
   { title: "Services Suppliers", url: "/services-suppliers", icon: Receipt, color: "#f97316" },
   { title: "Corporate Management", url: "/corporate-management", icon: Building2, color: "#0891b2" },

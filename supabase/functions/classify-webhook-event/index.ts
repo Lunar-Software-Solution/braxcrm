@@ -9,7 +9,8 @@ const corsHeaders = {
 
 const ENTITY_TABLES = [
   "affiliates",
-  "resellers",
+  "vigile_partners",
+  "brax_distributors",
   "product_suppliers",
   "services_suppliers",
   "corporate_management",

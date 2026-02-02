@@ -17,7 +17,8 @@ import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import Inbox from "./pages/Inbox";
 import Affiliates from "./pages/Affiliates";
-import Resellers from "./pages/Resellers";
+import VigilePartners from "./pages/VigilePartners";
+import BraxDistributors from "./pages/BraxDistributors";
 import ProductSuppliers from "./pages/ProductSuppliers";
 import ServicesSuppliers from "./pages/ServicesSuppliers";
 import CorporateManagement from "./pages/CorporateManagement";
@@ -71,7 +72,8 @@ const App = () => (
               <Route path="/objects" element={<Objects />} />
               <Route path="/person/:personId" element={<PersonDetail />} />
               <Route path="/affiliates" element={<Affiliates />} />
-              <Route path="/resellers" element={<Resellers />} />
+              <Route path="/vigile-partners" element={<VigilePartners />} />
+              <Route path="/brax-distributors" element={<BraxDistributors />} />
               <Route path="/product-suppliers" element={<ProductSuppliers />} />
               <Route path="/services-suppliers" element={<ServicesSuppliers />} />
               <Route path="/corporate-management" element={<CorporateManagement />} />
